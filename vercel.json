@@ -1,11 +1,1 @@
-{
-  "outputDirectory": ".",
-  "routes": [
-    { "src": "/", "dest": "/index.html" },
-    { "src": "/admin", "dest": "/nomi-admin-suite.html" },
-    { "src": "/waiter", "dest": "/nomi-waiter-mobile.html" },
-    { "src": "/kitchen", "dest": "/nomi-kitchen-display.html" },
-    { "src": "/customer", "dest": "/nomi-customer-app.html" },
-    { "src": "/(.*)", "dest": "/$1" }
-  ]
-}
+{}
