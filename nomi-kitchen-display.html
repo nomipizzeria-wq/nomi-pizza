@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nomi Pizza — Cocina KDS</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--red:#C8392B;--red-l:#FAECE7;--ink:#1A1714;--ink60:#6B6460;--ink10:#EDE9E4;--wh:#fff;--cream:#FAF8F5;--green:#2D7A4F;--green-l:#E8F5EE;--amber:#B45309;--amber-l:#FEF3C7;--blue:#1D4ED8;--blue-l:#EFF6FF}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#111;color:var(--wh);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased}
+.kds-header{background:#000;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--red)}
+.kds-brand{display:flex;align-items:center;gap:10px}
+.kds-logo{font-size:22px}
+.kds-title{font-size:16px;font-weight:700;letter-spacing:.02em}
+.kds-subtitle{font-size:11px;color:rgba(255,255,255,.5);margin-top:1px}
+.kds-time{font-family:'DM Mono',monospace;font-size:24px;font-weight:500;color:var(--wh)}
+.kds-stats{display:flex;gap:20px;align-items:center}
+.kds-stat{text-align:center}
+.kds-stat-val{font-size:18px;font-weight:700;font-family:'DM Mono',monospace}
+.kds-stat-lbl{font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-top:1px}
+.kds-cols{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#222;flex:1;min-height:calc(100vh - 64px)}
+.kds-col{background:#1a1a1a;display:flex;flex-direction:column}
+.kds-col-header{padding:10px 14px;border-bottom:1px solid #333;display:flex;align-items:center;justify-content:space-between}
+.kds-col-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.4)}
+.kds-col-count{font-size:11px;font-weight:700;color:rgba(255,255,255,.6)}
+.kds-orders{padding:8px;flex:1;overflow-y:auto}
+.order-card{background:#242424;border-radius:10px;margin-bottom:8px;overflow:hidden;border-left:4px solid transparent;transition:all .3s}
+.order-card.urgent{border-left-color:#EF4444;animation:urgentPulse 2s ease-in-out infinite}
+.order-card.normal{border-left-color:var(--amber)}
+.order-card.new{border-left-color:var(--red)}
+.order-card.almost{border-left-color:#22c55e}
+@keyframes urgentPulse{0%,100%{background:#242424}50%{background:#2d1a1a}}
+.oc-header{padding:10px 12px;border-bottom:1px solid #333;display:flex;align-items:center;justify-content:space-between}
+.oc-num{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:rgba(255,255,255,.5)}
+.oc-table{font-size:15px;font-weight:700;color:var(--wh)}
+.oc-type{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.oc-dine{background:rgba(200,57,43,.2);color:#ff9080}.oc-delivery{background:rgba(29,78,216,.2);color:#7eb3ff}.oc-pickup{background:rgba(45,122,79,.2);color:#7dcca0}
+.oc-timer{font-family:'DM Mono',monospace;font-size:13px;font-weight:700}
+.oc-timer.ok{color:#22c55e}.oc-timer.warn{color:var(--amber)}.oc-timer.urgent{color:#EF4444}
+.oc-items{padding:8px 12px}
+.oc-item{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid #2d2d2d;cursor:pointer;transition:opacity .2s}
+.oc-item:last-child{border-bottom:none}
+.oc-item.done{opacity:.35}
+.oc-item-check{width:18px;height:18px;border-radius:4px;border:2px solid #444;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.oc-item.done .oc-item-check{background:#22c55e;border-color:#22c55e}
+.oc-item-check svg{width:10px;height:10px;fill:#fff;display:none}
+.oc-item.done .oc-item-check svg{display:block}
+.oc-item-content{flex:1;min-width:0}
+.oc-item-name{font-size:13px;font-weight:600;color:var(--wh)}
+.oc-item-qty{font-size:11px;color:rgba(255,255,255,.5);margin-right:6px}
+.oc-item-mods{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px}
+.oc-item-note{font-size:10px;color:var(--amber);margin-top:2px;font-weight:600}
+.oc-actions{padding:8px 12px;border-top:1px solid #333;display:flex;gap:6px}
+.oc-btn{flex:1;padding:7px;border-radius:6px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;transition:all .15s}
+.oc-btn:active{transform:scale(.97)}
+.oc-btn-ready{background:var(--red);color:#fff}.oc-btn-ready:hover{background:#9B2A1E}
+.oc-btn-bump{background:#333;color:rgba(255,255,255,.6)}.oc-btn-bump:hover{background:#444}
+.col-pending .order-card.new{border-left-color:var(--red)}
+.col-new .oc-header{background:rgba(200,57,43,.05)}
+
+/* LEGEND */
+.kds-legend{display:flex;align-items:center;gap:12px}
+.leg{display:flex;align-items:center;gap:4px;font-size:10px;color:rgba(255,255,255,.4)}
+.leg-dot{width:8px;height:8px;border-radius:50%}
+
+/* SOUND INDICATOR */
+.sound-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;color:rgba(255,255,255,.6);display:flex;align-items:center;gap:4px}
+
+/* TOAST */
+.kds-toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--wh);color:var(--ink);padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:99;white-space:nowrap}
+.kds-toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<div class="kds-header">
+  <div class="kds-brand">
+    <span class="kds-logo">🍕</span>
+    <div>
+      <div class="kds-title">COCINA — NOMI PIZZA</div>
+      <div class="kds-subtitle">Kitchen Display System</div>
+    </div>
+  </div>
+  <div class="kds-stats">
+    <div class="kds-legend">
+      <div class="leg"><div class="leg-dot" style="background:var(--red)"></div>Nuevo</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div>En proceso</div>
+      <div class="leg"><div class="leg-dot" style="background:#22c55e"></div>Casi listo</div>
+      <div class="leg"><div class="leg-dot" style="background:#EF4444"></div>Urgente</div>
+    </div>
+    <div class="kds-stat"><div class="kds-stat-val" id="stat-pending">3</div><div class="kds-stat-lbl">Pendientes</div></div>
+    <div class="kds-stat"><div class="kds-stat-val" id="stat-avg" style="color:var(--amber)">18m</div><div class="kds-stat-lbl">Tiempo prom.</div></div>
+    <div class="kds-stat"><div class="kds-stat-val" id="stat-done" style="color:#22c55e">28</div><div class="kds-stat-lbl">Listos hoy</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="sound-btn" id="sound-btn" onclick="toggleSound()">🔔 Sonido ON</button>
+    <div class="kds-time" id="kds-clock">15:42</div>
+  </div>
+</div>
+
+<div class="kds-cols">
+  <div class="kds-col">
+    <div class="kds-col-header">
+      <span class="kds-col-title">Nuevos</span>
+      <span class="kds-col-count" id="col-new-count">2</span>
+    </div>
+    <div class="kds-orders" id="col-new"></div>
+  </div>
+  <div class="kds-col">
+    <div class="kds-col-header">
+      <span class="kds-col-title">En preparación</span>
+      <span class="kds-col-count" id="col-prep-count">3</span>
+    </div>
+    <div class="kds-orders" id="col-prep"></div>
+  </div>
+  <div class="kds-col">
+    <div class="kds-col-header">
+      <span class="kds-col-title">Casi listos</span>
+      <span class="kds-col-count" id="col-almost-count">1</span>
+    </div>
+    <div class="kds-orders" id="col-almost"></div>
+  </div>
+  <div class="kds-col">
+    <div class="kds-col-header">
+      <span class="kds-col-title">Listos ✓</span>
+      <span class="kds-col-count" id="col-ready-count">4</span>
+    </div>
+    <div class="kds-orders" id="col-ready"></div>
+  </div>
+</div>
+
+<div class="kds-toast" id="kds-toast"></div>
+
+<script>
+var soundOn=true;
+var orders=[
+  {id:'o1',num:2041,table:'Mesa 4',type:'dine_in',startedAt:Date.now()-22*60000,items:[
+    {id:'i1',name:'Margherita Nomi',qty:2,size:'L',mods:[],note:'',done:false},
+    {id:'i2',name:'Pepperoni Clásica',qty:1,size:'XL',mods:['Extra queso'],note:'',done:false}
+  ],status:'prep'},
+  {id:'o2',num:2040,table:'Para llevar',type:'pickup',startedAt:Date.now()-8*60000,items:[
+    {id:'i3',name:'BBQ Chicken Nomi',qty:1,size:'M',mods:['Sin jalapeño'],note:'Alergia picante',done:false},
+    {id:'i4',name:'Refresco 600ml',qty:2,mods:[],note:'',done:true}
+  ],status:'prep'},
+  {id:'o3',num:2042,table:'Domicilio',type:'delivery',startedAt:Date.now()-2*60000,items:[
+    {id:'i5',name:'Cuatro Quesos',qty:1,size:'L',mods:[],note:'',done:false}
+  ],status:'new'},
+  {id:'o4',num:2043,table:'Mesa 7',type:'dine_in',startedAt:Date.now()-32*60000,items:[
+    {id:'i6',name:'Margherita Nomi',qty:1,size:'M',mods:[],note:'',done:true},
+    {id:'i7',name:'Ensalada César',qty:1,mods:[],note:'',done:true}
+  ],status:'almost'},
+  {id:'o5',num:2038,table:'Mesa 2',type:'dine_in',startedAt:Date.now()-18*60000,items:[
+    {id:'i8',name:'Pepperoni Clásica',qty:3,size:'L',mods:[],note:'Sin sal en una',done:false}
+  ],status:'new'},
+  {id:'o6',num:2037,table:'Mesa 9',type:'dine_in',startedAt:Date.now()-40*60000,items:[
+    {id:'i9',name:'BBQ Chicken Nomi',qty:2,size:'M',mods:['Extra picante'],note:'',done:true},
+    {id:'i10',name:'Pan de ajo',qty:2,mods:[],note:'',done:true}
+  ],status:'ready'},
+];
+
+function getElapsed(startedAt){
+  var mins=Math.floor((Date.now()-startedAt)/60000);
+  return mins;
+}
+function formatTimer(mins){
+  var h=Math.floor(mins/60),m=mins%60;
+  return h>0?h+'h '+m+'m':m+'m';
+}
+function timerClass(mins){
+  if(mins>30) return 'urgent';
+  if(mins>20) return 'warn';
+  return 'ok';
+}
+function typeClass(type){
+  if(type==='dine_in') return 'oc-dine';
+  if(type==='delivery') return 'oc-delivery';
+  return 'oc-pickup';
+}
+function typeLabel(type){
+  if(type==='dine_in') return 'Mesa';
+  if(type==='delivery') return 'Domicilio';
+  return 'Para llevar';
+}
+function urgencyClass(mins,status){
+  if(mins>30) return 'urgent';
+  if(status==='almost') return 'almost';
+  if(status==='new') return 'new';
+  return 'normal';
+}
+
+function renderCard(order){
+  var mins=getElapsed(order.startedAt);
+  var allDone=order.items.every(function(i){return i.done});
+  var itemsHtml=order.items.map(function(item){
+    return '<div class="oc-item'+(item.done?' done':'')+'" onclick="toggleItem(\''+order.id+'\',\''+item.id+'\')">'
+      +'<div class="oc-item-check"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>'
+      +'<div class="oc-item-content">'
+      +'<div class="oc-item-name"><span class="oc-item-qty">'+item.qty+'×</span>'+item.name+(item.size?' ('+item.size+')':'')+'</div>'
+      +(item.mods&&item.mods.length?'<div class="oc-item-mods">+ '+item.mods.join(' · ')+'</div>':'')
+      +(item.note?'<div class="oc-item-note">⚠ '+item.note+'</div>':'')
+      +'</div></div>';
+  }).join('');
+  var nextAction = order.status==='new' ? '▶ Iniciar' : order.status==='prep' ? '🍕 Casi listo' : order.status==='almost' ? '✓ Listo' : '— Bump';
+  var card=document.createElement('div');
+  card.className='order-card '+urgencyClass(mins,order.status);
+  card.id='card-'+order.id;
+  card.innerHTML='<div class="oc-header">'
+    +'<div><div class="oc-num">#'+order.num+'</div><div class="oc-table">'+order.table+'</div></div>'
+    +'<div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
+    +'<span class="oc-type '+typeClass(order.type)+'">'+typeLabel(order.type)+'</span>'
+    +'<span class="oc-timer '+timerClass(mins)+'">'+formatTimer(mins)+'</span>'
+    +'</div></div>'
+    +'<div class="oc-items">'+itemsHtml+'</div>'
+    +'<div class="oc-actions">'
+    +'<button class="oc-btn oc-btn-ready" onclick="advanceOrder(\''+order.id+'\')">'+nextAction+'</button>'
+    +(order.status==='ready'?'<button class="oc-btn oc-btn-bump" onclick="bumpOrder(\''+order.id+'\')">Remover</button>':'')
+    +'</div>';
+  return card;
+}
+
+function render(){
+  var cols={new:document.getElementById('col-new'),prep:document.getElementById('col-prep'),almost:document.getElementById('col-almost'),ready:document.getElementById('col-ready')};
+  var counts={new:0,prep:0,almost:0,ready:0};
+  Object.values(cols).forEach(function(c){c.innerHTML=''});
+  orders.forEach(function(order){
+    var col=cols[order.status];
+    if(col){col.appendChild(renderCard(order));counts[order.status]++;}
+  });
+  document.getElementById('col-new-count').textContent=counts.new;
+  document.getElementById('col-prep-count').textContent=counts.prep;
+  document.getElementById('col-almost-count').textContent=counts.almost;
+  document.getElementById('col-ready-count').textContent=counts.ready;
+  document.getElementById('stat-pending').textContent=counts.new+counts.prep+counts.almost;
+}
+
+function toggleItem(orderId,itemId){
+  var order=orders.find(function(o){return o.id===orderId});
+  var item=order.items.find(function(i){return i.id===itemId});
+  item.done=!item.done;
+  render();
+}
+
+function advanceOrder(orderId){
+  var order=orders.find(function(o){return o.id===orderId});
+  var next={new:'prep',prep:'almost',almost:'ready',ready:'ready'};
+  var labels={new:'¡Iniciando preparación!',prep:'Marcado como casi listo',almost:'✓ LISTO — Avisar al mesero',ready:'Pedido servido'};
+  order.status=next[order.status];
+  order.items.forEach(function(i){if(order.status==='ready') i.done=true});
+  showKDSToast(labels[next[order.status]||'new']||'Actualizado');
+  if(soundOn&&order.status==='ready') playBeep();
+  render();
+}
+
+function bumpOrder(orderId){
+  orders=orders.filter(function(o){return o.id!==orderId});
+  render();
+}
+
+function playBeep(){
+  try{
+    var ctx=new AudioContext();
+    var osc=ctx.createOscillator();
+    var gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.frequency.value=880;gain.gain.value=0.3;
+    osc.start();osc.stop(ctx.currentTime+0.15);
+    setTimeout(function(){osc.frequency.value=1100;osc.start(ctx.currentTime+0.2);osc.stop(ctx.currentTime+0.35);},200);
+  }catch(e){}
+}
+
+function toggleSound(){
+  soundOn=!soundOn;
+  document.getElementById('sound-btn').textContent=(soundOn?'🔔 Sonido ON':'🔕 Sonido OFF');
+}
+
+var kdsToastTimer;
+function showKDSToast(msg){
+  var t=document.getElementById('kds-toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(kdsToastTimer);kdsToastTimer=setTimeout(function(){t.classList.remove('show');},2500);
+}
+
+// Clock
+function updateClock(){
+  document.getElementById('kds-clock').textContent=new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(updateClock,1000);updateClock();
+
+// Auto-update timers every 30s
+setInterval(render,30000);
+
+// Simulate new order arriving
+setTimeout(function(){
+  orders.unshift({id:'o_new',num:2044,table:'Mesa 11',type:'dine_in',startedAt:Date.now(),items:[
+    {id:'i_new1',name:'Margherita Nomi',qty:2,size:'M',mods:[],note:'',done:false},
+    {id:'i_new2',name:'Refresco 600ml',qty:2,mods:[],note:'',done:false}
+  ],status:'new'});
+  render();
+  showKDSToast('🆕 Nuevo pedido — Mesa 11 #2044');
+  if(soundOn) playBeep();
+},8000);
+
+render();
+</script>
+</body>
+</html>

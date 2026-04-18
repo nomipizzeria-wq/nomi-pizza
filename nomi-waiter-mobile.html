@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nomi — Mesero</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--red:#C8392B;--red-d:#9B2A1E;--red-l:#FAECE7;--ink:#1A1714;--ink60:#6B6460;--ink20:#E8E4DF;--wh:#fff;--cream:#FAF8F5;--green:#2D7A4F;--green-l:#E8F5EE;--amber:#B45309;--amber-l:#FEF3C7;--blue:#1D4ED8;--blue-l:#EFF6FF;--r:14px;--rsm:10px;--tr:.15s cubic-bezier(.4,0,.2,1)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);font-size:14px;min-height:100vh;max-width:430px;margin:0 auto;position:relative;-webkit-font-smoothing:antialiased}
+
+/* DEVICE FRAME */
+.device{background:var(--ink);min-height:100vh;display:flex;flex-direction:column;border-radius:0;position:relative;overflow:hidden}
+
+/* STATUS BAR */
+.status-bar{background:var(--red);padding:10px 20px 8px;display:flex;align-items:center;justify-content:space-between}
+.status-bar-time{font-size:13px;font-weight:600;color:#fff}
+.status-bar-icons{display:flex;gap:5px;align-items:center}
+.status-bar-icons span{font-size:11px;color:rgba(255,255,255,.9)}
+
+/* APP HEADER */
+.app-header{background:var(--red);padding:6px 20px 16px;position:relative}
+.app-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.app-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#fff}
+.app-subtitle{font-size:11px;color:rgba(255,255,255,.7)}
+.header-avatar{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;border:2px solid rgba(255,255,255,.3)}
+.quick-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.qs{background:rgba(255,255,255,.15);border-radius:var(--rsm);padding:8px;text-align:center;backdrop-filter:blur(4px)}
+.qs-val{font-size:18px;font-weight:600;color:#fff;line-height:1}
+.qs-lbl{font-size:9px;color:rgba(255,255,255,.7);margin-top:2px;letter-spacing:.03em}
+
+/* NAV TABS */
+.nav-tabs{background:var(--wh);border-bottom:1px solid var(--ink20);display:flex;overflow-x:auto;scrollbar-width:none}
+.nav-tabs::-webkit-scrollbar{display:none}
+.nav-tab{padding:12px 16px;font-size:12px;font-weight:500;color:var(--ink60);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0;transition:var(--tr)}
+.nav-tab.active{color:var(--red);border-bottom-color:var(--red)}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:14px 16px;background:var(--cream)}
+.page{display:none}.page.active{display:block;animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.card{background:var(--wh);border-radius:var(--r);border:1px solid var(--ink20);overflow:hidden;margin-bottom:12px}
+.card-head{padding:12px 14px;border-bottom:1px solid var(--ink20);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:600;color:var(--ink)}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.bg{background:var(--green-l);color:var(--green)}.br{background:var(--red-l);color:var(--red-d)}.ba{background:var(--amber-l);color:var(--amber)}.bi{background:var(--blue-l);color:var(--blue)}
+
+/* TABLE GRID */
+.tables-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}
+.tc{border-radius:var(--rsm);border:2px solid var(--ink20);padding:12px 8px;cursor:pointer;transition:var(--tr);text-align:center;background:var(--wh);-webkit-tap-highlight-color:transparent;user-select:none}
+.tc:active{transform:scale(.95)}
+.tc.occ{border-color:var(--red);background:var(--red-l)}
+.tc.rdy{border-color:var(--amber);background:var(--amber-l)}
+.tc.free{border-color:var(--green);background:var(--green-l)}
+.tc-num{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--ink);line-height:1}
+.tc-cap{font-size:9px;color:var(--ink60);margin-top:1px}
+.tc-s{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:6px}
+.tc.occ .tc-s{color:var(--red-d)}.tc.rdy .tc-s{color:var(--amber)}.tc.free .tc-s{color:var(--green)}
+.tc-amt{font-size:12px;font-weight:600;color:var(--ink);margin-top:2px}
+
+/* ROWS */
+.row{display:flex;align-items:center;padding:11px 14px;border-bottom:1px solid var(--ink20);gap:9px}
+.row:last-child{border-bottom:none}
+.rm{flex:1;min-width:0}.rt{font-size:13px;font-weight:500;color:var(--ink)}.rs{font-size:11px;color:var(--ink60);margin-top:1px}
+.rr{text-align:right;flex-shrink:0}
+.av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0}
+.av-r{background:var(--red-l);color:var(--red-d)}.av-g{background:var(--green-l);color:var(--green)}.av-a{background:var(--amber-l);color:var(--amber)}.av-b{background:var(--blue-l);color:var(--blue)}
+
+/* ORDER PANEL */
+.order-panel{background:var(--wh);border-radius:var(--r);border:1px solid var(--ink20);overflow:hidden}
+.op-header{background:var(--red);padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+.op-title{font-size:14px;font-weight:600;color:#fff}
+.op-sub{font-size:11px;color:rgba(255,255,255,.75);margin-top:2px}
+.menu-cats{display:flex;gap:6px;padding:12px 14px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--ink20)}
+.menu-cats::-webkit-scrollbar{display:none}
+.mcat{padding:5px 12px;border-radius:20px;border:1px solid var(--ink20);font-size:11px;font-weight:500;cursor:pointer;transition:var(--tr);white-space:nowrap;background:var(--cream);color:var(--ink60);flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.mcat:active{transform:scale(.96)}.mcat.active{background:var(--red);color:#fff;border-color:var(--red)}
+.menu-list{padding:0}
+.mi{display:flex;align-items:center;padding:11px 14px;border-bottom:1px solid var(--ink20);cursor:pointer;transition:background var(--tr);-webkit-tap-highlight-color:transparent;user-select:none}
+.mi:last-child{border-bottom:none}.mi:active{background:var(--red-l)}
+.mi-icon{font-size:22px;margin-right:10px;flex-shrink:0}
+.mi-info{flex:1;min-width:0}.mi-name{font-size:13px;font-weight:500;color:var(--ink)}.mi-desc{font-size:10px;color:var(--ink60)}
+.mi-price{font-size:13px;font-weight:700;color:var(--red);flex-shrink:0}
+.add-circle{width:26px;height:26px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;margin-left:8px;flex-shrink:0;transition:var(--tr)}
+.mi:active .add-circle{transform:scale(.9);background:var(--red-d)}
+
+/* CART */
+.cart-summary{background:var(--red);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:12px;-webkit-tap-highlight-color:transparent}
+.cs-left .cs-title{font-size:13px;font-weight:600;color:#fff}.cs-left .cs-sub{font-size:11px;color:rgba(255,255,255,.75);margin-top:1px}
+.cs-total{font-size:18px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+.cart-item{display:flex;align-items:center;padding:9px 14px;border-bottom:1px solid var(--ink20);gap:8px}
+.cart-item:last-child{border-bottom:none}
+.ci-name{flex:1;font-size:13px;font-weight:500;color:var(--ink)}
+.ci-qty-ctrl{display:flex;align-items:center;gap:6px}
+.qb{width:24px;height:24px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:var(--tr);-webkit-tap-highlight-color:transparent;line-height:1}
+.qb:active{background:var(--red);color:#fff;border-color:var(--red)}
+.ci-p{font-size:12px;font-weight:600;color:var(--ink);min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
+.send-btn{background:var(--red);color:#fff;border:none;border-radius:var(--r);padding:14px;width:100%;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:10px;transition:var(--tr);-webkit-tap-highlight-color:transparent}
+.send-btn:active{background:var(--red-d);transform:scale(.98)}
+
+/* BOTTOM NAV */
+.bottom-nav{background:var(--wh);border-top:1px solid var(--ink20);display:flex;padding:8px 0 20px;flex-shrink:0}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:6px 0;-webkit-tap-highlight-color:transparent;transition:var(--tr)}
+.bn-item:active{transform:scale(.92)}
+.bn-icon{width:22px;height:22px;fill:var(--ink60)}
+.bn-item.active .bn-icon{fill:var(--red)}
+.bn-lbl{font-size:9px;font-weight:500;color:var(--ink60)}.bn-item.active .bn-lbl{color:var(--red)}
+.bn-dot{width:5px;height:5px;border-radius:50%;background:var(--red);margin-top:1px;display:none}
+.bn-item.has-dot .bn-dot{display:block}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:var(--rsm);font-size:12px;font-weight:500;white-space:nowrap;opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:99}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* SHIFT */
+.shift-card{background:var(--wh);border-radius:var(--r);border:1px solid var(--ink20);padding:14px;margin-bottom:12px}
+.sc-title{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:8px}
+.sc-stat{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--ink20);font-size:12px}
+.sc-stat:last-child{border-bottom:none}
+.sc-lbl{color:var(--ink60)}.sc-val{font-weight:600;color:var(--ink)}
+
+/* NOTIF */
+.notif-row{display:flex;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--ink20);gap:10px}
+.notif-row:last-child{border-bottom:none}
+.notif-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.nd-red{background:var(--red)}.nd-amber{background:var(--amber)}.nd-green{background:var(--green)}
+.notif-text{font-size:12px;color:var(--ink);flex:1}
+.notif-time{font-size:10px;color:var(--ink60);flex-shrink:0;margin-top:1px}
+
+/* STATUS TRACK */
+.strack{display:flex;align-items:center;margin:6px 0 2px}
+.sc2{width:8px;height:8px;border-radius:50%;background:var(--ink20);border:1.5px solid var(--ink20);flex-shrink:0}
+.sc2.done{background:var(--red);border-color:var(--red)}.sc2.active{background:var(--red);border-color:var(--red);box-shadow:0 0 0 2px var(--red-l)}
+.sl2{flex:1;height:1.5px;background:var(--ink20)}.sl2.done{background:var(--red)}
+</style>
+</head>
+<body>
+<div class="device">
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span class="status-bar-time">15:42</span>
+    <div class="status-bar-icons"><span>●●●●</span><span>WiFi</span><span>88%</span></div>
+  </div>
+
+  <!-- APP HEADER -->
+  <div class="app-header">
+    <div class="app-header-top">
+      <div>
+        <div class="app-title">Nomi Pizza</div>
+        <div class="app-subtitle">Sara Gómez · Mesera · Turno 12:00–20:00</div>
+      </div>
+      <div class="header-avatar">SG</div>
+    </div>
+    <div class="quick-stats">
+      <div class="qs"><div class="qs-val">4</div><div class="qs-lbl">Mis mesas</div></div>
+      <div class="qs"><div class="qs-val">12</div><div class="qs-lbl">Pedidos</div></div>
+      <div class="qs"><div class="qs-val">$3.2k</div><div class="qs-lbl">Vendido</div></div>
+    </div>
+  </div>
+
+  <!-- NAV TABS -->
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showTab('mesas',this)">🍽 Mis mesas</div>
+    <div class="nav-tab" onclick="showTab('pedido',this)">📝 Tomar pedido</div>
+    <div class="nav-tab" onclick="showTab('pedidos',this)">🧾 Pedidos</div>
+    <div class="nav-tab" onclick="showTab('turno',this)">⏱ Mi turno</div>
+    <div class="nav-tab" onclick="showTab('notif',this)">🔔 Avisos</div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- MESAS -->
+    <div class="page active" id="tab-mesas">
+      <div class="card">
+        <div class="card-head"><span class="card-title">Mis mesas asignadas</span><span class="badge br">2 ocupadas</span></div>
+        <div class="tables-grid" id="my-tables"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Plano completo</span></div>
+        <div class="tables-grid" id="all-tables"></div>
+      </div>
+    </div>
+
+    <!-- TOMAR PEDIDO -->
+    <div class="page" id="tab-pedido">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="font-size:12px;font-weight:500;color:var(--ink60)">Mesa:</span>
+        <select id="order-table" style="flex:1;padding:8px 10px;border:1px solid var(--ink20);border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);background:var(--wh);outline:none">
+          <option>Mesa 3</option><option>Mesa 7</option><option>Mesa 12</option><option>Mesa 5</option><option>Mesa 9</option><option>Para llevar</option>
+        </select>
+      </div>
+
+      <div id="cart-display" style="display:none" class="card" style="margin-bottom:12px">
+        <div class="card-head"><span class="card-title">Orden actual</span><span id="cart-count" class="badge br">0 items</span></div>
+        <div id="cart-items-list"></div>
+        <div style="padding:10px 14px;border-top:1px solid var(--ink20)">
+          <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;color:var(--ink);margin-bottom:10px"><span>Total</span><span id="cart-total-display">$0</span></div>
+          <button class="send-btn" onclick="sendOrder()">📤 Enviar a cocina</button>
+        </div>
+      </div>
+
+      <div class="order-panel">
+        <div class="op-header">
+          <div>
+            <div class="op-title">Menú Nomi Pizza</div>
+            <div class="op-sub">Toca para agregar al pedido</div>
+          </div>
+        </div>
+        <div class="menu-cats">
+          <div class="mcat active" onclick="filterMenu('all',this)">Todo</div>
+          <div class="mcat" onclick="filterMenu('pizza',this)">Pizzas</div>
+          <div class="mcat" onclick="filterMenu('extra',this)">Extras</div>
+          <div class="mcat" onclick="filterMenu('drink',this)">Bebidas</div>
+        </div>
+        <div class="menu-list" id="menu-list"></div>
+      </div>
+    </div>
+
+    <!-- PEDIDOS ACTIVOS -->
+    <div class="page" id="tab-pedidos">
+      <div class="card">
+        <div class="card-head"><span class="card-title">Pedidos activos</span><span class="badge br">3</span></div>
+        <div class="row">
+          <div class="av av-r">M3</div>
+          <div class="rm">
+            <div class="rt">Mesa 3 <span style="font-size:10px;color:var(--ink60);font-weight:400">#2041</span></div>
+            <div class="rs">Margherita x2, Pepperoni XL · 15:42</div>
+            <div class="strack"><div class="sc2 done"></div><div class="sl2 done"></div><div class="sc2 active"></div><div class="sl2"></div><div class="sc2"></div></div>
+          </div>
+          <span class="badge ba">Horneando</span>
+        </div>
+        <div class="row">
+          <div class="av av-b">M7</div>
+          <div class="rm">
+            <div class="rt">Mesa 7 <span style="font-size:10px;color:var(--ink60);font-weight:400">#2039</span></div>
+            <div class="rs">BBQ Chicken x1, Refresco x2 · 15:28</div>
+            <div class="strack"><div class="sc2 done"></div><div class="sl2 done"></div><div class="sc2 done"></div><div class="sl2 done"></div><div class="sc2 active"></div></div>
+          </div>
+          <span class="badge bg">Listo 🔔</span>
+        </div>
+        <div class="row">
+          <div class="av av-a">M12</div>
+          <div class="rm">
+            <div class="rt">Mesa 12 <span style="font-size:10px;color:var(--ink60);font-weight:400">#2042</span></div>
+            <div class="rs">Cuatro Quesos x1 · 15:48</div>
+            <div class="strack"><div class="sc2 done"></div><div class="sl2"></div><div class="sc2"></div><div class="sl2"></div><div class="sc2"></div></div>
+          </div>
+          <span class="badge bi">Recibido</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Listos para cobrar</span></div>
+        <div class="row">
+          <div class="av av-a">M7</div>
+          <div class="rm"><div class="rt">Mesa 7</div><div class="rs">2 personas · 1h 10 min</div></div>
+          <div class="rr"><div style="font-size:14px;font-weight:700;color:var(--ink)">$560</div><button style="margin-top:4px;padding:4px 10px;background:var(--amber);color:#fff;border:none;border-radius:var(--rsm);font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif" onclick="showToast('Cuenta de Mesa 7 enviada a caja ✓')">Pedir cuenta</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TURNO -->
+    <div class="page" id="tab-turno">
+      <div class="shift-card">
+        <div class="sc-title">Mi turno de hoy</div>
+        <div class="sc-stat"><span class="sc-lbl">Entrada</span><span class="sc-val">12:00 PM</span></div>
+        <div class="sc-stat"><span class="sc-lbl">Salida estimada</span><span class="sc-val">8:00 PM</span></div>
+        <div class="sc-stat"><span class="sc-lbl">Horas trabajadas</span><span class="sc-val">3h 42min</span></div>
+        <div class="sc-stat"><span class="sc-lbl">Mesas atendidas</span><span class="sc-val">12</span></div>
+        <div class="sc-stat"><span class="sc-lbl">Pedidos tomados</span><span class="sc-val">28</span></div>
+        <div class="sc-stat"><span class="sc-lbl">Total vendido</span><span class="sc-val">$3,240</span></div>
+      </div>
+      <div class="shift-card">
+        <div class="sc-title">Mis mesas asignadas</div>
+        <div class="sc-stat"><span class="sc-lbl">Mesas activas</span><span class="sc-val">Mesa 3, 7, 9, 12</span></div>
+        <div class="sc-stat"><span class="sc-lbl">Rol</span><span class="sc-val">🍽 Mesera</span></div>
+        <div class="sc-stat"><span class="sc-lbl">Accesos</span><span class="sc-val">Mesas + Pedidos</span></div>
+      </div>
+      <button style="width:100%;padding:13px;background:var(--red-l);color:var(--red-d);border:1px solid var(--red);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer" onclick="showToast('Solicitando fin de turno al gerente…')">⏹ Solicitar fin de turno</button>
+    </div>
+
+    <!-- NOTIFICACIONES -->
+    <div class="page" id="tab-notif">
+      <div class="card">
+        <div class="card-head"><span class="card-title">Avisos recientes</span><span class="badge br">3 nuevos</span></div>
+        <div style="padding:0 14px">
+          <div class="notif-row"><div class="notif-dot nd-green"></div><div class="notif-text"><strong>Mesa 7 lista</strong> · Pedido #2039 listo para servir</div><span class="notif-time">hace 2 min</span></div>
+          <div class="notif-row"><div class="notif-dot nd-red"></div><div class="notif-text"><strong>Mesa 12</strong> · El cliente lleva 8 min esperando</div><span class="notif-time">hace 5 min</span></div>
+          <div class="notif-row"><div class="notif-dot nd-amber"></div><div class="notif-text"><strong>Cocina</strong> · Sin pepperoni. Avisa a los clientes de Mesa 3</div><span class="notif-time">hace 12 min</span></div>
+          <div class="notif-row"><div class="notif-dot nd-green"></div><div class="notif-text"><strong>Nuevo turno</strong> · Bienvenida Sara. Tu turno inició a las 12:00</div><span class="notif-time">hace 3h</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <div class="bn-item active" onclick="showTab('mesas',null);setBottomNav(0)">
+      <svg class="bn-icon" viewBox="0 0 24 24"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
+      <span class="bn-lbl">Mesas</span>
+      <div class="bn-dot"></div>
+    </div>
+    <div class="bn-item has-dot" onclick="showTab('pedido',null);setBottomNav(1)">
+      <svg class="bn-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+      <span class="bn-lbl">Pedido</span>
+      <div class="bn-dot"></div>
+    </div>
+    <div class="bn-item" onclick="showTab('pedidos',null);setBottomNav(2)">
+      <svg class="bn-icon" viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>
+      <span class="bn-lbl">Pedidos</span>
+      <div class="bn-dot"></div>
+    </div>
+    <div class="bn-item" onclick="showTab('turno',null);setBottomNav(3)">
+      <svg class="bn-icon" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm4.2 14.2L11 13V7h1.5v5.2l4.5 2.7-.8 1.3z"/></svg>
+      <span class="bn-lbl">Turno</span>
+      <div class="bn-dot"></div>
+    </div>
+    <div class="bn-item has-dot" onclick="showTab('notif',null);setBottomNav(4)">
+      <svg class="bn-icon" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+      <span class="bn-lbl">Avisos</span>
+      <div class="bn-dot"></div>
+    </div>
+  </nav>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+var menuItems=[
+  {id:1,name:'Margherita Nomi',price:159,cat:'pizza',emoji:'🍕',desc:'Jitomate, mozzarella, albahaca'},
+  {id:2,name:'Pepperoni Clásica',price:179,cat:'pizza',emoji:'🍕',desc:'Jitomate, mozzarella, pepperoni'},
+  {id:3,name:'BBQ Chicken Nomi',price:189,cat:'pizza',emoji:'🍕',desc:'BBQ, pollo, cebolla, jalapeño'},
+  {id:4,name:'Cuatro Quesos',price:195,cat:'pizza',emoji:'🍕',desc:'Mozzarella, gouda, gorgonzola, parm'},
+  {id:5,name:'Ensalada César',price:79,cat:'extra',emoji:'🥗',desc:'Lechuga, crutones, parmesano'},
+  {id:6,name:'Pan de ajo',price:49,cat:'extra',emoji:'🧄',desc:'Con mantequilla de hierbas'},
+  {id:7,name:'Refresco 600ml',price:32,cat:'drink',emoji:'🥤',desc:'Coca-Cola, Pepsi, 7UP'},
+  {id:8,name:'Agua mineral',price:28,cat:'drink',emoji:'💧',desc:'Peñafiel 600ml'}
+];
+
+var myTables=[
+  {n:3,cap:4,status:'occ',amt:485,time:'45m'},
+  {n:7,cap:2,status:'rdy',amt:560,time:'1h 10m'},
+  {n:9,cap:4,status:'occ',amt:195,time:'8m'},
+  {n:12,cap:2,status:'occ',amt:310,time:'35m'}
+];
+
+var allTablesFull=[
+  {n:1,cap:2,status:'free'},{n:2,cap:4,status:'occ'},{n:3,cap:4,status:'occ'},
+  {n:4,cap:6,status:'occ'},{n:5,cap:2,status:'free'},{n:6,cap:4,status:'rdy'},
+  {n:7,cap:6,status:'rdy'},{n:8,cap:2,status:'free'},{n:9,cap:4,status:'occ'},
+  {n:10,cap:4,status:'free'},{n:11,cap:6,status:'rdy'},{n:12,cap:2,status:'occ'}
+];
+
+var cart=[];
+var stLbl={occ:'Ocupada',rdy:'Cuenta',free:'Libre'};
+
+// RENDER TABLES
+function renderTableGrid(data,el){
+  el.innerHTML='';
+  data.forEach(function(t){
+    var d=document.createElement('div');
+    d.className='tc '+t.status;
+    var extra=t.amt?'<div class="tc-amt">$'+t.amt+'</div>':'';
+    var extra2=t.time?'<div style="font-size:9px;color:var(--ink60)">'+t.time+'</div>':'';
+    d.innerHTML='<div class="tc-num">'+t.n+'</div><div class="tc-cap">'+t.cap+' personas</div><div class="tc-s">'+stLbl[t.status]+'</div>'+extra+extra2;
+    d.onclick=function(){
+      document.getElementById('order-table').value='Mesa '+t.n;
+      showTab('pedido',null);
+      setBottomNav(1);
+      showToast('Mesa '+t.n+' seleccionada');
+    };
+    el.appendChild(d);
+  });
+}
+
+renderTableGrid(myTables,document.getElementById('my-tables'));
+renderTableGrid(allTablesFull,document.getElementById('all-tables'));
+
+// MENU
+function renderMenu(filter){
+  var el=document.getElementById('menu-list');
+  el.innerHTML='';
+  menuItems.forEach(function(item){
+    if(filter!=='all'&&item.cat!==filter) return;
+    var d=document.createElement('div');
+    d.className='mi';
+    d.innerHTML='<span class="mi-icon">'+item.emoji+'</span><div class="mi-info"><div class="mi-name">'+item.name+'</div><div class="mi-desc">'+item.desc+'</div></div><span class="mi-price">$'+item.price+'</span><div class="add-circle">+</div>';
+    d.onclick=function(){addToCart(item)};
+    el.appendChild(d);
+  });
+}
+
+renderMenu('all');
+
+function filterMenu(cat,el){
+  document.querySelectorAll('.mcat').forEach(function(c){c.classList.remove('active')});
+  if(el) el.classList.add('active');
+  renderMenu(cat);
+}
+
+// CART
+function addToCart(item){
+  var found=cart.find(function(c){return c.id===item.id});
+  if(found) found.qty++;
+  else cart.push({id:item.id,name:item.name,price:item.price,emoji:item.emoji,qty:1});
+  renderCart();
+  showToast(item.name+' agregada ✓');
+}
+
+function renderCart(){
+  var total=0;
+  var el=document.getElementById('cart-items-list');
+  var cd=document.getElementById('cart-display');
+  if(cart.length===0){cd.style.display='none';return;}
+  cd.style.display='block';
+  el.innerHTML=cart.map(function(c,i){
+    total+=c.price*c.qty;
+    return '<div class="cart-item"><span class="ci-name">'+c.emoji+' '+c.name+'</span><div class="ci-qty-ctrl"><button class="qb" onclick="chQty('+i+',-1)">−</button><span style="font-size:12px;font-weight:600;min-width:14px;text-align:center">'+c.qty+'</span><button class="qb" onclick="chQty('+i+',1)">+</button></div><span class="ci-p">$'+(c.price*c.qty)+'</span></div>';
+  }).join('');
+  document.getElementById('cart-total-display').textContent='$'+total;
+  document.getElementById('cart-count').textContent=cart.length+' items';
+}
+
+function chQty(i,d){
+  cart[i].qty+=d;
+  if(cart[i].qty<=0) cart.splice(i,1);
+  renderCart();
+}
+
+function sendOrder(){
+  var mesa=document.getElementById('order-table').value;
+  if(cart.length===0){showToast('Agrega al menos un producto');return;}
+  showToast('Pedido de '+mesa+' enviado a cocina ✓');
+  cart=[];
+  renderCart();
+}
+
+// NAV
+function showTab(id,el){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  document.getElementById('tab-'+id).classList.add('active');
+  if(el){document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.remove('active')});el.classList.add('active');}
+}
+
+function setBottomNav(idx){
+  document.querySelectorAll('.bn-item').forEach(function(b,i){
+    b.classList.toggle('active',i===idx);
+  });
+}
+
+// TOAST
+var tt;
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  clearTimeout(tt);
+  tt=setTimeout(function(){t.classList.remove('show')},2400);
+}
+</script>
+</body>
+</html>

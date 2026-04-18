@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nomi Pizza — Admin Suite</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Playfair+Display:wght@400;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--red:#C8392B;--red-d:#9B2A1E;--red-l:#FAECE7;--red-m:#F5C4B3;--cream:#FAF8F5;--cream-d:#F0EDE8;--ink:#1A1714;--ink60:#6B6460;--ink30:#C4BFB9;--ink10:#EDE9E4;--wh:#FFFFFF;--green:#2D7A4F;--green-l:#E8F5EE;--amber:#B45309;--amber-l:#FEF3C7;--blue:#1D4ED8;--blue-l:#EFF6FF;--purple:#7C3AED;--purple-l:#F5F3FF;--sw:220px;--th:58px;--r:12px;--rsm:8px;--sh:0 1px 3px rgba(26,23,20,.08),0 4px 12px rgba(26,23,20,.05);--ssh:0 1px 2px rgba(26,23,20,.06);--tr:.18s cubic-bezier(.4,0,.2,1);--fb:'DM Sans',sans-serif;--fd:'Playfair Display',serif;--fm:'DM Mono',monospace}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fb);background:var(--cream);color:var(--ink);font-size:14px;line-height:1.5;height:100vh;overflow:hidden}
+.shell{display:flex;height:100vh;width:100vw;overflow:hidden}
+
+/* SIDEBAR */
+.sb{width:var(--sw);background:var(--ink);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sb-brand{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:10px}
+.sb-logo{width:36px;height:36px;background:var(--red);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-logo svg{width:20px;height:20px;fill:#fff}
+.sb-name{font-family:var(--fd);font-size:17px;font-weight:700;color:#fff;line-height:1.1;letter-spacing:-.02em}
+.sb-sub{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px;letter-spacing:.08em;text-transform:uppercase}
+.sb-nav{flex:1;padding:10px 8px;overflow-y:auto}
+.sb-section{font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);padding:10px 10px 4px}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--rsm);cursor:pointer;transition:var(--tr);color:rgba(255,255,255,.45);font-size:13px;margin-bottom:1px;user-select:none}
+.ni:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.8)}
+.ni.active{background:var(--red);color:#fff;font-weight:500}
+.ni svg{width:15px;height:15px;flex-shrink:0}
+.ni-badge{margin-left:auto;background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px;min-width:18px;text-align:center}
+.ni.active .ni-badge{background:rgba(255,255,255,.25)}
+.sb-foot{padding:12px;border-top:1px solid rgba(255,255,255,.07)}
+.sb-user{display:flex;align-items:center;gap:8px;padding:9px 10px;background:rgba(255,255,255,.06);border-radius:var(--rsm)}
+.sb-av{width:28px;height:28px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0}
+.sb-uname{font-size:12px;font-weight:500;color:#fff}
+.sb-urole{font-size:10px;color:rgba(255,255,255,.4)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;margin-left:auto;animation:pulse 2s ease-in-out infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px rgba(34,197,94,.25)}50%{box-shadow:0 0 0 4px rgba(34,197,94,.12)}}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:var(--th);background:var(--wh);border-bottom:1px solid var(--ink10);display:flex;align-items:center;padding:0 24px;gap:14px;flex-shrink:0}
+.tb-title{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-.02em}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.bg{background:var(--green-l);color:var(--green)}.br{background:var(--red-l);color:var(--red-d)}.ba{background:var(--amber-l);color:var(--amber)}.bi{background:var(--blue-l);color:var(--blue)}.bk{background:var(--ink10);color:var(--ink)}.bp{background:var(--purple-l);color:var(--purple)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--rsm);border:1px solid var(--ink10);background:var(--wh);color:var(--ink);font-family:var(--fb);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);white-space:nowrap}
+.btn:hover{background:var(--cream);border-color:var(--ink30)}.btn:active{transform:scale(.98)}
+.btn-p{background:var(--red);color:#fff;border-color:var(--red)}.btn-p:hover{background:var(--red-d);border-color:var(--red-d)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.pc{flex:1;overflow-y:auto;padding:22px 24px;background:var(--cream)}
+.page{display:none;animation:fi .2s ease}.page.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+
+/* METRICS */
+.mg{display:grid;gap:12px;margin-bottom:18px}
+.mg4{grid-template-columns:repeat(4,1fr)}.mg3{grid-template-columns:repeat(3,1fr)}.mg2{grid-template-columns:repeat(2,1fr)}
+.mc{background:var(--wh);border-radius:var(--r);padding:16px 18px;box-shadow:var(--ssh);border:1px solid var(--ink10);border-top:3px solid var(--red);transition:var(--tr)}
+.mc:hover{box-shadow:var(--sh);transform:translateY(-1px)}
+.mc-lbl{font-size:10px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.mc-val{font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.mc-sub{font-size:11px;color:var(--ink60);margin-top:5px}
+.trend-up{color:var(--green);font-weight:500}.trend-dn{color:var(--red);font-weight:500}
+
+/* CARDS */
+.card{background:var(--wh);border-radius:var(--r);border:1px solid var(--ink10);box-shadow:var(--ssh);overflow:hidden;margin-bottom:14px}
+.ch{padding:14px 18px;border-bottom:1px solid var(--ink10);display:flex;align-items:center;justify-content:space-between}
+.ct{font-size:13px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+
+/* ROWS */
+.row{display:flex;align-items:center;padding:11px 18px;border-bottom:1px solid var(--ink10);gap:10px;transition:background var(--tr)}
+.row:last-child{border-bottom:none}.row:hover{background:var(--cream)}
+.rm{flex:1;min-width:0}.rt{font-size:13px;font-weight:500;color:var(--ink)}.rs{font-size:11px;color:var(--ink60);margin-top:2px}
+.rr{text-align:right;flex-shrink:0;margin-left:8px}.rp{font-size:13px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0}
+.av-r{background:var(--red-l);color:var(--red-d)}.av-a{background:var(--amber-l);color:var(--amber)}.av-g{background:var(--green-l);color:var(--green)}.av-b{background:var(--blue-l);color:var(--blue)}.av-p{background:var(--purple-l);color:var(--purple)}
+
+/* PROGRESS */
+.pb{height:4px;background:var(--ink10);border-radius:2px;overflow:hidden;margin-top:5px}
+.pf{height:100%;background:var(--red);border-radius:2px}
+
+/* STATUS TRACK */
+.strack{display:flex;align-items:center;margin:8px 0 3px}
+.sc{width:9px;height:9px;border-radius:50%;background:var(--ink10);border:1.5px solid var(--ink30);flex-shrink:0}
+.sc.done{background:var(--red);border-color:var(--red)}.sc.active{background:var(--red);border-color:var(--red);box-shadow:0 0 0 3px var(--red-l)}
+.sl{flex:1;height:1.5px;background:var(--ink10)}.sl.done{background:var(--red)}
+.slbl{font-size:9px;color:var(--ink60);margin-top:3px}.slbl.done,.slbl.active{color:var(--red-d);font-weight:500}
+
+/* BARS */
+.bar-chart{display:flex;align-items:flex-end;gap:5px;height:80px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.bar-f{width:100%;background:var(--red-l);border-radius:3px 3px 0 0}.bar-f.hi{background:var(--red)}
+.bar-lbl{font-size:9px;color:var(--ink60);margin-top:4px;text-align:center}
+.inv-bar{flex:1;height:4px;background:var(--ink10);border-radius:2px;overflow:hidden}
+.inv-fill{height:100%;border-radius:2px}.if-crit{background:#EF4444}.if-low{background:var(--amber)}.if-ok{background:var(--red)}
+
+/* TABS */
+.tnav{display:flex;gap:0;border-bottom:1px solid var(--ink10);background:var(--wh);padding:0 18px}
+.tab{padding:11px 12px;font-size:12px;font-weight:500;color:var(--ink60);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:var(--tr);white-space:nowrap}
+.tab:hover{color:var(--ink)}.tab.active{color:var(--red);border-bottom-color:var(--red)}
+
+/* TABLE GRID */
+.tables-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:18px}
+.table-card{border-radius:var(--r);border:2px solid var(--ink10);padding:14px;cursor:pointer;transition:var(--tr);position:relative;background:var(--wh)}
+.table-card:hover{border-color:var(--ink30);transform:translateY(-1px)}
+.table-card.occupied{border-color:var(--red);background:var(--red-l)}
+.table-card.ready{border-color:var(--amber);background:var(--amber-l)}
+.table-card.available{border-color:var(--green);background:var(--green-l)}
+.tc-num{font-family:var(--fd);font-size:22px;font-weight:700;color:var(--ink);line-height:1}
+.tc-cap{font-size:10px;color:var(--ink60);margin-top:2px}
+.tc-status{font-size:10px;font-weight:600;margin-top:8px;text-transform:uppercase;letter-spacing:.05em}
+.tc-amount{font-size:13px;font-weight:600;color:var(--ink);margin-top:4px;font-variant-numeric:tabular-nums}
+.table-card.occupied .tc-status{color:var(--red-d)}.table-card.ready .tc-status{color:var(--amber)}.table-card.available .tc-status{color:var(--green)}
+
+/* POS */
+.pos-layout{display:grid;grid-template-columns:1fr 340px;gap:0;height:calc(100vh - var(--th));overflow:hidden}
+.pos-menu{overflow-y:auto;padding:18px;background:var(--cream)}
+.pos-cart{background:var(--wh);border-left:1px solid var(--ink10);display:flex;flex-direction:column;overflow:hidden}
+.pos-cat-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.pos-cat{padding:6px 14px;border-radius:20px;border:1px solid var(--ink10);font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr);background:var(--wh);color:var(--ink60)}
+.pos-cat:hover{border-color:var(--ink30);color:var(--ink)}.pos-cat.active{background:var(--red);color:#fff;border-color:var(--red)}
+.pos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pos-item{background:var(--wh);border:1px solid var(--ink10);border-radius:var(--r);padding:14px;cursor:pointer;transition:var(--tr);text-align:center}
+.pos-item:hover{border-color:var(--red);background:var(--red-l);transform:translateY(-1px)}
+.pos-item:active{transform:scale(.97)}
+.pi-icon{font-size:28px;margin-bottom:8px;display:block;line-height:1}
+.pi-name{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:4px}
+.pi-price{font-size:13px;font-weight:700;color:var(--red)}
+.cart-header{padding:16px 18px;border-bottom:1px solid var(--ink10)}
+.cart-title{font-size:14px;font-weight:600;color:var(--ink)}
+.cart-sub{font-size:11px;color:var(--ink60);margin-top:2px}
+.cart-items{flex:1;overflow-y:auto;padding:10px 18px}
+.ci{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--ink10)}
+.ci:last-child{border-bottom:none}
+.ci-name{flex:1;font-size:13px;font-weight:500;color:var(--ink)}
+.ci-qty{display:flex;align-items:center;gap:5px}
+.qty-btn{width:22px;height:22px;border-radius:50%;border:1px solid var(--ink10);background:var(--wh);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:var(--tr);line-height:1}
+.qty-btn:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.ci-price{font-size:12px;font-weight:600;color:var(--ink);min-width:40px;text-align:right;font-variant-numeric:tabular-nums}
+.cart-footer{padding:16px 18px;border-top:1px solid var(--ink10)}
+.cart-total-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.cart-total-lbl{font-size:13px;color:var(--ink60)}
+.cart-total-val{font-size:20px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.cart-actions{display:flex;gap:8px}
+.cart-note{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--cream);border-radius:var(--rsm);margin-bottom:10px;font-size:11px;color:var(--ink60)}
+
+/* WORKERS */
+.worker-card{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--ink10);transition:background var(--tr)}
+.worker-card:hover{background:var(--cream)}.worker-card:last-child{border-bottom:none}
+.wc-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0}
+.wc-info{flex:1;min-width:0}
+.wc-name{font-size:13px;font-weight:600;color:var(--ink)}
+.wc-role{font-size:11px;color:var(--ink60);margin-top:2px}
+.wc-perms{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.perm-tag{font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em}
+.perm-yes{background:var(--green-l);color:var(--green)}.perm-no{background:var(--ink10);color:var(--ink30)}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:#fff;padding:11px 16px;border-radius:var(--rsm);font-size:12px;font-weight:500;display:flex;align-items:center;gap:7px;transform:translateY(50px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:999}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* SECTION HEADER */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.st{font-size:14px;font-weight:600;color:var(--ink);letter-spacing:-.02em}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(26,23,20,.5);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:var(--wh);border-radius:var(--r);width:460px;max-width:90vw;box-shadow:0 20px 60px rgba(26,23,20,.25);overflow:hidden;transform:translateY(20px);transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.modal-bg.open .modal{transform:translateY(0)}
+.modal-head{padding:18px 20px;border-bottom:1px solid var(--ink10);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:15px;font-weight:600;color:var(--ink)}
+.modal-close{width:28px;height:28px;border-radius:50%;border:1px solid var(--ink10);background:var(--wh);cursor:pointer;font-size:16px;color:var(--ink60);display:flex;align-items:center;justify-content:center;transition:var(--tr)}
+.modal-close:hover{background:var(--cream)}
+.modal-body{padding:20px}
+.form-row{margin-bottom:14px}
+.form-label{font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;display:block}
+.form-input{width:100%;padding:9px 12px;border:1px solid var(--ink10);border-radius:var(--rsm);font-family:var(--fb);font-size:13px;color:var(--ink);background:var(--cream);outline:none;transition:var(--tr)}
+.form-input:focus{border-color:var(--red);background:var(--wh);box-shadow:0 0 0 3px var(--red-l)}
+.form-select{width:100%;padding:9px 12px;border:1px solid var(--ink10);border-radius:var(--rsm);font-family:var(--fb);font-size:13px;color:var(--ink);background:var(--cream);outline:none;cursor:pointer}
+.perms-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px}
+.perm-check{display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid var(--ink10);border-radius:var(--rsm);cursor:pointer;transition:var(--tr)}
+.perm-check:hover{background:var(--cream)}
+.perm-check input[type=checkbox]{accent-color:var(--red);width:14px;height:14px}
+.perm-check-lbl{font-size:12px;font-weight:500;color:var(--ink)}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--ink10);display:flex;justify-content:flex-end;gap:8px}
+
+/* LOYALTY DOTS */
+.ld-wrap{display:flex;gap:3px;margin-top:4px}
+.ld{width:7px;height:7px;border-radius:50%;background:var(--ink10)}.ld.on{background:var(--red)}
+
+/* REVIEW */
+.rev{padding:13px 18px;border-bottom:1px solid var(--ink10)}
+.rev:last-child{border-bottom:none}
+.rev-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.rev-name{font-size:13px;font-weight:500;color:var(--ink)}
+.rev-stars{font-size:12px;color:var(--red)}
+.rev-time{font-size:11px;color:var(--ink60);margin-left:auto}
+.rev-text{font-size:12px;color:var(--ink60);line-height:1.5}
+
+/* ZONE ROW */
+.zrow{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid var(--ink10);font-size:13px}
+.zrow:last-child{border-bottom:none}
+.zlbl{color:var(--ink60)}.zval{font-weight:500;color:var(--ink)}
+
+/* SEARCH */
+.srch-wrap{position:relative}
+.srch{padding:7px 12px 7px 32px;border:1px solid var(--ink10);border-radius:var(--rsm);font-family:var(--fb);font-size:12px;background:var(--cream);color:var(--ink);width:180px;outline:none;transition:var(--tr)}
+.srch:focus{border-color:var(--red);background:var(--wh);box-shadow:0 0 0 3px var(--red-l)}
+.srch-ic{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;fill:var(--ink60)}
+::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--ink30);border-radius:2px}
+
+/* HOUR CHART */
+.hchart{display:flex;align-items:flex-end;gap:4px;height:75px}
+.hc-col{flex:1;display:flex;justify-content:flex-end;flex-direction:column;height:100%;align-items:center}
+.hc-bar{width:100%;background:var(--red-l);border-radius:3px 3px 0 0;cursor:pointer;transition:background var(--tr)}
+.hc-bar:hover,.hc-bar.peak{background:var(--red)}
+
+/* TABLE ORDER MODAL */
+.tom{width:600px;max-height:80vh;overflow-y:auto}
+.tom-split{display:grid;grid-template-columns:1fr 220px;gap:0;height:400px}
+.tom-left{overflow-y:auto;padding:14px;border-right:1px solid var(--ink10)}
+.tom-right{overflow-y:auto;padding:14px;background:var(--cream)}
+.mi{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--ink10);border-radius:var(--rsm);margin-bottom:6px;cursor:pointer;transition:var(--tr);background:var(--wh)}
+.mi:hover{border-color:var(--red);background:var(--red-l)}
+.mi-name{font-size:12px;font-weight:500;color:var(--ink)}
+.mi-price{font-size:12px;font-weight:600;color:var(--red)}
+</style>
+</head>
+<body>
+<div class="shell">
+<!-- SIDEBAR -->
+<aside class="sb">
+  <div class="sb-brand">
+    <div class="sb-logo"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm5 11H7v-1c0-1.66 3.33-2.5 5-2.5s5 .84 5 2.5v1z"/></svg></div>
+    <div><div class="sb-name">Nomi Pizza</div><div class="sb-sub">Admin Suite</div></div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-section">General</div>
+    <div class="ni active" onclick="showPage('dashboard',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard</div>
+    <div class="sb-section">Operaciones</div>
+    <div class="ni" onclick="showPage('orders',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>Pedidos<span class="ni-badge">8</span></div>
+    <div class="ni" onclick="showPage('tables',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>Mesas<span class="ni-badge">3</span></div>
+    <div class="ni" onclick="showPage('pos',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 2H7c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 4H7V4h10v2zm-9.49 4.49l1.42 1.41L10 12v6H8v-6l-.07-.1L5.51 8.51 6.93 7.1l1.58 1.59zM17.49 8.51l-2.42 2.4-.07.09V17h-2v-6l.07-.1-2.42-2.39 1.41-1.41 1.93 1.93V9h2v.44l1.92-1.93 1.58 1.z"/></svg>POS</div>
+    <div class="ni" onclick="showPage('delivery',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg>Repartos</div>
+    <div class="sb-section">Gestión</div>
+    <div class="ni" onclick="showPage('menu',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.1 13.34l2.83-2.83L3.91 3.5c-1.56 1.56-1.56 4.09 0 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/></svg>Menú</div>
+    <div class="ni" onclick="showPage('inventory',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 7h-4V5l-2-2h-4L8 5v2H4c-1.1 0-2 .9-2 2v5c0 .75.4 1.38 1 1.73V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-3.28c.59-.35 1-.99 1-1.72V9c0-1.1-.9-2-2-2z"/></svg>Inventario</div>
+    <div class="ni" onclick="showPage('loyalty',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>Lealtad</div>
+    <div class="ni" onclick="showPage('analytics',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>Analíticas</div>
+    <div class="sb-section">Equipo</div>
+    <div class="ni" onclick="showPage('workers',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Equipo</div>
+    <div class="ni" onclick="showPage('settings',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>Configuración</div>
+  </nav>
+  <div class="sb-foot">
+    <div class="sb-user">
+      <div class="sb-av">AD</div>
+      <div class="sb-info"><div class="sb-uname">Admin Nomi</div><div class="sb-urole">Administrador</div></div>
+      <div class="status-dot"></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <header class="topbar">
+    <span class="tb-title" id="page-title">Dashboard</span>
+    <div class="tb-right">
+      <span class="badge bg">● Abierto</span>
+      <button class="btn btn-sm" onclick="showPage('tables',document.querySelectorAll('.ni')[2])">🍕 Ver mesas</button>
+      <button class="btn btn-p btn-sm" onclick="showPage('pos',document.querySelectorAll('.ni')[3])">⚡ Abrir POS</button>
+    </div>
+  </header>
+
+  <div class="pc">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="mg mg4">
+        <div class="mc"><div class="mc-lbl">Ventas hoy</div><div class="mc-val">$2,847</div><div class="mc-sub trend-up">↑ 18% vs ayer</div></div>
+        <div class="mc"><div class="mc-lbl">Pedidos hoy</div><div class="mc-val">63</div><div class="mc-sub">8 activos ahora</div></div>
+        <div class="mc"><div class="mc-lbl">Mesas activas</div><div class="mc-val">7/15</div><div class="mc-sub">3 esperando cuenta</div></div>
+        <div class="mc"><div class="mc-lbl">Tiempo entrega</div><div class="mc-val">26 min</div><div class="mc-sub trend-up">↓ 2 min mejor</div></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><span class="ct">Pedidos en vivo</span><span class="badge br">8 activos</span></div>
+          <div class="row"><div class="av av-r">MG</div><div class="rm"><div class="rt">Mariana García <span style="font-family:var(--fm);font-size:10px;color:var(--ink60);font-weight:400">#2041</span></div><div class="rs">Margherita x2, Pepperoni XL · Mesa 4</div></div><div class="rr"><span class="badge ba">Horneando</span><div class="rp" style="margin-top:4px">$485</div></div></div>
+          <div class="row"><div class="av av-b">CR</div><div class="rm"><div class="rt">Carlos Ruiz <span style="font-family:var(--fm);font-size:10px;color:var(--ink60);font-weight:400">#2040</span></div><div class="rs">BBQ Chicken x1 · Domicilio</div></div><div class="rr"><span class="badge bi">En camino</span><div class="rp" style="margin-top:4px">$290</div></div></div>
+          <div class="row"><div class="av av-g">AT</div><div class="rm"><div class="rt">Mesa 7 <span style="font-family:var(--fm);font-size:10px;color:var(--ink60);font-weight:400">#2039</span></div><div class="rs">Veggie x2 · Para llevar</div></div><div class="rr"><span class="badge bg">Listo</span><div class="rp" style="margin-top:4px">$310</div></div></div>
+          <div style="padding:10px 18px"><button class="btn btn-sm" style="width:100%;justify-content:center" onclick="showPage('orders',document.querySelectorAll('.ni')[1])">Ver todos →</button></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">Ingresos esta semana</span><span class="badge bg">$16,482</span></div>
+          <div style="padding:14px 18px">
+            <div class="bar-chart" id="rev-chart"></div>
+            <div style="display:flex;justify-content:space-between;margin-top:5px" id="rev-labels"></div>
+          </div>
+        </div>
+      </div>
+      <div class="g2" style="margin-top:14px">
+        <div class="card">
+          <div class="ch"><span class="ct">Estado de mesas</span><button class="btn btn-sm" onclick="showPage('tables',document.querySelectorAll('.ni')[2])">Ver plano →</button></div>
+          <div class="row"><div class="rm"><div class="rt">Mesa 4 — 4 personas</div><div class="rs">Mariana G. · 45 min · Pepperoni + Margherita</div></div><div class="rr"><span class="badge br">Ocupada</span></div></div>
+          <div class="row"><div class="rm"><div class="rt">Mesa 7 — 2 personas</div><div class="rs">Lista para cobrar · $560</div></div><div class="rr"><span class="badge ba">Cuenta</span></div></div>
+          <div class="row"><div class="rm"><div class="rt">Mesa 12 — 6 personas</div><div class="rs">Recién asignada · Luis M.</div></div><div class="rr"><span class="badge bi">Nueva</span></div></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">Alertas de stock</span><span class="badge br">2 críticos</span></div>
+          <div class="row"><div class="rm"><div class="rt">Mozzarella</div><div class="rs">Mín: 3 kg · Pedir ya</div></div><div class="rr"><span class="badge br">1.1 kg</span></div></div>
+          <div class="row"><div class="rm"><div class="rt">Pepperoni</div><div class="rs">Mín: 2 kg · Pedir ya</div></div><div class="rr"><span class="badge br">0.7 kg</span></div></div>
+          <div class="row"><div class="rm"><div class="rt">Salsa BBQ</div><div class="rs">Nivel bajo</div></div><div class="rr"><span class="badge ba">0.6 L</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="page" id="page-orders">
+      <div class="sh"><div class="st">Gestión de pedidos</div><div style="display:flex;gap:6px"><div class="srch-wrap"><svg class="srch-ic" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg><input class="srch" type="text" placeholder="Buscar pedido…"></div><button class="btn btn-p btn-sm">+ Nuevo</button></div></div>
+      <div class="card">
+        <div class="tnav" id="orders-tnav">
+          <div class="tab active" onclick="filterOrders('all',this)">Todos (63)</div>
+          <div class="tab" onclick="filterOrders('new',this)">Nuevos (5)</div>
+          <div class="tab" onclick="filterOrders('baking',this)">Horneando (8)</div>
+          <div class="tab" onclick="filterOrders('route',this)">En camino (6)</div>
+          <div class="tab" onclick="filterOrders('done',this)">Entregados (44)</div>
+        </div>
+        <div id="orders-list">
+          <div class="row order-row" data-s="baking" style="flex-wrap:wrap;align-items:flex-start">
+            <div class="av av-r" style="margin-top:2px">MG</div>
+            <div class="rm">
+              <div style="display:flex;align-items:center;gap:6px"><div class="rt">Mariana García</div><span style="font-family:var(--fm);font-size:10px;color:var(--ink60)">#2041</span><span class="badge ba" style="margin-left:auto">Horneando</span></div>
+              <div class="rs">Margherita (L) x2, Pepperoni (XL) x1 · Mesa 4 · 15:42</div>
+              <div class="strack">
+                <div class="sc done"></div><div class="sl done"></div><div class="sc active"></div><div class="sl"></div><div class="sc"></div><div class="sl"></div><div class="sc"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between"><span class="slbl done">Recibido</span><span class="slbl active">Horneando</span><span class="slbl">Listo</span><span class="slbl">Entregado</span></div>
+              <div style="display:flex;gap:6px;margin-top:8px">
+                <button class="btn btn-sm">🖨 Ticket</button>
+                <button class="btn btn-p btn-sm" onclick="showToast('Pedido #2041 marcado listo para mesa')">✓ Marcar listo</button>
+              </div>
+            </div>
+            <div class="rp" style="font-size:16px;margin-top:2px">$485</div>
+          </div>
+          <div class="row order-row" data-s="route">
+            <div class="av av-b">CR</div>
+            <div class="rm"><div style="display:flex;align-items:center;gap:6px"><div class="rt">Carlos Ruiz</div><span style="font-family:var(--fm);font-size:10px;color:var(--ink60)">#2040</span><span class="badge bi" style="margin-left:auto">En camino</span></div><div class="rs">BBQ Chicken (M) x1, Refresco x2 · Domicilio · 15:28</div></div>
+            <div class="rp" style="font-size:15px">$290</div>
+          </div>
+          <div class="row order-row" data-s="new">
+            <div class="av av-a">LM</div>
+            <div class="rm"><div style="display:flex;align-items:center;gap:6px"><div class="rt">Mesa 12 — Luis Méndez</div><span style="font-family:var(--fm);font-size:10px;color:var(--ink60)">#2042</span><span class="badge br" style="margin-left:auto">Nuevo</span></div><div class="rs">Cuatro Quesos (L) x1, Ensalada x1 · Autoservicio · 15:48</div>
+            <div style="display:flex;gap:6px;margin-top:7px"><button class="btn btn-p btn-sm" onclick="showToast('Pedido #2042 enviado a cocina')">Aceptar</button><button class="btn btn-sm">Rechazar</button></div></div>
+            <div class="rp" style="font-size:15px">$335</div>
+          </div>
+          <div class="row order-row" data-s="done">
+            <div class="av av-g">AT</div>
+            <div class="rm"><div style="display:flex;align-items:center;gap:6px"><div class="rt">Ana Torres</div><span style="font-family:var(--fm);font-size:10px;color:var(--ink60)">#2039</span><span class="badge bg" style="margin-left:auto">Entregado</span></div><div class="rs">Veggie (M) x2 · Recoger en tienda · 15:10</div></div>
+            <div class="rp" style="font-size:15px">$310</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLES -->
+    <div class="page" id="page-tables">
+      <div class="sh"><div class="st">Plano de mesas</div><div style="display:flex;gap:6px">
+        <span class="badge bg">● 5 Disponibles</span><span class="badge br">● 7 Ocupadas</span><span class="badge ba">● 3 Cuenta</span>
+        <button class="btn btn-p btn-sm" onclick="openTableOrder(0)">+ Asignar mesa</button>
+      </div></div>
+      <div class="card">
+        <div class="tables-grid" id="tables-grid"></div>
+      </div>
+    </div>
+
+    <!-- POS -->
+    <div class="page" id="page-pos">
+      <div class="pos-layout">
+        <div class="pos-menu">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span class="st">Punto de Venta</span>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span style="font-size:12px;color:var(--ink60)">Mesa:</span>
+              <select class="form-select" style="width:100px;padding:5px 8px;font-size:12px" id="pos-table-sel">
+                <option>Mostrador</option><option>Mesa 1</option><option>Mesa 2</option><option>Mesa 3</option><option>Mesa 4</option><option>Mesa 5</option><option>Para llevar</option>
+              </select>
+            </div>
+          </div>
+          <div class="pos-cat-tabs">
+            <div class="pos-cat active" onclick="posFilter('all',this)">Todo</div>
+            <div class="pos-cat" onclick="posFilter('pizza',this)">Pizzas</div>
+            <div class="pos-cat" onclick="posFilter('extra',this)">Extras</div>
+            <div class="pos-cat" onclick="posFilter('drink',this)">Bebidas</div>
+          </div>
+          <div class="pos-grid" id="pos-grid"></div>
+        </div>
+        <div class="pos-cart">
+          <div class="cart-header">
+            <div class="cart-title">Orden actual</div>
+            <div class="cart-sub" id="pos-table-label">Mostrador</div>
+          </div>
+          <div class="cart-items" id="pos-items"><div style="padding:20px;text-align:center;color:var(--ink60);font-size:13px">Toca un producto para agregar</div></div>
+          <div class="cart-footer">
+            <div class="cart-note"><svg width="12" height="12" viewBox="0 0 24 24" fill="var(--ink60)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>Agrega notas para cocina si es necesario</div>
+            <div class="cart-total-row"><span class="cart-total-lbl">Total a cobrar</span><span class="cart-total-val" id="pos-total">$0.00</span></div>
+            <div class="cart-actions">
+              <button class="btn btn-sm" onclick="clearPOS()" style="flex:1;justify-content:center">🗑 Limpiar</button>
+              <button class="btn btn-p" onclick="chargePOS()" style="flex:2;justify-content:center">💳 Cobrar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DELIVERY -->
+    <div class="page" id="page-delivery">
+      <div class="mg mg3" style="margin-bottom:18px">
+        <div class="mc"><div class="mc-lbl">Repartidores activos</div><div class="mc-val">3</div><div class="mc-sub">1 disponible</div></div>
+        <div class="mc"><div class="mc-lbl">Entregas hoy</div><div class="mc-val">44</div><div class="mc-sub trend-up">↑ 8 vs ayer</div></div>
+        <div class="mc"><div class="mc-lbl">Tiempo promedio</div><div class="mc-val">26 min</div><div class="mc-sub">Meta: 30 min</div></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><span class="ct">Entregas activas</span><span class="badge ba">3 en ruta</span></div>
+          <div class="row"><div class="av av-a">JL</div><div class="rm"><div class="rt">Jorge López · #2040</div><div class="rs">Insurgentes Sur 1234 · Est. 4 min</div><div class="pb"><div class="pf" style="width:88%"></div></div></div><span class="badge bg">Casi llega</span></div>
+          <div class="row"><div class="av av-b">MP</div><div class="rm"><div class="rt">Marco Paredes · #2041</div><div class="rs">Condesa, Roma Norte · Est. 16 min</div><div class="pb"><div class="pf" style="width:42%"></div></div></div><span class="badge bi">En ruta</span></div>
+          <div class="row"><div class="av av-g">SG</div><div class="rm"><div class="rt">Sara Gómez · #2043</div><div class="rs">Polanco · Est. 24 min</div><div class="pb"><div class="pf" style="width:15%"></div></div></div><span class="badge ba">Saliendo</span></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct">Zonas de entrega</span><button class="btn btn-sm">Editar</button></div>
+          <div class="zrow"><span class="zlbl">Radio de cobertura</span><span class="zval">6 km</span></div>
+          <div class="zrow"><span class="zlbl">Envío gratis desde</span><span class="zval">$350 MXN</span></div>
+          <div class="zrow"><span class="zlbl">Costo de envío</span><span class="zval">$45 MXN</span></div>
+          <div class="zrow"><span class="zlbl">Tiempo estimado</span><span class="zval">25–35 min</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MENU -->
+    <div class="page" id="page-menu">
+      <div class="sh"><div class="st">Editor de menú</div><div style="display:flex;gap:6px"><button class="btn btn-sm">Importar CSV</button><button class="btn btn-p btn-sm" onclick="showToast('Abriendo editor…')">+ Agregar</button></div></div>
+      <div class="card">
+        <div class="ch"><span class="ct">Pizzas</span><span class="badge bg">4 activas</span></div>
+        <div class="row"><div style="width:36px;height:36px;background:var(--red-l);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🍕</div><div class="rm"><div class="rt">Margherita Nomi</div><div class="rs">Jitomate, mozzarella, albahaca · S/M/L/XL</div></div><div class="rr"><div class="rp">desde $159</div><button class="btn btn-sm" style="margin-top:4px" onclick="showToast('Editando…')">Editar</button></div></div>
+        <div class="row"><div style="width:36px;height:36px;background:var(--red-l);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🍕</div><div class="rm"><div class="rt">Pepperoni Clásica</div><div class="rs">Jitomate, mozzarella, pepperoni · S/M/L/XL</div></div><div class="rr"><div class="rp">desde $179</div><button class="btn btn-sm" style="margin-top:4px" onclick="showToast('Editando…')">Editar</button></div></div>
+        <div class="row"><div style="width:36px;height:36px;background:var(--red-l);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🍕</div><div class="rm"><div class="rt">BBQ Chicken Nomi</div><div class="rs">Base BBQ, pollo, cebolla, jalapeño · S/M/L/XL</div></div><div class="rr"><div class="rp">desde $189</div><button class="btn btn-sm" style="margin-top:4px" onclick="showToast('Editando…')">Editar</button></div></div>
+        <div class="row"><div style="width:36px;height:36px;background:var(--red-l);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">🍕</div><div class="rm"><div class="rt">Cuatro Quesos</div><div class="rs">Mozzarella, gouda, gorgonzola, parmesano · S/M/L/XL</div></div><div class="rr"><div class="rp">desde $195</div><button class="btn btn-sm" style="margin-top:4px" onclick="showToast('Editando…')">Editar</button></div></div>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="ch"><span class="ct">Extras</span><button class="btn btn-sm">+ Agregar</button></div>
+          <div class="row"><div class="rm"><div class="rt">Ensalada César</div></div><div class="rp">$79</div></div>
+          <div class="row"><div class="rm"><div class="rt">Pan de ajo</div></div><div class="rp">$49</div></div>
+        </div>
+        <div class="card"><div class="ch"><span class="ct">Bebidas</span><button class="btn btn-sm">+ Agregar</button></div>
+          <div class="row"><div class="rm"><div class="rt">Refresco 600ml</div></div><div class="rp">$32</div></div>
+          <div class="row"><div class="rm"><div class="rt">Agua mineral</div></div><div class="rp">$28</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div class="page" id="page-inventory">
+      <div class="sh"><div class="st">Inventario</div><div style="display:flex;gap:6px"><button class="btn btn-sm">Exportar</button><button class="btn btn-p btn-sm">+ Reabastecer</button></div></div>
+      <div class="card">
+        <div class="ch"><span class="ct">Estado de inventario</span><div style="display:flex;gap:4px"><span class="badge br">2 críticos</span><span class="badge ba">1 bajo</span><span class="badge bg">11 OK</span></div></div>
+        <div id="inv-list">
+          <div class="row"><div class="rm"><div class="rt">Mozzarella</div><div class="rs">Mín: 3 kg</div></div><div style="display:flex;align-items:center;gap:8px;margin-left:auto"><div class="inv-bar" style="width:90px"><div class="inv-fill if-crit" style="width:14%"></div></div><span style="font-size:11px;color:var(--ink60);min-width:36px;text-align:right">1.1 kg</span></div><span class="badge br" style="margin-left:8px">Crítico</span></div>
+          <div class="row"><div class="rm"><div class="rt">Pepperoni</div><div class="rs">Mín: 2 kg</div></div><div style="display:flex;align-items:center;gap:8px;margin-left:auto"><div class="inv-bar" style="width:90px"><div class="inv-fill if-crit" style="width:10%"></div></div><span style="font-size:11px;color:var(--ink60);min-width:36px;text-align:right">0.7 kg</span></div><span class="badge br" style="margin-left:8px">Crítico</span></div>
+          <div class="row"><div class="rm"><div class="rt">Salsa BBQ</div><div class="rs">Mín: 1.5 L</div></div><div style="display:flex;align-items:center;gap:8px;margin-left:auto"><div class="inv-bar" style="width:90px"><div class="inv-fill if-low" style="width:25%"></div></div><span style="font-size:11px;color:var(--ink60);min-width:36px;text-align:right">0.6 L</span></div><span class="badge ba" style="margin-left:8px">Bajo</span></div>
+          <div class="row"><div class="rm"><div class="rt">Masa de pizza</div><div class="rs">Mín: 2 kg</div></div><div style="display:flex;align-items:center;gap:8px;margin-left:auto"><div class="inv-bar" style="width:90px"><div class="inv-fill if-ok" style="width:80%"></div></div><span style="font-size:11px;color:var(--ink60);min-width:36px;text-align:right">4.8 kg</span></div><span class="badge bg" style="margin-left:8px">OK</span></div>
+          <div class="row"><div class="rm"><div class="rt">Salsa jitomate</div><div class="rs">Mín: 1.5 L</div></div><div style="display:flex;align-items:center;gap:8px;margin-left:auto"><div class="inv-bar" style="width:90px"><div class="inv-fill if-ok" style="width:65%"></div></div><span style="font-size:11px;color:var(--ink60);min-width:36px;text-align:right">3.2 L</span></div><span class="badge bg" style="margin-left:8px">OK</span></div>
+          <div class="row"><div class="rm"><div class="rt">Albahaca fresca</div><div class="rs">Mín: 100 g</div></div><div style="display:flex;align-items:center;gap:8px;margin-left:auto"><div class="inv-bar" style="width:90px"><div class="inv-fill if-ok" style="width:55%"></div></div><span style="font-size:11px;color:var(--ink60);min-width:36px;text-align:right">220 g</span></div><span class="badge bg" style="margin-left:8px">OK</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOYALTY -->
+    <div class="page" id="page-loyalty">
+      <div class="mg mg4">
+        <div class="mc"><div class="mc-lbl">Miembros</div><div class="mc-val">312</div><div class="mc-sub trend-up">+14 esta semana</div></div>
+        <div class="mc"><div class="mc-lbl">Pts emitidos</div><div class="mc-val">18.4k</div></div>
+        <div class="mc"><div class="mc-lbl">Pts canjeados</div><div class="mc-val">6.2k</div></div>
+        <div class="mc"><div class="mc-lbl">Retención</div><div class="mc-val">68%</div><div class="mc-sub trend-up">↑ 4%</div></div>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="ch"><span class="ct">Clientes destacados</span></div>
+          <div class="row"><div class="av av-a">MG</div><div class="rm"><div class="rt">Mariana García</div><div class="ld-wrap"><div class="ld on"></div><div class="ld on"></div><div class="ld on"></div><div class="ld on"></div><div class="ld on"></div></div></div><div class="rr"><span class="badge br">850 pts</span></div></div>
+          <div class="row"><div class="av av-b">CR</div><div class="rm"><div class="rt">Carlos Ruiz</div><div class="ld-wrap"><div class="ld on"></div><div class="ld on"></div><div class="ld on"></div><div class="ld on"></div><div class="ld"></div></div></div><div class="rr"><span class="badge br">620 pts</span></div></div>
+          <div class="row"><div class="av av-g">SP</div><div class="rm"><div class="rt">Sofía Pérez</div><div class="ld-wrap"><div class="ld on"></div><div class="ld on"></div><div class="ld on"></div><div class="ld"></div><div class="ld"></div></div></div><div class="rr"><span class="badge br">430 pts</span></div></div>
+        </div>
+        <div class="card"><div class="ch"><span class="ct">Config. recompensas</span><button class="btn btn-sm">Editar</button></div>
+          <div class="zrow"><span class="zlbl">Acumulación</span><span class="zval">1 pt / $1 MXN</span></div>
+          <div class="zrow"><span class="zlbl">500 pts =</span><span class="zval">$50 MXN descuento</span></div>
+          <div class="zrow"><span class="zlbl">Bono cumpleaños</span><span class="zval">Puntos 2×</span></div>
+          <div class="zrow"><span class="zlbl">Bono referido</span><span class="zval">+100 pts</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="page" id="page-analytics">
+      <div class="mg mg4">
+        <div class="mc"><div class="mc-lbl">Ingresos del mes</div><div class="mc-val">$67.2k</div><div class="mc-sub trend-up">↑ 22%</div></div>
+        <div class="mc"><div class="mc-lbl">Pedidos del mes</div><div class="mc-val">1,248</div></div>
+        <div class="mc"><div class="mc-lbl">Ticket promedio</div><div class="mc-val">$268</div><div class="mc-sub trend-up">↑ $12</div></div>
+        <div class="mc"><div class="mc-lbl">Calificación</div><div class="mc-val">4.8 ★</div></div>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="ch"><span class="ct">Pedidos por hora</span></div><div style="padding:14px 18px"><div class="hchart" id="hchart"></div><div style="display:flex;justify-content:space-between;margin-top:5px;font-size:9px;color:var(--ink60)"><span>11am</span><span>1pm</span><span>3pm</span><span>5pm</span><span>7pm</span><span>9pm</span></div></div></div>
+        <div class="card"><div class="ch"><span class="ct">Por categoría</span></div>
+          <div class="row"><div class="rm"><div class="rt">Pizzas</div></div><div style="display:flex;align-items:center;gap:6px"><div class="inv-bar" style="width:100px"><div class="inv-fill if-ok" style="width:84%"></div></div><span style="font-size:11px;font-weight:600;color:var(--ink)">84%</span></div></div>
+          <div class="row"><div class="rm"><div class="rt">Bebidas</div></div><div style="display:flex;align-items:center;gap:6px"><div class="inv-bar" style="width:100px"><div class="inv-fill if-ok" style="width:10%"></div></div><span style="font-size:11px;font-weight:600;color:var(--ink)">10%</span></div></div>
+          <div class="row"><div class="rm"><div class="rt">Extras</div></div><div style="display:flex;align-items:center;gap:6px"><div class="inv-bar" style="width:100px"><div class="inv-fill if-ok" style="width:6%"></div></div><span style="font-size:11px;font-weight:600;color:var(--ink)">6%</span></div></div>
+        </div>
+      </div>
+      <div class="card"><div class="ch"><span class="ct">Reseñas recientes</span><span class="badge bg">★ 4.8</span></div>
+        <div class="rev"><div class="rev-head"><div class="av av-a" style="width:26px;height:26px;font-size:9px">MG</div><span class="rev-name">Mariana García</span><span class="rev-stars">★★★★★</span><span class="rev-time">hace 2h</span></div><div class="rev-text">La mejor pizza de CDMX. Siempre llega caliente y a tiempo.</div></div>
+        <div class="rev"><div class="rev-head"><div class="av av-b" style="width:26px;height:26px;font-size:9px">CR</div><span class="rev-name">Carlos Ruiz</span><span class="rev-stars">★★★★★</span><span class="rev-time">hace 5h</span></div><div class="rev-text">El BBQ Chicken está increíble. Muy recomendado.</div></div>
+      </div>
+    </div>
+
+    <!-- WORKERS -->
+    <div class="page" id="page-workers">
+      <div class="sh"><div class="st">Equipo y permisos</div><button class="btn btn-p btn-sm" onclick="openWorkerModal()">+ Agregar trabajador</button></div>
+      <div class="card">
+        <div class="ch"><span class="ct">Trabajadores activos</span><span class="badge bk">6 miembros</span></div>
+        <div id="workers-list"></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="ch"><span class="ct">Roles disponibles</span></div>
+        <div class="row"><div class="rm"><div class="rt" style="color:var(--purple)">👑 Administrador</div><div class="rs">Acceso total: ventas, reportes, equipo, configuración, finanzas</div></div></div>
+        <div class="row"><div class="rm"><div class="rt" style="color:var(--blue)">👨‍💼 Gerente</div><div class="rs">POS, mesas, pedidos, inventario, repartos. Sin acceso a equipo/finanzas</div></div></div>
+        <div class="row"><div class="rm"><div class="rt" style="color:var(--green)">🍽 Mesero</div><div class="rs">Solo mesas asignadas, tomar pedidos, ver su turno</div></div></div>
+        <div class="row"><div class="rm"><div class="rt" style="color:var(--amber)">👨‍🍳 Cocina</div><div class="rs">Ver pedidos entrantes, marcar como listo. Sin acceso a ventas</div></div></div>
+        <div class="row"><div class="rm"><div class="rt" style="color:var(--red)">🛵 Repartidor</div><div class="rs">Ver sus entregas asignadas y marcarlas entregadas</div></div></div>
+        <div class="row"><div class="rm"><div class="rt">💰 Cajero</div><div class="rs">POS, cobros, ver pedidos del día. Sin reportes ni equipo</div></div></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="sh"><div class="st">Configuración</div></div>
+      <div class="g2">
+        <div class="card"><div class="ch"><span class="ct">Negocio</span><button class="btn btn-sm">Editar</button></div>
+          <div class="zrow"><span class="zlbl">Nombre</span><span class="zval">Nomi Pizza</span></div>
+          <div class="zrow"><span class="zlbl">Ciudad</span><span class="zval">Ciudad de México</span></div>
+          <div class="zrow"><span class="zlbl">Teléfono</span><span class="zval">+52 55 1234 5678</span></div>
+          <div class="zrow"><span class="zlbl">RFC</span><span class="zval">NPI230401AA1</span></div>
+          <div class="zrow"><span class="zlbl">Horario</span><span class="zval">12:00 – 23:00</span></div>
+        </div>
+        <div class="card"><div class="ch"><span class="ct">Pagos</span><button class="btn btn-sm">Configurar</button></div>
+          <div class="zrow"><span class="zlbl">Mercado Pago</span><span class="badge bg">Conectado</span></div>
+          <div class="zrow"><span class="zlbl">Stripe</span><span class="badge bk">No conectado</span></div>
+          <div class="zrow"><span class="zlbl">Efectivo</span><span class="badge bg">Activo</span></div>
+          <div class="zrow"><span class="zlbl">Terminal física</span><span class="badge ba">Pendiente</span></div>
+        </div>
+        <div class="card"><div class="ch"><span class="ct">Integraciones</span></div>
+          <div class="zrow"><span class="zlbl">Supabase (DB)</span><span class="badge ba">Configurar</span></div>
+          <div class="zrow"><span class="zlbl">Firebase</span><span class="badge bk">No activo</span></div>
+          <div class="zrow"><span class="zlbl">WhatsApp API</span><span class="badge ba">Pendiente</span></div>
+          <div class="zrow"><span class="zlbl">Rappi / DiDi Food</span><span class="badge bk">No activo</span></div>
+        </div>
+        <div class="card"><div class="ch"><span class="ct">Notificaciones</span></div>
+          <div class="zrow"><span class="zlbl">Nuevo pedido</span><span class="badge bg">Activo</span></div>
+          <div class="zrow"><span class="zlbl">Stock crítico</span><span class="badge bg">Activo</span></div>
+          <div class="zrow"><span class="zlbl">Reseña nueva</span><span class="badge bg">Activo</span></div>
+          <div class="zrow"><span class="zlbl">Resumen diario</span><span class="badge bg">Activo</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /pc -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- TABLE ORDER MODAL -->
+<div class="modal-bg" id="table-modal">
+  <div class="modal tom">
+    <div class="modal-head">
+      <span class="modal-title" id="tom-title">Pedido — Mesa 4</span>
+      <button class="modal-close" onclick="closeModal('table-modal')">×</button>
+    </div>
+    <div class="tom-split">
+      <div class="tom-left">
+        <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Seleccionar productos</div>
+        <div id="tom-menu"></div>
+      </div>
+      <div class="tom-right">
+        <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Orden de mesa</div>
+        <div id="tom-cart-items" style="min-height:80px"><div style="font-size:12px;color:var(--ink60)">Sin productos aún</div></div>
+        <div id="tom-total" style="border-top:1px solid var(--ink10);margin-top:10px;padding-top:10px;font-size:13px;font-weight:600;color:var(--ink);display:flex;justify-content:space-between"><span>Total</span><span>$0</span></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('table-modal')">Cancelar</button>
+      <button class="btn btn-p" onclick="confirmTableOrder()">✓ Enviar a cocina</button>
+    </div>
+  </div>
+</div>
+
+<!-- WORKER MODAL -->
+<div class="modal-bg" id="worker-modal">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">Agregar trabajador</span><button class="modal-close" onclick="closeModal('worker-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row"><label class="form-label">Nombre completo</label><input class="form-input" type="text" placeholder="Ej: Jorge López"></div>
+      <div class="form-row"><label class="form-label">Correo electrónico</label><input class="form-input" type="email" placeholder="jorge@nomipizza.com"></div>
+      <div class="form-row"><label class="form-label">PIN de acceso (4 dígitos)</label><input class="form-input" type="password" maxlength="4" placeholder="••••"></div>
+      <div class="form-row">
+        <label class="form-label">Rol</label>
+        <select class="form-select" id="new-worker-role" onchange="updatePermsByRole(this.value)">
+          <option value="admin">👑 Administrador</option>
+          <option value="manager">👨‍💼 Gerente</option>
+          <option value="waiter" selected>🍽 Mesero</option>
+          <option value="kitchen">👨‍🍳 Cocina</option>
+          <option value="delivery">🛵 Repartidor</option>
+          <option value="cashier">💰 Cajero</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Permisos individuales</label>
+        <div class="perms-grid">
+          <label class="perm-check"><input type="checkbox" id="p-pos"><span class="perm-check-lbl">POS / Cobros</span></label>
+          <label class="perm-check"><input type="checkbox" id="p-tables"><span class="perm-check-lbl">Mesas</span></label>
+          <label class="perm-check"><input type="checkbox" id="p-orders"><span class="perm-check-lbl">Pedidos</span></label>
+          <label class="perm-check"><input type="checkbox" id="p-menu"><span class="perm-check-lbl">Editar menú</span></label>
+          <label class="perm-check"><input type="checkbox" id="p-inventory"><span class="perm-check-lbl">Inventario</span></label>
+          <label class="perm-check"><input type="checkbox" id="p-delivery"><span class="perm-check-lbl">Repartos</span></label>
+          <label class="perm-check"><input type="checkbox" id="p-analytics"><span class="perm-check-lbl">Analíticas</span></label>
+          <label class="perm-check"><input type="checkbox" id="p-team"><span class="perm-check-lbl">Gestionar equipo</span></label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal('worker-modal')">Cancelar</button><button class="btn btn-p" onclick="addWorker()">✓ Crear cuenta</button></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><svg width="13" height="13" viewBox="0 0 24 24" fill="#22c55e"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span id="toast-msg"></span></div>
+
+<script>
+// ── DATA ──
+var tables=[
+  {n:1,cap:2,status:'available',waiter:'',amount:0},
+  {n:2,cap:4,status:'occupied',waiter:'Jorge L.',amount:485,time:'52 min'},
+  {n:3,cap:4,status:'occupied',waiter:'Sara G.',amount:290,time:'28 min'},
+  {n:4,cap:6,status:'occupied',waiter:'Marco P.',amount:680,time:'45 min'},
+  {n:5,cap:2,status:'available',waiter:'',amount:0},
+  {n:6,cap:4,status:'ready',waiter:'Jorge L.',amount:560,time:'1h 10m'},
+  {n:7,cap:6,status:'occupied',waiter:'Sara G.',amount:340,time:'18 min'},
+  {n:8,cap:2,status:'available',waiter:'',amount:0},
+  {n:9,cap:4,status:'occupied',waiter:'Marco P.',amount:195,time:'8 min'},
+  {n:10,cap:4,status:'available',waiter:'',amount:0},
+  {n:11,cap:6,status:'ready',waiter:'Jorge L.',amount:890,time:'1h 25m'},
+  {n:12,cap:2,status:'occupied',waiter:'Sara G.',amount:310,time:'35 min'},
+  {n:13,cap:4,status:'ready',waiter:'Marco P.',amount:430,time:'55 min'},
+  {n:14,cap:6,status:'available',waiter:'',amount:0},
+  {n:15,cap:2,status:'available',waiter:'',amount:0}
+];
+
+var menuItems=[
+  {id:1,name:'Margherita Nomi',price:159,cat:'pizza',emoji:'🍕'},
+  {id:2,name:'Pepperoni Clásica',price:179,cat:'pizza',emoji:'🍕'},
+  {id:3,name:'BBQ Chicken Nomi',price:189,cat:'pizza',emoji:'🍕'},
+  {id:4,name:'Cuatro Quesos',price:195,cat:'pizza',emoji:'🍕'},
+  {id:5,name:'Ensalada César',price:79,cat:'extra',emoji:'🥗'},
+  {id:6,name:'Pan de ajo',price:49,cat:'extra',emoji:'🧄'},
+  {id:7,name:'Refresco 600ml',price:32,cat:'drink',emoji:'🥤'},
+  {id:8,name:'Agua mineral',price:28,cat:'drink',emoji:'💧'}
+];
+
+var workers=[
+  {name:'Admin Nomi',role:'admin',email:'admin@nomipizza.com',initials:'AD',color:'av-r',perms:['pos','tables','orders','menu','inventory','delivery','analytics','team']},
+  {name:'Jorge López',role:'manager',email:'jorge@nomipizza.com',initials:'JL',color:'av-b',perms:['pos','tables','orders','inventory','delivery']},
+  {name:'Sara Gómez',role:'waiter',email:'sara@nomipizza.com',initials:'SG',color:'av-g',perms:['tables','orders']},
+  {name:'Marco Paredes',role:'delivery',email:'marco@nomipizza.com',initials:'MP',color:'av-a',perms:['delivery']},
+  {name:'Ana Torres',role:'cashier',email:'ana@nomipizza.com',initials:'AT',color:'av-p',perms:['pos','orders']},
+  {name:'Luis Méndez',role:'kitchen',email:'luis@nomipizza.com',initials:'LM',color:'av-r',perms:['orders']}
+];
+
+var roleLabels={admin:'👑 Administrador',manager:'👨‍💼 Gerente',waiter:'🍽 Mesero',kitchen:'👨‍🍳 Cocina',delivery:'🛵 Repartidor',cashier:'💰 Cajero'};
+var allPerms=['pos','tables','orders','menu','inventory','delivery','analytics','team'];
+var permLabels={pos:'POS',tables:'Mesas',orders:'Pedidos',menu:'Menú',inventory:'Inventario',delivery:'Repartos',analytics:'Analíticas',team:'Equipo'};
+var rolePerms={admin:['pos','tables','orders','menu','inventory','delivery','analytics','team'],manager:['pos','tables','orders','inventory','delivery'],waiter:['tables','orders'],kitchen:['orders'],delivery:['delivery'],cashier:['pos','orders']};
+
+var posCart=[];
+var tomCart=[];
+var currentTable=null;
+
+// ── NAV ──
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active')});
+  if(el) el.classList.add('active');
+  var titles={dashboard:'Dashboard',orders:'Pedidos',tables:'Mesas',pos:'Punto de Venta (POS)',delivery:'Repartos',menu:'Menú',inventory:'Inventario',loyalty:'Lealtad',analytics:'Analíticas',workers:'Equipo y permisos',settings:'Configuración'};
+  document.getElementById('page-title').textContent=titles[id]||id;
+  if(id==='analytics') drawHourChart();
+  if(id==='tables') renderTables();
+  if(id==='pos') renderPOS();
+  if(id==='workers') renderWorkers();
+}
+
+// ── TOAST ──
+var tt;
+function showToast(msg){
+  var t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  t.classList.add('show');
+  clearTimeout(tt);
+  tt=setTimeout(function(){t.classList.remove('show')},2800);
+}
+
+// ── ORDERS FILTER ──
+function filterOrders(s,el){
+  document.querySelectorAll('#orders-tnav .tab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  document.querySelectorAll('.order-row').forEach(function(r){
+    r.style.display=(s==='all'||r.dataset.s===s)?'':'none';
+  });
+}
+
+// ── TABLES ──
+function renderTables(){
+  var g=document.getElementById('tables-grid');
+  g.innerHTML='';
+  tables.forEach(function(t){
+    var d=document.createElement('div');
+    d.className='table-card '+t.status;
+    var stMap={available:'Disponible',occupied:'Ocupada',ready:'Pedir cuenta'};
+    var infoHtml='';
+    if(t.status!=='available') infoHtml='<div class="tc-amount">$'+t.amount+'</div><div style="font-size:9px;color:var(--ink60);margin-top:2px">'+t.waiter+' · '+t.time+'</div>';
+    d.innerHTML='<div class="tc-num">'+t.n+'</div><div class="tc-cap">'+t.cap+' personas</div><div class="tc-status">'+stMap[t.status]+'</div>'+infoHtml;
+    d.onclick=function(){openTableOrder(t.n)};
+    g.appendChild(d);
+  });
+}
+
+function openTableOrder(tn){
+  var t=tn>0?tables[tn-1]:null;
+  document.getElementById('tom-title').textContent=tn>0?'Pedido — Mesa '+tn:'Nueva mesa';
+  tomCart=[];
+  renderTomMenu();
+  renderTomCart();
+  currentTable=tn;
+  document.getElementById('table-modal').classList.add('open');
+}
+
+function renderTomMenu(){
+  var el=document.getElementById('tom-menu');
+  el.innerHTML='';
+  menuItems.forEach(function(item){
+    var d=document.createElement('div');
+    d.className='mi';
+    d.innerHTML='<span class="mi-name">'+item.emoji+' '+item.name+'</span><span class="mi-price">$'+item.price+'</span>';
+    d.onclick=function(){
+      var found=tomCart.find(function(c){return c.id===item.id});
+      if(found) found.qty++;
+      else tomCart.push({id:item.id,name:item.name,price:item.price,emoji:item.emoji,qty:1});
+      renderTomCart();
+    };
+    el.appendChild(d);
+  });
+}
+
+function renderTomCart(){
+  var el=document.getElementById('tom-cart-items');
+  var total=0;
+  if(tomCart.length===0){el.innerHTML='<div style="font-size:12px;color:var(--ink60)">Sin productos aún</div>';}
+  else{
+    el.innerHTML=tomCart.map(function(c){
+      total+=c.price*c.qty;
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--ink10);font-size:12px"><span>'+c.emoji+' '+c.name+' ×'+c.qty+'</span><span style="font-weight:600">$'+(c.price*c.qty)+'</span></div>';
+    }).join('');
+  }
+  document.getElementById('tom-total').innerHTML='<span>Total</span><span>$'+total+'</span>';
+}
+
+function confirmTableOrder(){
+  if(tomCart.length===0){showToast('Agrega al menos un producto');return;}
+  closeModal('table-modal');
+  showToast('Pedido de Mesa '+currentTable+' enviado a cocina ✓');
+}
+
+// ── POS ──
+function renderPOS(){
+  var g=document.getElementById('pos-grid');
+  g.innerHTML='';
+  menuItems.forEach(function(item){
+    var d=document.createElement('div');
+    d.className='pos-item';
+    d.dataset.cat=item.cat;
+    d.innerHTML='<span class="pi-icon">'+item.emoji+'</span><div class="pi-name">'+item.name+'</div><div class="pi-price">$'+item.price+'</div>';
+    d.onclick=function(){addToPOS(item)};
+    g.appendChild(d);
+  });
+}
+
+function posFilter(cat,el){
+  document.querySelectorAll('.pos-cat').forEach(function(c){c.classList.remove('active')});
+  el.classList.add('active');
+  document.querySelectorAll('.pos-item').forEach(function(i){
+    i.style.display=(cat==='all'||i.dataset.cat===cat)?'':'none';
+  });
+}
+
+function addToPOS(item){
+  var found=posCart.find(function(c){return c.id===item.id});
+  if(found) found.qty++;
+  else posCart.push({id:item.id,name:item.name,price:item.price,qty:1});
+  renderPOSCart();
+}
+
+function renderPOSCart(){
+  var el=document.getElementById('pos-items');
+  var total=0;
+  if(posCart.length===0){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--ink60);font-size:13px">Toca un producto para agregar</div>';document.getElementById('pos-total').textContent='$0.00';return;}
+  el.innerHTML=posCart.map(function(c,i){
+    total+=c.price*c.qty;
+    return '<div class="ci"><span class="ci-name">'+c.name+'</span><div class="ci-qty"><button class="qty-btn" onclick="changePOSQty('+i+',-1)">−</button><span style="font-size:12px;font-weight:600;min-width:16px;text-align:center">'+c.qty+'</span><button class="qty-btn" onclick="changePOSQty('+i+',1)">+</button></div><span class="ci-price">$'+(c.price*c.qty)+'</span></div>';
+  }).join('');
+  document.getElementById('pos-total').textContent='$'+total.toFixed(2);
+}
+
+function changePOSQty(i,delta){
+  posCart[i].qty+=delta;
+  if(posCart[i].qty<=0) posCart.splice(i,1);
+  renderPOSCart();
+}
+
+function clearPOS(){posCart=[];renderPOSCart();}
+function chargePOS(){
+  var table=document.getElementById('pos-table-sel').value;
+  showToast('Cobrando '+table+' — Redirigiendo a pago…');
+  setTimeout(function(){clearPOS();},500);
+}
+
+// ── WORKERS ──
+function renderWorkers(){
+  var el=document.getElementById('workers-list');
+  el.innerHTML=workers.map(function(w){
+    var permsHtml=allPerms.map(function(p){
+      var has=w.perms.indexOf(p)>=0;
+      return '<span class="perm-tag '+(has?'perm-yes':'perm-no')+'">'+permLabels[p]+'</span>';
+    }).join('');
+    return '<div class="worker-card"><div class="wc-av '+w.color+'">'+w.initials+'</div><div class="wc-info"><div class="wc-name">'+w.name+'</div><div class="wc-role">'+roleLabels[w.role]+' · '+w.email+'</div><div class="wc-perms">'+permsHtml+'</div></div><button class="btn btn-sm" onclick="showToast(\'Editando cuenta de '+w.name+'…\')">Editar</button></div>';
+  }).join('');
+}
+
+function openWorkerModal(){document.getElementById('worker-modal').classList.add('open');updatePermsByRole('waiter');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function updatePermsByRole(role){
+  var perms=rolePerms[role]||[];
+  allPerms.forEach(function(p){
+    var el=document.getElementById('p-'+p);
+    if(el) el.checked=perms.indexOf(p)>=0;
+  });
+}
+
+function addWorker(){
+  showToast('Cuenta creada. Credenciales enviadas por correo ✓');
+  closeModal('worker-modal');
+}
+
+// ── CHARTS ──
+(function(){
+  var days=['L','M','M','J','V','S','D'],vals=[1820,2100,1950,2340,2680,3201,2391];
+  var max=Math.max.apply(null,vals);
+  var c=document.getElementById('rev-chart'),lb=document.getElementById('rev-labels');
+  if(!c) return;
+  days.forEach(function(d,i){
+    var col=document.createElement('div');col.className='bar-col';
+    var f=document.createElement('div');f.className='bar-f'+(i===5?' hi':'');f.style.height=Math.round(vals[i]/max*100)+'%';
+    col.appendChild(f);c.appendChild(col);
+    var l=document.createElement('div');l.className='bar-lbl';l.textContent=d;lb.appendChild(l);
+  });
+})();
+
+function drawHourChart(){
+  var el=document.getElementById('hchart');
+  if(!el||el.children.length>0) return;
+  var vals=[2,5,8,14,18,22,19,16,20,24,18,10],peaks=[5,9],max=Math.max.apply(null,vals);
+  vals.forEach(function(v,i){
+    var col=document.createElement('div');col.className='hc-col';
+    var bar=document.createElement('div');bar.className='hc-bar'+(peaks.indexOf(i)>=0?' peak':'');
+    bar.style.height=Math.round(v/max*100)+'%';
+    col.appendChild(bar);el.appendChild(col);
+  });
+}
+
+// ── INIT ──
+renderTables();
+renderPOS();
+renderWorkers();
+document.getElementById('table-modal').addEventListener('click',function(e){if(e.target===this)closeModal('table-modal')});
+document.getElementById('worker-modal').addEventListener('click',function(e){if(e.target===this)closeModal('worker-modal')});
+</script>
+</body>
+</html>

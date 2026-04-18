@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nomi Pizza — App</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--red:#C8392B;--red-d:#9B2A1E;--red-l:#FAECE7;--ink:#1A1714;--ink60:#6B6460;--ink20:#E8E4DF;--wh:#fff;--cream:#FAF8F5;--green:#2D7A4F;--green-l:#E8F5EE;--amber:#B45309;--amber-l:#FEF3C7;--r:14px;--rsm:10px;--tr:.15s cubic-bezier(.4,0,.2,1)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);max-width:430px;margin:0 auto;min-height:100vh;-webkit-font-smoothing:antialiased}
+.device{display:flex;flex-direction:column;min-height:100vh;background:var(--cream)}
+.sbar{background:var(--ink);padding:10px 20px 8px;display:flex;justify-content:space-between;align-items:center}
+.sbar-time{font-size:13px;font-weight:600;color:#fff}
+.sbar-ic{font-size:11px;color:rgba(255,255,255,.8)}
+
+/* HERO */
+.hero{background:var(--red);padding:20px 20px 0;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;bottom:-30px;right:-20px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.06)}
+.hero::after{content:'';position:absolute;top:-20px;right:60px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.05)}
+.hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;z-index:1}
+.hero-brand{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#fff;letter-spacing:-.02em}
+.hero-stars{font-size:13px;color:#FCD34D;letter-spacing:1px}
+.hero-rating{font-size:12px;color:rgba(255,255,255,.8);margin-top:1px}
+.hero-info{display:flex;gap:12px;position:relative;z-index:1;margin-bottom:16px}
+.hero-chip{background:rgba(255,255,255,.15);border-radius:20px;padding:6px 12px;font-size:11px;color:#fff;display:flex;align-items:center;gap:5px;backdrop-filter:blur(4px)}
+.hc-dot{width:6px;height:6px;border-radius:50%;background:#22c55e}
+
+/* SEARCH BAR */
+.search-area{background:var(--red);padding:0 20px 20px;position:relative;z-index:1}
+.search-box{background:var(--wh);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:8px;cursor:text}
+.search-icon{font-size:16px;opacity:.5}
+.search-placeholder{font-size:13px;color:var(--ink60)}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:0 0 80px}
+
+/* SECTION */
+.section{padding:16px 16px 0}
+.section-title{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-.02em;margin-bottom:12px}
+
+/* CATEGORY PILLS */
+.cats{display:flex;gap:8px;padding:14px 16px;overflow-x:auto;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cat-pill{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;-webkit-tap-highlight-color:transparent;flex-shrink:0;transition:var(--tr)}
+.cat-pill:active{transform:scale(.92)}
+.cat-circle{width:52px;height:52px;border-radius:50%;background:var(--wh);border:2px solid var(--ink20);display:flex;align-items:center;justify-content:center;font-size:24px;transition:var(--tr)}
+.cat-pill.active .cat-circle{border-color:var(--red);background:var(--red-l)}
+.cat-pill-lbl{font-size:10px;font-weight:500;color:var(--ink60);white-space:nowrap}
+.cat-pill.active .cat-pill-lbl{color:var(--red-d);font-weight:600}
+
+/* PIZZA CARDS */
+.pizza-list{padding:0 16px 8px}
+.pizza-card{background:var(--wh);border-radius:var(--r);border:1px solid var(--ink20);overflow:hidden;margin-bottom:10px;transition:var(--tr);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pizza-card:active{transform:scale(.98)}
+.pizza-top{height:120px;background:linear-gradient(135deg,var(--red-l) 0%,var(--red-m) 100%);display:flex;align-items:center;justify-content:center;font-size:60px;position:relative}
+.pizza-badge{position:absolute;top:10px;left:10px;font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em}
+.pb-hot{background:var(--amber-l);color:var(--amber)}
+.pb-best{background:var(--red-l);color:var(--red-d)}
+.pb-veg{background:var(--green-l);color:var(--green)}
+.pizza-bottom{padding:12px}
+.pizza-name{font-size:14px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+.pizza-desc{font-size:11px;color:var(--ink60);margin-top:3px;line-height:1.4}
+.pizza-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.pizza-price{font-size:16px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.pizza-from{font-size:10px;color:var(--ink60);font-weight:400}
+.add-btn{width:32px;height:32px;background:var(--red);border-radius:50%;border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--tr);-webkit-tap-highlight-color:transparent;line-height:1}
+.add-btn:active{transform:scale(.88);background:var(--red-d)}
+
+/* EXTRAS HORIZONTAL */
+.extras-scroll{display:flex;gap:8px;padding:0 16px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.extras-scroll::-webkit-scrollbar{display:none}
+.extra-card{background:var(--wh);border:1px solid var(--ink20);border-radius:var(--rsm);padding:12px;flex-shrink:0;width:120px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:var(--tr)}
+.extra-card:active{transform:scale(.95)}
+.extra-emoji{font-size:24px;margin-bottom:6px;display:block}
+.extra-name{font-size:11px;font-weight:600;color:var(--ink);line-height:1.3}
+.extra-price{font-size:12px;font-weight:700;color:var(--red);margin-top:4px}
+
+/* CART BAR */
+.cart-bar{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:398px;background:var(--ink);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .3s cubic-bezier(.34,1.56,.64,1);-webkit-tap-highlight-color:transparent;opacity:0;pointer-events:none;transform:translateX(-50%) translateY(20px)}
+.cart-bar.visible{opacity:1;pointer-events:all;transform:translateX(-50%) translateY(0)}
+.cart-bar:active{transform:translateX(-50%) scale(.98)}
+.cb-left{display:flex;align-items:center;gap:10px}
+.cb-count{background:var(--red);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.cb-text{font-size:13px;font-weight:500;color:#fff}
+.cb-total{font-size:15px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--wh);border-top:1px solid var(--ink20);display:flex;padding:8px 0 20px}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:var(--tr)}
+.bn:active{transform:scale(.9)}
+.bn svg{width:22px;height:22px;fill:var(--ink60)}
+.bn.active svg{fill:var(--red)}
+.bn-lbl{font-size:9px;font-weight:500;color:var(--ink60)}.bn.active .bn-lbl{color:var(--red)}
+
+/* CART PAGE */
+.cart-page{display:none;flex-direction:column;min-height:100vh}
+.cart-page.active{display:flex}
+.cart-header{background:var(--red);padding:50px 20px 20px;display:flex;align-items:center;gap:12px}
+.back-btn{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:18px;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.cart-h-title{font-size:16px;font-weight:600;color:#fff}
+.cart-content{flex:1;padding:16px;overflow-y:auto}
+.cart-item-card{background:var(--wh);border-radius:var(--rsm);border:1px solid var(--ink20);padding:12px;display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ci-emoji{font-size:28px;flex-shrink:0}
+.ci-info{flex:1;min-width:0}.ci-name{font-size:13px;font-weight:600;color:var(--ink)}.ci-unit{font-size:11px;color:var(--ink60)}
+.ci-controls{display:flex;align-items:center;gap:8px}
+.qbtn{width:28px;height:28px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:var(--tr);-webkit-tap-highlight-color:transparent;line-height:1}
+.qbtn:active{background:var(--red);color:#fff;border-color:var(--red);transform:scale(.9)}
+.ci-price{font-size:13px;font-weight:700;color:var(--ink);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.cart-summary{background:var(--wh);border-radius:var(--r);border:1px solid var(--ink20);padding:14px;margin-top:4px}
+.cs-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:1px solid var(--ink20)}
+.cs-row:last-child{border-bottom:none}
+.cs-lbl{color:var(--ink60)}.cs-val{font-weight:500;color:var(--ink)}
+.cs-total{font-size:16px;font-weight:700;color:var(--ink)}
+.checkout-btn{background:var(--red);color:#fff;border:none;border-radius:var(--r);padding:16px;width:100%;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-top:14px;transition:var(--tr);-webkit-tap-highlight-color:transparent}
+.checkout-btn:active{background:var(--red-d);transform:scale(.98)}
+
+/* TRACK PAGE */
+.track-page{display:none;flex-direction:column;min-height:100vh}
+.track-page.active{display:flex}
+.track-header{background:var(--red);padding:50px 20px 24px}
+.track-num{font-size:11px;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.06em}
+.track-title{font-size:20px;font-weight:700;color:#fff;font-family:'Playfair Display',serif;margin-top:4px}
+.track-eta{font-size:14px;color:rgba(255,255,255,.85);margin-top:8px}
+.track-steps{padding:20px 16px}
+.ts{display:flex;align-items:flex-start;gap:12px;margin-bottom:20px}
+.ts-node{display:flex;flex-direction:column;align-items:center;gap:0;flex-shrink:0}
+.ts-circle{width:32px;height:32px;border-radius:50%;border:2px solid var(--ink20);background:var(--wh);display:flex;align-items:center;justify-content:center;font-size:14px;z-index:1}
+.ts-circle.done{background:var(--red);border-color:var(--red)}
+.ts-circle.active{background:var(--wh);border-color:var(--red);box-shadow:0 0 0 4px var(--red-l)}
+.ts-line{width:2px;height:28px;background:var(--ink20);margin:2px auto}
+.ts-line.done{background:var(--red)}
+.ts-content{flex:1;padding-top:6px}
+.ts-title{font-size:13px;font-weight:600;color:var(--ink)}.ts-desc{font-size:11px;color:var(--ink60);margin-top:2px}
+.ts-title.active{color:var(--red-d)}.ts-title.muted{color:var(--ink60);font-weight:400}
+.driver-card{margin:0 16px;background:var(--wh);border:1px solid var(--ink20);border-radius:var(--r);padding:14px;display:flex;align-items:center;gap:12px}
+.driver-av{width:44px;height:44px;border-radius:50%;background:var(--red-l);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:var(--red-d);flex-shrink:0}
+.driver-name{font-size:14px;font-weight:600;color:var(--ink)}
+.driver-info{font-size:11px;color:var(--ink60);margin-top:2px}
+.driver-call{width:40px;height:40px;border-radius:50%;background:var(--green-l);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;margin-left:auto;-webkit-tap-highlight-color:transparent}
+
+/* PROFILE PAGE */
+.profile-page{display:none;flex-direction:column;min-height:100vh}
+.profile-page.active{display:flex}
+.profile-hero{background:var(--red);padding:50px 20px 24px;text-align:center}
+.profile-av{width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.2);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#fff;border:3px solid rgba(255,255,255,.3)}
+.profile-name{font-size:18px;font-weight:600;color:#fff}
+.profile-pts{font-size:12px;color:rgba(255,255,255,.8);margin-top:4px}
+.profile-content{flex:1;padding:16px;background:var(--cream)}
+.pcard{background:var(--wh);border-radius:var(--r);border:1px solid var(--ink20);overflow:hidden;margin-bottom:12px}
+.pcard-title{font-size:12px;font-weight:600;color:var(--ink60);padding:10px 14px;border-bottom:1px solid var(--ink20);text-transform:uppercase;letter-spacing:.06em}
+.prow{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid var(--ink20);font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.prow:last-child{border-bottom:none}
+.prow-lbl{color:var(--ink)}.prow-val{color:var(--ink60);font-weight:500}
+.pts-bar{padding:14px;border-top:0}
+.pts-progress{height:6px;background:var(--ink20);border-radius:3px;overflow:hidden;margin:8px 0 4px}
+.pts-fill{height:100%;background:var(--red);border-radius:3px}
+.pts-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--ink60)}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:var(--rsm);font-size:12px;font-weight:500;white-space:nowrap;opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:200;max-width:80vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+<div class="device">
+
+<!-- MAIN CONTENT -->
+<div id="main-view">
+  <div class="sbar"><span class="sbar-time">15:42</span><span class="sbar-ic">●●●● 88%</span></div>
+
+  <div class="hero">
+    <div class="hero-top">
+      <div>
+        <div class="hero-brand">Nomi Pizza</div>
+        <div class="hero-stars">★★★★★</div>
+        <div class="hero-rating">4.8 · +500 reseñas</div>
+      </div>
+      <div style="font-size:44px;line-height:1;position:relative;z-index:1">🍕</div>
+    </div>
+    <div class="hero-info">
+      <div class="hero-chip"><div class="hc-dot"></div>Abierto ahora</div>
+      <div class="hero-chip">🛵 ~26 min</div>
+      <div class="hero-chip">🎁 850 pts</div>
+    </div>
+  </div>
+
+  <div class="search-area">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <span class="search-placeholder">Buscar pizzas o extras…</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- CATEGORIES -->
+    <div class="cats" id="cats">
+      <div class="cat-pill active" onclick="filterCat('pizza',this)"><div class="cat-circle">🍕</div><span class="cat-pill-lbl">Pizzas</span></div>
+      <div class="cat-pill" onclick="filterCat('extra',this)"><div class="cat-circle">🥗</div><span class="cat-pill-lbl">Extras</span></div>
+      <div class="cat-pill" onclick="filterCat('drink',this)"><div class="cat-circle">🥤</div><span class="cat-pill-lbl">Bebidas</span></div>
+      <div class="cat-pill" onclick="filterCat('offer',this)"><div class="cat-circle">🏷️</div><span class="cat-pill-lbl">Ofertas</span></div>
+    </div>
+
+    <!-- PIZZAS -->
+    <div class="section">
+      <div class="section-title">Nuestras pizzas</div>
+    </div>
+    <div class="pizza-list" id="pizza-list"></div>
+
+    <!-- EXTRAS -->
+    <div class="section" style="margin-bottom:12px">
+      <div class="section-title">Para acompañar</div>
+    </div>
+    <div class="extras-scroll" id="extras-list"></div>
+
+    <!-- OFFERS -->
+    <div class="section" style="margin-top:16px">
+      <div class="section-title">Combos especiales</div>
+    </div>
+    <div style="padding:0 16px 100px">
+      <div class="pizza-card" onclick="addToCart({id:99,name:'Combo Familiar',price:549,emoji:'🍕🍕',desc:'2 Pepperoni L + 2 Refrescos'})">
+        <div class="pizza-top" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A)"><span style="font-size:50px">🍕🍕</span><div class="pizza-badge pb-best">OFERTA</div></div>
+        <div class="pizza-bottom">
+          <div class="pizza-name">Combo Familiar</div>
+          <div class="pizza-desc">2 Pepperoni (L) + 2 Refrescos 600ml · Ahorra $89</div>
+          <div class="pizza-footer"><div><div class="pizza-price">$549 <span style="font-size:12px;color:var(--ink60);font-weight:400;text-decoration:line-through">$638</span></div></div><button class="add-btn" onclick="event.stopPropagation();addToCart({id:99,name:'Combo Familiar',price:549,emoji:'🍕🍕',desc:''})">+</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CART PAGE -->
+<div class="cart-page" id="cart-page">
+  <div class="cart-header">
+    <div class="back-btn" onclick="showMain()">←</div>
+    <span class="cart-h-title">Tu carrito</span>
+  </div>
+  <div class="cart-content">
+    <div id="cart-items-display"></div>
+    <div class="cart-summary" id="cart-summary"></div>
+  </div>
+</div>
+
+<!-- TRACK PAGE -->
+<div class="track-page" id="track-page">
+  <div class="track-header">
+    <div class="track-num">Pedido #NP-2041</div>
+    <div class="track-title">¡En camino! 🛵</div>
+    <div class="track-eta">Llega en aproximadamente <strong style="color:#FCD34D">8 minutos</strong></div>
+  </div>
+  <div class="track-steps">
+    <div class="ts">
+      <div class="ts-node"><div class="ts-circle done">✓</div><div class="ts-line done"></div></div>
+      <div class="ts-content"><div class="ts-title">Pedido confirmado</div><div class="ts-desc">15:42 · Pago procesado con Mercado Pago</div></div>
+    </div>
+    <div class="ts">
+      <div class="ts-node"><div class="ts-circle done">✓</div><div class="ts-line done"></div></div>
+      <div class="ts-content"><div class="ts-title">Preparando tu pedido</div><div class="ts-desc">Nuestros chefs ya están horneando tu pizza</div></div>
+    </div>
+    <div class="ts">
+      <div class="ts-node"><div class="ts-circle active">🛵</div><div class="ts-line"></div></div>
+      <div class="ts-content"><div class="ts-title active">En camino</div><div class="ts-desc">Jorge L. está en ruta hacia tu dirección</div></div>
+    </div>
+    <div class="ts">
+      <div class="ts-node"><div class="ts-circle" style="font-size:16px">🏠</div></div>
+      <div class="ts-content"><div class="ts-title muted">Entregado</div><div class="ts-desc">Estimado: 15:58</div></div>
+    </div>
+  </div>
+  <div class="driver-card">
+    <div class="driver-av">JL</div>
+    <div>
+      <div class="driver-name">Jorge López</div>
+      <div class="driver-info">Tu repartidor · ⭐ 4.9</div>
+    </div>
+    <button class="driver-call" onclick="showToast('Llamando a Jorge…')">📞</button>
+  </div>
+  <div style="padding:16px;margin-top:auto">
+    <button style="width:100%;padding:13px;background:var(--wh);border:1px solid var(--ink20);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer" onclick="showMain()">← Seguir comprando</button>
+  </div>
+</div>
+
+<!-- PROFILE PAGE -->
+<div class="profile-page" id="profile-page">
+  <div class="sbar"><span class="sbar-time">15:42</span><span class="sbar-ic">●●●● 88%</span></div>
+  <div class="profile-hero">
+    <div class="profile-av">MG</div>
+    <div class="profile-name">Mariana García</div>
+    <div class="profile-pts">Miembro Nomi · Nivel Oro 🌟</div>
+  </div>
+  <div class="profile-content">
+    <div class="pcard">
+      <div class="pcard-title">Puntos de lealtad</div>
+      <div style="padding:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+          <span style="font-size:28px;font-weight:700;color:var(--ink)">850</span>
+          <span style="font-size:12px;color:var(--ink60)">Meta: 1,000 pts (Nivel Platino)</span>
+        </div>
+        <div class="pts-progress"><div class="pts-fill" style="width:85%"></div></div>
+        <div class="pts-labels"><span>0</span><span>1,000 pts</span></div>
+        <div style="margin-top:10px;font-size:12px;color:var(--ink60)">500 pts = $50 MXN de descuento · Tienes <strong style="color:var(--red)">$85 disponibles</strong></div>
+      </div>
+    </div>
+    <div class="pcard">
+      <div class="pcard-title">Mi cuenta</div>
+      <div class="prow"><span class="prow-lbl">Nombre</span><span class="prow-val">Mariana García</span></div>
+      <div class="prow"><span class="prow-lbl">Correo</span><span class="prow-val">mariana@email.com</span></div>
+      <div class="prow"><span class="prow-lbl">Teléfono</span><span class="prow-val">+52 55 1234 5678</span></div>
+      <div class="prow"><span class="prow-lbl">Dirección fav.</span><span class="prow-val">Condesa, CDMX</span></div>
+    </div>
+    <div class="pcard">
+      <div class="pcard-title">Mis pedidos</div>
+      <div class="prow"><span class="prow-lbl">🍕 Pepperoni Clásica</span><span class="prow-val">hace 2 días</span></div>
+      <div class="prow"><span class="prow-lbl">🍕 BBQ Chicken x2</span><span class="prow-val">hace 1 sem</span></div>
+      <div class="prow"><span class="prow-lbl">🍕 Margherita + Refresco</span><span class="prow-val">hace 2 sem</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- CART BAR -->
+<div class="cart-bar" id="cart-bar" onclick="showCart()">
+  <div class="cb-left">
+    <div class="cb-count" id="cb-count">0</div>
+    <span class="cb-text">Ver carrito</span>
+  </div>
+  <span class="cb-total" id="cb-total">$0</span>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottom-nav">
+  <div class="bn active" onclick="showMain();setBN(0)">
+    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    <span class="bn-lbl">Inicio</span>
+  </div>
+  <div class="bn" onclick="showCart();setBN(1)">
+    <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96C5 16.1 6.1 17 7.4 17H19v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63H15c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0019.5 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
+    <span class="bn-lbl">Carrito</span>
+  </div>
+  <div class="bn" onclick="showTrack();setBN(2)">
+    <svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg>
+    <span class="bn-lbl">Mi pedido</span>
+  </div>
+  <div class="bn" onclick="showProfile();setBN(3)">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+    <span class="bn-lbl">Perfil</span>
+  </div>
+</nav>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+var items=[
+  {id:1,name:'Margherita Nomi',price:159,cat:'pizza',emoji:'🍕',desc:'Jitomate San Marzano, mozzarella, albahaca',badge:'pb-veg',badgeText:'Vegetariana'},
+  {id:2,name:'Pepperoni Clásica',price:179,cat:'pizza',emoji:'🍕',desc:'Jitomate, mozzarella, pepperoni importado',badge:'pb-best',badgeText:'Más vendida'},
+  {id:3,name:'BBQ Chicken Nomi',price:189,cat:'pizza',emoji:'🍕',desc:'Base BBQ, pollo a la plancha, jalapeño',badge:'pb-hot',badgeText:'Picante'},
+  {id:4,name:'Cuatro Quesos',price:195,cat:'pizza',emoji:'🍕',desc:'Mozzarella, gouda, gorgonzola, parmesano',badge:'pb-veg',badgeText:'Vegetariana'}
+];
+var extras=[
+  {id:5,name:'Ensalada César',price:79,cat:'extra',emoji:'🥗'},
+  {id:6,name:'Pan de ajo',price:49,cat:'extra',emoji:'🧄'},
+  {id:7,name:'Refresco 600ml',price:32,cat:'drink',emoji:'🥤'},
+  {id:8,name:'Agua mineral',price:28,cat:'drink',emoji:'💧'}
+];
+
+var cart=[];
+
+// RENDER PIZZAS
+function renderPizzas(){
+  var el=document.getElementById('pizza-list');
+  el.innerHTML='';
+  items.forEach(function(item){
+    var d=document.createElement('div');
+    d.className='pizza-card';
+    d.innerHTML='<div class="pizza-top"><span style="font-size:60px">'+item.emoji+'</span><div class="pizza-badge '+item.badge+'">'+item.badgeText+'</div></div><div class="pizza-bottom"><div class="pizza-name">'+item.name+'</div><div class="pizza-desc">'+item.desc+' · S/M/L/XL</div><div class="pizza-footer"><div><div class="pizza-price">$'+item.price+'<br><span class="pizza-from">desde</span></div></div><button class="add-btn" onclick="event.stopPropagation();addToCart('+JSON.stringify(item).replace(/"/g,"'")+')">+</button></div></div>';
+    d.onclick=function(){addToCart(item);};
+    el.appendChild(d);
+  });
+}
+
+function renderExtras(){
+  var el=document.getElementById('extras-list');
+  el.innerHTML='';
+  extras.forEach(function(item){
+    var d=document.createElement('div');
+    d.className='extra-card';
+    d.innerHTML='<span class="extra-emoji">'+item.emoji+'</span><div class="extra-name">'+item.name+'</div><div class="extra-price">$'+item.price+'</div>';
+    d.onclick=function(){addToCart(item)};
+    el.appendChild(d);
+  });
+}
+
+renderPizzas();renderExtras();
+
+// CART
+function addToCart(item){
+  var found=cart.find(function(c){return c.id===item.id});
+  if(found) found.qty++;
+  else cart.push({id:item.id,name:item.name,price:item.price,emoji:item.emoji,qty:1});
+  updateCartBar();
+  showToast(item.name+' agregada ✓');
+}
+
+function updateCartBar(){
+  var total=0,count=0;
+  cart.forEach(function(c){total+=c.price*c.qty;count+=c.qty});
+  document.getElementById('cb-count').textContent=count;
+  document.getElementById('cb-total').textContent='$'+total;
+  var bar=document.getElementById('cart-bar');
+  if(count>0) bar.classList.add('visible');
+  else bar.classList.remove('visible');
+}
+
+function renderCartPage(){
+  var el=document.getElementById('cart-items-display');
+  var total=0,sub=0,delivery=45;
+  el.innerHTML='';
+  if(cart.length===0){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--ink60);font-size:14px">Tu carrito está vacío</div>';document.getElementById('cart-summary').innerHTML='';return;}
+  cart.forEach(function(c,i){
+    sub+=c.price*c.qty;
+    var d=document.createElement('div');
+    d.className='cart-item-card';
+    d.innerHTML='<span class="ci-emoji">'+c.emoji+'</span><div class="ci-info"><div class="ci-name">'+c.name+'</div><div class="ci-unit">$'+c.price+' c/u</div></div><div class="ci-controls"><button class="qbtn" onclick="chQty('+i+',-1)">−</button><span style="font-size:13px;font-weight:600;min-width:16px;text-align:center">'+c.qty+'</span><button class="qbtn" onclick="chQty('+i+',1)">+</button></div><span class="ci-price">$'+(c.price*c.qty)+'</span>';
+    el.appendChild(d);
+  });
+  total=sub+delivery;
+  document.getElementById('cart-summary').innerHTML='<div class="cs-row"><span class="cs-lbl">Subtotal</span><span class="cs-val">$'+sub+'</span></div><div class="cs-row"><span class="cs-lbl">Envío</span><span class="cs-val">$'+delivery+'</span></div><div class="cs-row"><span class="cs-lbl">Puntos a ganar</span><span class="cs-val" style="color:var(--red)">+'+total+' pts</span></div><div class="cs-row"><span class="cs-lbl">Total</span><span class="cs-val cs-total">$'+total+'</span></div><button class="checkout-btn" onclick="placeOrder()">💳 Pagar con Mercado Pago</button>';
+}
+
+function chQty(i,d){cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);renderCartPage();updateCartBar();}
+
+function placeOrder(){
+  showToast('¡Pedido confirmado! Procesando pago…');
+  setTimeout(function(){cart=[];updateCartBar();showTrack();setBN(2);},1200);
+}
+
+// NAV
+function showMain(){
+  document.querySelectorAll('.cart-page,.track-page,.profile-page').forEach(function(p){p.classList.remove('active')});
+  document.getElementById('main-view').style.display='block';
+  document.getElementById('bottom-nav').style.display='flex';
+}
+function showCart(){
+  document.getElementById('main-view').style.display='none';
+  document.getElementById('cart-page').classList.add('active');
+  document.getElementById('track-page').classList.remove('active');
+  document.getElementById('profile-page').classList.remove('active');
+  document.getElementById('bottom-nav').style.display='flex';
+  renderCartPage();
+}
+function showTrack(){
+  document.getElementById('main-view').style.display='none';
+  document.getElementById('cart-page').classList.remove('active');
+  document.getElementById('track-page').classList.add('active');
+  document.getElementById('profile-page').classList.remove('active');
+}
+function showProfile(){
+  document.getElementById('main-view').style.display='none';
+  document.getElementById('cart-page').classList.remove('active');
+  document.getElementById('track-page').classList.remove('active');
+  document.getElementById('profile-page').classList.add('active');
+  document.getElementById('bottom-nav').style.display='flex';
+}
+
+function setBN(idx){
+  document.querySelectorAll('.bn').forEach(function(b,i){b.classList.toggle('active',i===idx)});
+}
+
+function filterCat(cat,el){
+  document.querySelectorAll('.cat-pill').forEach(function(c){c.classList.remove('active')});
+  el.classList.add('active');
+}
+
+var tt;
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('show')},2400);
+}
+</script>
+</body>
+</html>
