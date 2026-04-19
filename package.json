@@ -1,0 +1,8 @@
+{
+  "name": "nomi-pizza",
+  "version": "1.0.0",
+  "description": "Nomi Pizza Restaurant System",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}
