@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pago exitoso — Nomi Pizza</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#FAF8F5;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border-radius:20px;padding:40px 32px;text-align:center;max-width:400px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.icon{width:72px;height:72px;background:#E8F5EE;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:32px}
+h1{font-family:'Playfair Display',serif;font-size:26px;color:#1A1714;margin-bottom:8px}
+p{font-size:15px;color:#6B6460;line-height:1.6;margin-bottom:24px}
+.order-box{background:#FAF8F5;border-radius:12px;padding:16px;margin-bottom:24px}
+.order-num{font-size:13px;color:#6B6460;margin-bottom:4px}
+.order-id{font-family:'DM Mono',monospace;font-size:14px;font-weight:600;color:#1A1714}
+.btn{display:block;padding:14px;border-radius:12px;text-decoration:none;font-size:14px;font-weight:600;margin-bottom:10px;transition:.15s}
+.btn-primary{background:#C8392B;color:#fff}.btn-primary:hover{background:#9B2A1E}
+.btn-secondary{background:#F0EDE8;color:#1A1714}.btn-secondary:hover{background:#E8E4DF}
+.track-info{font-size:12px;color:#6B6460;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">✅</div>
+  <h1>¡Pago exitoso!</h1>
+  <p>Tu pedido ha sido confirmado y ya está siendo preparado con mucho amor.</p>
+  <div class="order-box">
+    <div class="order-num">Número de pedido</div>
+    <div class="order-id" id="order-display">Cargando...</div>
+  </div>
+  <a href="nomi-customer-app.html" class="btn btn-primary">🍕 Seguir pidiendo</a>
+  <a href="nomi-customer-app.html#track" class="btn btn-secondary">📍 Rastrear mi pedido</a>
+  <div class="track-info">Recibirás una notificación de WhatsApp cuando tu pedido esté listo.</div>
+</div>
+<script>
+  const params = new URLSearchParams(window.location.search)
+  const orderId = params.get('order')
+  if (orderId) {
+    document.getElementById('order-display').textContent = '#' + orderId.substring(0,8).toUpperCase()
+    // Update order status via API
+    fetch('/api/payments?action=status&order_id=' + orderId)
+      .then(r => r.json()).catch(() => {})
+  }
+</script>
+</body>
+</html>
