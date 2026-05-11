@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nomi Pizza — App</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--red:#C8392B;--red-d:#9B2A1E;--red-l:#FAECE7;--ink:#1A1714;--ink60:#6B6460;--ink20:#E8E4DF;--wh:#fff;--cream:#FAF8F5;--green:#2D7A4F;--green-l:#E8F5EE;--amber:#B45309;--r:14px;--rsm:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);max-width:430px;margin:0 auto;min-height:100vh}
+.sbar{background:var(--ink);padding:10px 20px 8px;display:flex;justify-content:space-between}
+.sbar-t{font-size:13px;font-weight:600;color:#fff}.sbar-i{font-size:11px;color:rgba(255,255,255,.8)}
+.hero{background:var(--red);padding:20px 20px 0;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;bottom:-30px;right:-20px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.06)}
+.hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;position:relative;z-index:1}
+.hbrand{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#fff;letter-spacing:-.02em}
+.hstars{font-size:13px;color:#FCD34D;letter-spacing:1px}
+.hrat{font-size:12px;color:rgba(255,255,255,.8);margin-top:1px}
+.hinfo{display:flex;gap:12px;position:relative;z-index:1;margin-bottom:16px}
+.hchip{background:rgba(255,255,255,.15);border-radius:20px;padding:6px 12px;font-size:11px;color:#fff;display:flex;align-items:center;gap:5px;backdrop-filter:blur(4px)}
+.hcdot{width:6px;height:6px;border-radius:50%;background:#22c55e}
+.search-a{background:var(--red);padding:0 20px 20px;position:relative;z-index:1}
+.sbox{background:var(--wh);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:8px}
+.sic{font-size:16px;opacity:.5}.sph{font-size:13px;color:var(--ink60)}
+.content{flex:1;overflow-y:auto;padding:0 0 90px}
+.cats{display:flex;gap:8px;padding:14px 16px;overflow-x:auto;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.catpill{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex-shrink:0}
+.catpill:active{transform:scale(.92)}
+.catcircle{width:52px;height:52px;border-radius:50%;background:var(--wh);border:2px solid var(--ink20);display:flex;align-items:center;justify-content:center;font-size:24px}
+.catpill.active .catcircle{border-color:var(--red);background:var(--red-l)}
+.catpill-l{font-size:10px;font-weight:500;color:var(--ink60);white-space:nowrap}
+.catpill.active .catpill-l{color:var(--red-d);font-weight:600}
+.sec{padding:16px 16px 0}.sec-t{font-size:15px;font-weight:600;letter-spacing:-.02em;margin-bottom:12px}
+.plist{padding:0 16px 8px}
+.pcard{background:var(--wh);border-radius:var(--r);border:1px solid var(--ink20);overflow:hidden;margin-bottom:10px;cursor:pointer}
+.pcard:active{transform:scale(.98)}
+.ptop{height:120px;background:linear-gradient(135deg,var(--red-l),#F5C4B3);display:flex;align-items:center;justify-content:center;font-size:60px}
+.pbot{padding:12px}
+.pn{font-size:14px;font-weight:600;letter-spacing:-.01em}
+.pd{font-size:11px;color:var(--ink60);margin-top:3px;line-height:1.4}
+.pf{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.pp{font-size:16px;font-weight:700}
+.addbtn{width:32px;height:32px;background:var(--red);border-radius:50%;border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.addbtn:active{transform:scale(.88);background:var(--red-d)}
+.cbar{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(20px);width:calc(100% - 32px);max-width:398px;background:var(--ink);border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .3s cubic-bezier(.34,1.56,.64,1);opacity:0;pointer-events:none}
+.cbar.vis{opacity:1;pointer-events:all;transform:translateX(-50%) translateY(0)}
+.cbar:active{transform:translateX(-50%) scale(.98)}
+.cbcnt{background:var(--red);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.cbtxt{font-size:13px;font-weight:500;color:#fff;margin-left:10px}
+.cbtot{font-size:15px;font-weight:700;color:#fff}
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--wh);border-top:1px solid var(--ink20);display:flex;padding:8px 0 20px}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;user-select:none}
+.bn:active{transform:scale(.9)}
+.bn svg{width:22px;height:22px;fill:var(--ink60)}.bn.active svg{fill:var(--red)}
+.bn-l{font-size:9px;font-weight:500;color:var(--ink60)}.bn.active .bn-l{color:var(--red)}
+.cart-pg{display:none;flex-direction:column;min-height:100vh}
+.cart-pg.active{display:flex}
+.cart-hdr{background:var(--red);padding:50px 20px 20px;display:flex;align-items:center;gap:12px}
+.bkbtn{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:18px;flex-shrink:0}
+.cart-c{flex:1;padding:16px;overflow-y:auto}
+.dopt-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.dopt{padding:10px;border:1.5px solid var(--ink20);border-radius:var(--rsm);cursor:pointer;text-align:center;font-size:12px;font-weight:500;color:var(--ink60)}
+.dopt.active{border-color:var(--red);color:var(--red-d);background:var(--red-l)}
+.dopt-ic{font-size:20px;margin-bottom:4px}
+.fi{width:100%;padding:10px 12px;border:1px solid var(--ink20);border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);background:var(--cream);outline:none;margin-top:6px}
+.fi:focus{border-color:var(--red);background:var(--wh)}
+.fl{font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-top:12px;display:block}
+.cicard{background:var(--wh);border-radius:var(--rsm);border:1px solid var(--ink20);padding:12px;display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ci-n{flex:1;font-size:13px;font-weight:600}
+.qbc{display:flex;align-items:center;gap:8px}
+.qb{width:28px;height:28px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.qb:active{background:var(--red);color:#fff;border-color:var(--red);transform:scale(.9)}
+.ci-p{font-size:13px;font-weight:700;min-width:44px;text-align:right}
+.sum-box{background:var(--wh);border-radius:var(--r);border:1px solid var(--ink20);padding:14px;margin-top:8px}
+.sr{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:1px solid var(--ink20)}
+.sr:last-child{border-bottom:none}.sl{color:var(--ink60)}.sv{font-weight:500}
+.sv-tot{font-size:16px;font-weight:700}
+.cobrar{background:var(--red);color:#fff;border:none;border-radius:var(--r);padding:16px;width:100%;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-top:14px}
+.cobrar:active{background:var(--red-d);transform:scale(.98)}.cobrar:disabled{background:var(--ink20);color:var(--ink60)}
+.track-pg{display:none;flex-direction:column;min-height:100vh}
+.track-pg.active{display:flex}
+.track-hdr{background:var(--red);padding:50px 20px 24px}
+.track-num{font-size:11px;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.06em}
+.track-title{font-size:20px;font-weight:700;color:#fff;font-family:'Playfair Display',serif;margin-top:4px}
+.track-eta{font-size:14px;color:rgba(255,255,255,.85);margin-top:8px}
+.tsteps{padding:20px 16px}
+.ts{display:flex;align-items:flex-start;gap:12px;margin-bottom:20px}
+.ts-node{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.ts-c{width:32px;height:32px;border-radius:50%;border:2px solid var(--ink20);background:var(--wh);display:flex;align-items:center;justify-content:center;font-size:14px}
+.ts-c.done{background:var(--red);border-color:var(--red)}.ts-c.act{background:var(--wh);border-color:var(--red);box-shadow:0 0 0 4px var(--red-l)}
+.ts-line{width:2px;height:28px;background:var(--ink20);margin:2px auto}.ts-line.done{background:var(--red)}
+.ts-ct{flex:1;padding-top:6px}
+.ts-t{font-size:13px;font-weight:600}.ts-d{font-size:11px;color:var(--ink60);margin-top:2px}
+.ts-t.act{color:var(--red-d)}.ts-t.muted{color:var(--ink60);font-weight:400}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:var(--rsm);font-size:12px;font-weight:500;white-space:nowrap;opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:200;max-width:80vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.loading{display:flex;align-items:center;justify-content:center;padding:30px;color:var(--ink60);font-size:13px;gap:8px}
+.spinner{width:16px;height:16px;border:2px solid var(--ink20);border-top-color:var(--red);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<style>
+.auth-screen{position:fixed;inset:0;background:var(--red);z-index:9999;display:flex;flex-direction:column;overflow-y:auto}
+.auth-hero{padding:60px 28px 32px;text-align:center;flex-shrink:0}
+.auth-emoji{font-size:56px;margin-bottom:12px}
+.auth-brand{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:#fff;letter-spacing:-.02em}
+.auth-tagline{font-size:14px;color:rgba(255,255,255,.75);margin-top:6px}
+.auth-card{background:var(--wh);border-radius:24px 24px 0 0;flex:1;padding:28px 24px 40px;min-height:500px}
+.auth-tabs{display:flex;background:#F0EDE8;border-radius:12px;padding:3px;margin-bottom:24px}
+.auth-tab{flex:1;padding:9px;text-align:center;font-size:13px;font-weight:600;color:var(--ink60);cursor:pointer;border-radius:10px;transition:all .2s}
+.auth-tab.active{background:var(--wh);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.auth-form{display:none}.auth-form.active{display:block}
+.af-label{font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;margin-top:14px;display:block}
+.af-label:first-child{margin-top:0}
+.af-input{width:100%;padding:13px 14px;border:1.5px solid var(--ink20);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--ink);background:var(--cream);outline:none;transition:all .2s}
+.af-input:focus{border-color:var(--red);background:var(--wh);box-shadow:0 0 0 3px var(--red-l)}
+.af-btn{width:100%;padding:15px;background:var(--red);color:#fff;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px;transition:all .2s}
+.af-btn:active{background:var(--red-d);transform:scale(.98)}.af-btn:disabled{background:var(--ink20);color:var(--ink60)}
+.af-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--ink60);font-size:12px}
+.af-divider::before,.af-divider::after{content:'';flex:1;height:1px;background:var(--ink20)}
+.af-guest{width:100%;padding:13px;background:transparent;border:1.5px solid var(--ink20);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;color:var(--ink60);cursor:pointer}
+.af-guest:active{background:var(--cream)}
+.af-error{color:#EF4444;font-size:12px;margin-top:8px;min-height:18px}
+.af-hint{font-size:12px;color:var(--ink60);text-align:center;margin-top:14px;line-height:1.5}
+.af-hint span{color:var(--red);font-weight:600;cursor:pointer}
+.af-perks{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.af-perk{background:var(--cream);border-radius:10px;padding:10px;text-align:center}
+.af-perk-ic{font-size:20px;margin-bottom:4px}
+.af-perk-t{font-size:11px;font-weight:600;color:var(--ink);line-height:1.3}
+.af-perk-s{font-size:10px;color:var(--ink60);margin-top:2px}
+</style>
+
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-hero">
+    <div class="auth-emoji">🍕</div>
+    <div class="auth-brand">Nomi Pizza</div>
+    <div class="auth-tagline">Crea tu cuenta y gana puntos en cada pedido</div>
+  </div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Iniciar sesión</div>
+      <div class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Crear cuenta</div>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div class="auth-form active" id="form-login">
+      <label class="af-label">Teléfono o correo</label>
+      <input class="af-input" id="login-id" type="text" placeholder="+52 55 XXXX XXXX o tu@correo.com" autocomplete="username">
+      <div id="login-error" class="af-error"></div>
+      <button class="af-btn" onclick="doLogin()" id="login-btn">Entrar →</button>
+      <div class="af-divider">o</div>
+      <button class="af-guest" onclick="continueAsGuest()">Continuar sin cuenta</button>
+      <div class="af-hint">¿No tienes cuenta? <span onclick="switchAuthTab('signup')">Regístrate gratis</span></div>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div class="auth-form" id="form-signup">
+      <div class="af-perks">
+        <div class="af-perk"><div class="af-perk-ic">🎁</div><div class="af-perk-t">Puntos en cada compra</div><div class="af-perk-s">$1 = 1 punto</div></div>
+        <div class="af-perk"><div class="af-perk-ic">🏷️</div><div class="af-perk-t">Descuentos exclusivos</div><div class="af-perk-s">Desde 500 pts</div></div>
+        <div class="af-perk"><div class="af-perk-ic">📱</div><div class="af-perk-t">Historial de pedidos</div><div class="af-perk-s">Todo en un lugar</div></div>
+        <div class="af-perk"><div class="af-perk-ic">🚀</div><div class="af-perk-t">Checkout rápido</div><div class="af-perk-s">Datos guardados</div></div>
+      </div>
+      <label class="af-label">Nombre completo</label>
+      <input class="af-input" id="su-name" type="text" placeholder="Tu nombre" autocomplete="name">
+      <label class="af-label">Teléfono (WhatsApp)</label>
+      <input class="af-input" id="su-phone" type="tel" placeholder="+52 55 XXXX XXXX" autocomplete="tel">
+      <label class="af-label">Correo electrónico</label>
+      <input class="af-input" id="su-email" type="email" placeholder="tu@correo.com" autocomplete="email">
+      <div id="signup-error" class="af-error"></div>
+      <button class="af-btn" onclick="doSignup()" id="signup-btn">Crear cuenta gratis →</button>
+      <div class="af-divider">o</div>
+      <button class="af-guest" onclick="continueAsGuest()">Continuar sin cuenta</button>
+      <div class="af-hint">¿Ya tienes cuenta? <span onclick="switchAuthTab('login')">Inicia sesión</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchAuthTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active', tab==='login')
+  document.getElementById('tab-signup').classList.toggle('active', tab==='signup')
+  document.getElementById('form-login').classList.toggle('active', tab==='login')
+  document.getElementById('form-signup').classList.toggle('active', tab==='signup')
+  document.getElementById('login-error').textContent = ''
+  document.getElementById('signup-error').textContent = ''
+}
+
+async function doLogin() {
+  const val = document.getElementById('login-id').value.trim()
+  if (!val) { document.getElementById('login-error').textContent = 'Ingresa tu teléfono o correo'; return }
+  const btn = document.getElementById('login-btn')
+  btn.disabled = true; btn.textContent = 'Buscando...'
+  try {
+    const isEmail = val.includes('@')
+    const query = isEmail ? 'email=' + encodeURIComponent(val) : 'phone=' + encodeURIComponent(val)
+    const res = await fetch('/api/customers?' + query)
+    const customers = await res.json()
+    if (!customers || customers.length === 0) {
+      document.getElementById('login-error').textContent = 'No encontramos una cuenta con ese dato. ¿Quieres crear una?'
+      btn.disabled = false; btn.textContent = 'Entrar →'
+      return
+    }
+    const customer = customers[0]
+    localStorage.setItem('nomi_c', JSON.stringify(customer))
+    onAuthSuccess(customer)
+  } catch(e) {
+    document.getElementById('login-error').textContent = 'Error de conexión. Intenta de nuevo.'
+    btn.disabled = false; btn.textContent = 'Entrar →'
+  }
+}
+
+async function doSignup() {
+  const name = document.getElementById('su-name').value.trim()
+  const phone = document.getElementById('su-phone').value.trim()
+  const email = document.getElementById('su-email').value.trim()
+  if (!name) { document.getElementById('signup-error').textContent = 'Por favor ingresa tu nombre'; return }
+  if (!phone && !email) { document.getElementById('signup-error').textContent = 'Ingresa tu teléfono o correo'; return }
+  const btn = document.getElementById('signup-btn')
+  btn.disabled = true; btn.textContent = 'Creando cuenta...'
+  try {
+    const res = await fetch('/api/customers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone, email })
+    })
+    const customer = await res.json()
+    if (customer.error) throw new Error(customer.error)
+    localStorage.setItem('nomi_c', JSON.stringify(customer))
+    onAuthSuccess(customer)
+  } catch(e) {
+    document.getElementById('signup-error').textContent = e.message || 'Error al crear cuenta. Intenta de nuevo.'
+    btn.disabled = false; btn.textContent = 'Crear cuenta gratis →'
+  }
+}
+
+function continueAsGuest() {
+  localStorage.removeItem('nomi_c')
+  hideAuthScreen()
+}
+
+function onAuthSuccess(customer) {
+  localStorage.setItem('nomi_c', JSON.stringify(customer))
+  hideAuthScreen()
+  // Update UI
+  if (customer.loyalty_points) {
+    const hpts = document.getElementById('hpts')
+    if(hpts) hpts.textContent = '🎁 ' + customer.loyalty_points + ' pts'
+  }
+}
+
+function hideAuthScreen() {
+  const s = document.getElementById('auth-screen')
+  s.style.transition = 'opacity .3s'
+  s.style.opacity = '0'
+  setTimeout(() => s.style.display = 'none', 300)
+}
+
+// Check if already logged in
+(function() {
+  const saved = localStorage.getItem('nomi_c')
+  if (saved) {
+    try {
+      const c = JSON.parse(saved)
+      if (c && (c.phone || c.email)) {
+        document.getElementById('auth-screen').style.display = 'none'
+        return
+      }
+    } catch(e) {}
+  }
+  // Show auth screen
+  document.getElementById('auth-screen').style.display = 'flex'
+})()
+</script>
+
+
+<script>
+function logoutCustomer() {
+  if (!confirm('¿Cerrar sesión?')) return
+  localStorage.removeItem('nomi_c')
+  location.reload()
+}
+</script>
+
+
+<!-- MAIN -->
+<div id="main-view">
+  <div class="sbar"><span class="sbar-t" id="clk">--:--</span><span class="sbar-i">●●●● 88%</span></div>
+  <div class="hero">
+    <div class="hero-top"><div><div class="hbrand">Nomi Pizza</div><div class="hstars">★★★★★</div><div class="hrat">4.8 · +500 reseñas</div></div><div style="font-size:44px;position:relative;z-index:1">🍕</div></div>
+    <div class="hinfo"><div class="hchip"><div class="hcdot"></div>Abierto ahora</div><div class="hchip">🛵 ~30 min</div><div class="hchip" id="hpts">🎁 0 pts</div></div>
+  </div>
+  <div class="search-a"><div class="sbox"><span class="sic">🔍</span><span class="sph">Buscar pizzas o extras…</span></div></div>
+  <div class="content">
+    <div class="cats" id="cats-bar"><div class="catpill active" onclick="filterCat('all',this)"><div class="catcircle">🍕</div><span class="catpill-l">Todo</span></div></div>
+    <div class="sec"><div class="sec-t" id="sec-title">Nuestro menú</div></div>
+    <div class="plist" id="menu-grid"><div class="loading"><div class="spinner"></div>Cargando menú...</div></div>
+  </div>
+</div>
+
+<!-- CART -->
+<div class="cart-pg" id="cart-page">
+  <div class="cart-hdr"><div class="bkbtn" onclick="showMain()">←</div><span style="font-size:16px;font-weight:600;color:#fff">Tu carrito</span></div>
+  <div class="cart-c">
+    <div class="dopt-row">
+      <div class="dopt active" id="opt-d" onclick="setDT('delivery')"><div class="dopt-ic">🛵</div>Domicilio</div>
+      <div class="dopt" id="opt-p" onclick="setDT('pickup')"><div class="dopt-ic">🏃</div>Para llevar</div>
+    </div>
+    <div id="delivery-fields">
+      <label class="fl">Dirección</label><input class="fi" id="addr" placeholder="Calle, número, colonia…">
+      <label class="fl">Nombre</label><input class="fi" id="cname" placeholder="Tu nombre">
+      <label class="fl">Teléfono</label><input class="fi" id="cphone" type="tel" placeholder="+52 55 XXXX XXXX">
+      <label class="fl">Correo (para puntos)</label><input class="fi" id="cemail" type="email" placeholder="tu@correo.com">
+    </div>
+    <div id="cart-items-disp" style="margin-top:12px"></div>
+    <div class="sum-box" id="sum-box"></div>
+  </div>
+</div>
+
+<!-- TRACK -->
+<div class="track-pg" id="track-page">
+  <div class="track-hdr">
+    <div class="track-num" id="trk-num">Pedido #----</div>
+    <div class="track-title" id="trk-title">Procesando...</div>
+    <div class="track-eta" id="trk-eta">Calculando...</div>
+  </div>
+  <div class="tsteps" id="trk-steps"></div>
+  <div style="padding:16px"><button style="width:100%;padding:13px;background:var(--wh);border:1px solid var(--ink20);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer" onclick="showMain()">← Seguir comprando</button></div>
+</div>
+
+<!-- CART BAR -->
+<div class="cbar" id="cbar" onclick="showCart()">
+  <div style="display:flex;align-items:center"><div class="cbcnt" id="cbc">0</div><span class="cbtxt">Ver carrito</span></div>
+  <span class="cbtot" id="cbt">$0</span>
+</div>
+
+<nav class="bnav" id="bnav">
+  <div class="bn active" onclick="showMain();setBN(0)"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg><span class="bn-l">Inicio</span></div>
+  <div class="bn" onclick="showCart();setBN(1)"><svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96C5 16.1 6.1 17 7.4 17H19v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63H15c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0019.5 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg><span class="bn-l">Carrito</span></div>
+  <div class="bn" onclick="showTrack();setBN(2)"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg><span class="bn-l">Mi pedido</span></div>
+  <div class="bn" id="bn-profile" onclick="showProfilePage();setBN(3)"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg><span class="bn-l">Perfil</span></div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var cart=[], menuData={categories:[],items:[]}, delivType='delivery', curOrder=null
+const customer=JSON.parse(localStorage.getItem('nomi_c')||'null')
+const fmt=n=>'$'+Number(n||0).toLocaleString('es-MX')
+
+async function api(path,opts={}){const r=await fetch('/api/'+path,{headers:{'Content-Type':'application/json'},...opts,body:opts.body?JSON.stringify(opts.body):undefined});return r.json()}
+
+function updClk(){document.getElementById('clk').textContent=new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}
+setInterval(updClk,1000);updClk()
+
+async function loadMenu(){
+  try{
+    menuData=await api('menu')||{categories:[],items:[]}
+    const{categories=[],items=[]}=menuData
+    const cb=document.getElementById('cats-bar')
+    cb.innerHTML='<div class="catpill active" onclick="filterCat(\'all\',this)"><div class="catcircle">🍕</div><span class="catpill-l">Todo</span></div>'+categories.map(c=>`<div class="catpill" onclick="filterCat('${c.id}',this)"><div class="catcircle">${c.emoji||'🍽'}</div><span class="catpill-l">${c.name}</span></div>`).join('')
+    renderMenu('all')
+  }catch(e){document.getElementById('menu-grid').innerHTML='<div style="text-align:center;padding:30px;color:var(--ink60)">Error cargando menú</div>'}
+}
+
+function filterCat(catId,el){
+  document.querySelectorAll('.catpill').forEach(c=>c.classList.remove('active'))
+  if(el)el.classList.add('active')
+  renderMenu(catId)
+  document.getElementById('sec-title').textContent=catId==='all'?'Nuestro menú':(menuData.categories||[]).find(c=>c.id===catId)?.name||'Menú'
+}
+
+function renderMenu(catId){
+  const items=catId==='all'?(menuData.items||[]):(menuData.items||[]).filter(i=>i.category_id===catId)
+  document.getElementById('menu-grid').innerHTML=items.map(item=>`<div class="pcard" onclick="addToCart(${JSON.stringify(item).replace(/"/g,'&quot;')})"><div class="ptop"><span style="font-size:60px">${item.emoji||'🍕'}</span></div><div class="pbot"><div class="pn">${item.name}</div><div class="pd">${item.description||''}</div><div class="pf"><div class="pp">${fmt(item.price)}<br><span style="font-size:10px;color:var(--ink60);font-weight:400">desde</span></div><button class="addbtn" onclick="event.stopPropagation();addToCart(${JSON.stringify(item).replace(/"/g,'&quot;')})">+</button></div></div></div>`).join('')||'<div style="text-align:center;padding:30px;color:var(--ink60)">Sin productos</div>'
+}
+
+function addToCart(item){const f=cart.find(c=>c.id===item.id);if(f)f.qty++;else cart.push({id:item.id,name:item.name,price:Number(item.price),emoji:item.emoji||'🍕',qty:1});updBar();showToast(item.name+' agregada ✓')}
+
+function updBar(){let tot=0,cnt=0;cart.forEach(c=>{tot+=c.price*c.qty;cnt+=c.qty});document.getElementById('cbc').textContent=cnt;document.getElementById('cbt').textContent=fmt(tot);const b=document.getElementById('cbar');if(cnt>0)b.classList.add('vis');else b.classList.remove('vis')}
+
+function renderCartPage(){
+  const el=document.getElementById('cart-items-disp');let sub=0
+  if(!cart.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--ink60)">Tu carrito está vacío</div>';document.getElementById('sum-box').innerHTML='';return}
+  el.innerHTML=cart.map((c,i)=>{sub+=c.price*c.qty;return`<div class="cicard"><span style="font-size:28px">${c.emoji}</span><div class="ci-n">${c.name}<div style="font-size:11px;color:var(--ink60)">${fmt(c.price)} c/u</div></div><div class="qbc"><button class="qb" onclick="chQ(${i},-1)">−</button><span style="font-size:13px;font-weight:600;min-width:16px;text-align:center">${c.qty}</span><button class="qb" onclick="chQ(${i},1)">+</button></div><span class="ci-p">${fmt(c.price*c.qty)}</span></div>`}).join('')
+  const df=delivType==='delivery'?45:0,tax=sub*0.16,tot=sub+df+tax,pts=Math.floor(tot)
+  document.getElementById('sum-box').innerHTML=`<div class="sr"><span class="sl">Subtotal</span><span class="sv">${fmt(sub)}</span></div>${delivType==='delivery'?`<div class="sr"><span class="sl">Envío</span><span class="sv">${fmt(df)}</span></div>`:''}<div class="sr"><span class="sl">IVA (16%)</span><span class="sv">${fmt(tax)}</span></div><div class="sr"><span class="sl">Puntos a ganar</span><span class="sv" style="color:var(--red)">+${pts} pts</span></div><div class="sr"><span class="sl">Total</span><span class="sv sv-tot">${fmt(tot)}</span></div><button class="cobrar" onclick="placeOrder()">💳 Pagar con Mercado Pago</button>`
+}
+
+function chQ(i,d){cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);renderCartPage();updBar()}
+function setDT(type){delivType=type;document.getElementById('opt-d').classList.toggle('active',type==='delivery');document.getElementById('opt-p').classList.toggle('active',type==='pickup');document.getElementById('delivery-fields').style.display=type==='delivery'?'block':'none';renderCartPage()}
+
+async function placeOrder(){
+  if(!cart.length)return
+  const name=document.getElementById('cname').value.trim(),phone=document.getElementById('cphone').value.trim(),email=document.getElementById('cemail').value.trim(),addr=document.getElementById('addr').value.trim()
+  if(delivType==='delivery'&&(!name||!addr)){showToast('Por favor completa nombre y dirección');return}
+  const btn=document.querySelector('.cobrar');btn.disabled=true;btn.textContent='Procesando...'
+  const sub=cart.reduce((s,c)=>s+c.price*c.qty,0),df=delivType==='delivery'?45:0,tax=sub*0.16,tot=sub+df+tax
+  try{
+    if(phone||email){try{const cr=await api('customers',{method:'POST',body:{name,phone,email}});localStorage.setItem('nomi_c',JSON.stringify(cr))}catch(e){}}
+    const order=await api('orders',{method:'POST',body:{type:delivType,status:'pending',customer_name:name,customer_phone:phone,customer_email:email,delivery_address:addr?{street:addr}:null,subtotal:Math.round(sub*100)/100,delivery_fee:df,tax:Math.round(tax*100)/100,total:Math.round(tot*100)/100,loyalty_points_earned:Math.floor(tot),items:cart.map(c=>({item_id:c.id,item_name:c.name,unit_price:c.price,quantity:c.qty,subtotal:c.price*c.qty}))}})
+    const pr=await api('payments?action=create_preference',{method:'POST',body:{order_id:order.id,items:cart.map(c=>({item_name:c.name,unit_price:c.price,quantity:c.qty})),customer:{name,email,phone},type:delivType}})
+    curOrder=order;cart=[];updBar()
+    if(pr.init_point)window.location.href=pr.init_point
+    else{showTrack();setBN(2)}
+  }catch(e){showToast('Error: '+e.message);btn.disabled=false;btn.textContent='💳 Pagar con Mercado Pago'}
+}
+
+function showMain(){document.getElementById('main-view').style.display='block';document.getElementById('cart-page').classList.remove('active');document.getElementById('track-page').classList.remove('active');document.getElementById('bnav').style.display='flex'}
+function showCart(){document.getElementById('main-view').style.display='none';document.getElementById('cart-page').classList.add('active');document.getElementById('track-page').classList.remove('active');renderCartPage()}
+function setBN(i){document.querySelectorAll('#bnav .bn').forEach((b,j)=>b.classList.toggle('active',i===j))}
+
+function showTrack(){
+  document.getElementById('main-view').style.display='none'
+  document.getElementById('cart-page').classList.remove('active')
+  document.getElementById('track-page').classList.add('active')
+  if(curOrder){
+    document.getElementById('trk-num').textContent='Pedido #'+String(curOrder.order_number||'').padStart(4,'0')
+    updTrack(curOrder.status)
+    pollTrack(curOrder.id)
+  }else{document.getElementById('trk-title').textContent='No hay pedidos activos';document.getElementById('trk-steps').innerHTML='<div style="text-align:center;padding:20px;color:var(--ink60);font-size:13px">Realiza un pedido primero</div>'}
+}
+
+function updTrack(status){
+  const steps=[{k:'pending',ic:'📋',l:'Pedido recibido',d:'Tu pedido fue confirmado'},{k:'preparing',ic:'🍕',l:'Preparando',d:'Los chefs están trabajando'},{k:'ready',ic:'✅',l:'Listo',d:'Tu pedido está listo'},{k:'on_the_way',ic:'🛵',l:'En camino',d:'El repartidor ya salió'},{k:'delivered',ic:'🏠',l:'Entregado',d:'¡Buen provecho!'}]
+  const so=['pending','preparing','ready','on_the_way','delivered']
+  const ci=so.indexOf(status)
+  const tt={pending:'Pedido recibido ✓',preparing:'Preparando tu pizza 🍕',ready:'¡Tu pizza está lista! ✅',on_the_way:'¡En camino! 🛵',delivered:'¡Entregado! 🎉'}
+  const te={pending:'Preparando en ~5 min',preparing:'Lista en ~20 min',ready:'Lista para entrega',on_the_way:'Llega en ~15 min',delivered:'¡Disfrútalo!'}
+  document.getElementById('trk-title').textContent=tt[status]||'Procesando...'
+  document.getElementById('trk-eta').textContent=te[status]||''
+  document.getElementById('trk-steps').innerHTML=steps.map((s,i)=>`<div class="ts"><div class="ts-node"><div class="ts-c ${i<ci?'done':i===ci?'act':''}">${i<=ci?s.ic:'○'}</div>${i<steps.length-1?`<div class="ts-line ${i<ci?'done':''}"></div>`:''}</div><div class="ts-ct"><div class="ts-t ${i===ci?'act':i>ci?'muted':''}">${s.l}</div><div class="ts-d">${i<=ci?s.d:'Pendiente'}</div></div></div>`).join('')
+}
+
+var pollInt
+function pollTrack(id){clearInterval(pollInt);pollInt=setInterval(async()=>{try{const r=await api('orders');const o=(r||[]).find(x=>x.id===id);if(o){curOrder=o;updTrack(o.status);if(o.status==='delivered')clearInterval(pollInt)}}catch(e){}},15000)}
+
+var tt
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2400)}
+
+loadMenu()
+if(customer)document.getElementById('hpts').textContent='🎁 '+(customer.loyalty_points||0)+' pts'
+</script>
+
+<!-- PROFILE PAGE -->
+<div id="profile-page" style="display:none;flex-direction:column;min-height:100vh">
+  <div style="background:var(--red);padding:50px 20px 28px;text-align:center">
+    <div style="width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.2);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#fff;border:3px solid rgba(255,255,255,.3)" id="pf-av">?</div>
+    <div style="font-size:20px;font-weight:600;color:#fff" id="pf-name">Mi cuenta</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.75);margin-top:4px" id="pf-tier">Miembro Nomi</div>
+  </div>
+  <div style="flex:1;padding:16px;background:var(--cream)">
+    <div style="background:var(--wh);border-radius:var(--r);border:1px solid var(--ink20);padding:14px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Puntos de lealtad</div>
+      <div style="font-size:32px;font-weight:700;color:var(--ink)" id="pf-pts">0</div>
+      <div style="height:6px;background:var(--ink20);border-radius:3px;overflow:hidden;margin:8px 0"><div id="pf-bar" style="height:100%;background:var(--red);border-radius:3px;width:0%;transition:width .5s ease"></div></div>
+      <div style="font-size:11px;color:var(--ink60)">500 pts = <strong style="color:var(--red)">$50 MXN de descuento</strong></div>
+    </div>
+    <div style="background:var(--wh);border-radius:var(--r);border:1px solid var(--ink20);overflow:hidden;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--ink20)">Mi cuenta</div>
+      <div style="display:flex;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--ink20);font-size:13px"><span style="color:var(--ink)">Nombre</span><span style="color:var(--ink60);font-weight:500" id="pf-name2">—</span></div>
+      <div style="display:flex;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--ink20);font-size:13px"><span style="color:var(--ink)">Teléfono</span><span style="color:var(--ink60);font-weight:500" id="pf-phone">—</span></div>
+      <div style="display:flex;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--ink20);font-size:13px"><span style="color:var(--ink)">Correo</span><span style="color:var(--ink60);font-weight:500" id="pf-email">—</span></div>
+      <div style="display:flex;justify-content:space-between;padding:11px 14px;font-size:13px"><span style="color:var(--ink)">Nivel</span><span style="color:var(--ink60);font-weight:500" id="pf-lvl">Bronze 🥉</span></div>
+    </div>
+    <button onclick="logoutCustomer()" style="width:100%;padding:13px;background:var(--wh);border:1.5px solid var(--ink20);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;color:var(--ink60);cursor:pointer;margin-bottom:8px">🔒 Cerrar sesión</button>
+    <button onclick="showMain();setBN(0)" style="width:100%;padding:13px;background:var(--red);border:none;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:#fff;cursor:pointer">← Seguir pidiendo</button>
+  </div>
+</div>
+
+<script>
+function showProfilePage() {
+  document.getElementById('main-view').style.display = 'none'
+  document.getElementById('cart-page').classList.remove('active')
+  document.getElementById('track-page').classList.remove('active')
+  document.getElementById('profile-page').style.display = 'flex'
+
+  const c = JSON.parse(localStorage.getItem('nomi_c') || 'null')
+  if (!c) {
+    // Not logged in — show auth screen
+    document.getElementById('profile-page').style.display = 'none'
+    document.getElementById('auth-screen').style.display = 'flex'
+    document.getElementById('auth-screen').style.opacity = '1'
+    return
+  }
+
+  const initials = (n) => n ? n.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase() : '?'
+  const tierLabels = {bronze:'Bronze 🥉',silver:'Plata 🥈',gold:'Oro 🥇',platinum:'Platino 💎'}
+  document.getElementById('pf-av').textContent = initials(c.name || '?')
+  document.getElementById('pf-name').textContent = c.name || 'Mi cuenta'
+  document.getElementById('pf-tier').textContent = tierLabels[c.tier] || 'Miembro Nomi'
+  document.getElementById('pf-name2').textContent = c.name || '—'
+  document.getElementById('pf-phone').textContent = c.phone || '—'
+  document.getElementById('pf-email').textContent = c.email || '—'
+  document.getElementById('pf-lvl').textContent = tierLabels[c.tier] || 'Bronze 🥉'
+
+  const pts = c.loyalty_points || 0
+  document.getElementById('pf-pts').textContent = pts
+  const goal = pts < 500 ? 500 : pts < 2000 ? 2000 : pts < 5000 ? 5000 : 10000
+  document.getElementById('pf-bar').style.width = Math.min(100, Math.round(pts/goal*100)) + '%'
+}
+
+// Override showMain to also hide profile page
+const _origShowMain = showMain
+function showMain() {
+  document.getElementById('profile-page').style.display = 'none'
+  _origShowMain()
+}
+</script>
+
+</body>
+</html>
