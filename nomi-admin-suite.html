@@ -358,6 +358,7 @@ function logoutWorker() {
     <div class="ni" onclick="showPage('pos',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 2H7c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>POS</div>
     <div class="sb-sec">Gestión</div>
     <div class="ni" onclick="showPage('menu',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.1 13.34l2.83-2.83L3.91 3.5c-1.56 1.56-1.56 4.09 0 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/></svg>Menú</div>
+    <div class="ni" onclick="showPage('purchases',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96C5 16.1 6.1 17 7.4 17H19v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63H15c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0019.5 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>Compras</div>
     <div class="ni" onclick="showPage('inventory',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 7h-4V5l-2-2h-4L8 5v2H4c-1.1 0-2 .9-2 2v5c0 .75.4 1.38 1 1.73V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-3.28c.59-.35 1-.99 1-1.72V9c0-1.1-.9-2-2-2z"/></svg>Inventario</div>
     <div class="ni" onclick="showPage('loyalty',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>Lealtad</div>
     <div class="ni" onclick="showPage('analytics',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>Analíticas</div>
@@ -485,10 +486,64 @@ function logoutWorker() {
       <div id="menu-list"><div class="loading"><div class="spinner"></div>Cargando menú...</div></div>
     </div>
 
+
+    <!-- PURCHASES -->
+    <div class="page" id="page-purchases">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="purch-filter-supplier" class="fs" style="font-size:12px;padding:5px 10px" onchange="loadPurchases()">
+            <option value="">Todos los proveedores</option>
+          </select>
+          <input type="month" id="purch-filter-month" style="padding:5px 10px;border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px;font-family:'DM Sans',sans-serif" onchange="loadPurchases()">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" onclick="openM('supplier-modal')">+ Proveedor</button>
+          <button class="btn btn-p btn-sm" onclick="openNewPurchase()">+ Nueva compra</button>
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="mg3" style="margin-bottom:14px">
+        <div class="mc"><div class="mc-l">Gasto este mes</div><div class="mc-v" id="p-month-total">$0</div><div class="mc-s" id="p-month-count">0 compras</div></div>
+        <div class="mc"><div class="mc-l">Proveedor principal</div><div class="mc-v" id="p-top-supplier" style="font-size:16px">—</div><div class="mc-s">Mayor gasto</div></div>
+        <div class="mc"><div class="mc-l">Margen bruto</div><div class="mc-v" id="p-margin" style="color:var(--green)">—</div><div class="mc-s">Ventas − Compras</div></div>
+      </div>
+
+      <!-- Purchases list -->
+      <div class="card">
+        <div class="ch"><span class="ct">Historial de compras</span><button class="btn btn-sm" onclick="loadPurchases()">🔄</button></div>
+        <div id="purchases-list"><div class="loading"><div class="spinner"></div>Cargando compras...</div></div>
+      </div>
+    </div>
+
+
     <!-- INVENTORY -->
     <div class="page" id="page-inventory">
-      <div style="display:flex;justify-content:space-between;margin-bottom:14px"><div style="display:flex;gap:6px" id="inv-sum"></div><button class="btn btn-p btn-sm" onclick="openM('restock-modal')">+ Reabastecer</button></div>
-      <div class="card"><div id="inv-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px;align-items:center">
+        <div style="display:flex;gap:6px" id="inv-sum"></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-p btn-sm" onclick="openM('new-ingredient-modal')">+ Ingrediente</button>
+          <button class="btn btn-sm" onclick="openM('restock-modal')">📦 Reabastecer</button>
+          <button class="btn btn-sm" onclick="openUsageModal()">📤 Marcar uso</button>
+        </div>
+      </div>
+      <!-- Filter tabs -->
+      <div class="tnav" id="inv-cats" style="background:var(--wh);border-radius:var(--r) var(--r) 0 0;border:1px solid var(--ink10);border-bottom:none">
+        <div class="tab active" onclick="filterInv('all',this)">Todos</div>
+        <div class="tab" onclick="filterInv('masa',this)">Masa</div>
+        <div class="tab" onclick="filterInv('quesos',this)">Quesos</div>
+        <div class="tab" onclick="filterInv('embutidos',this)">Embutidos</div>
+        <div class="tab" onclick="filterInv('verduras',this)">Verduras</div>
+        <div class="tab" onclick="filterInv('salsas',this)">Salsas</div>
+        <div class="tab" onclick="filterInv('hierbas',this)">Hierbas</div>
+      </div>
+      <div class="card" style="border-radius:0 0 var(--r) var(--r)">
+        <div id="inv-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+      </div>
+      <!-- Stock value -->
+      <div style="margin-top:10px;text-align:right;font-size:12px;color:var(--ink60)">
+        Valor total del inventario: <strong id="inv-total-value" style="color:var(--ink)">$0</strong>
+      </div>
     </div>
 
     <!-- LOYALTY -->
@@ -706,6 +761,8 @@ function showPage(id,el){
   if(id==='loyalty')loadLoyalty()
   if(id==='analytics')loadAnalytics()
   if(id==='workers')loadWorkers()
+  if(id==='purchases')loadPurchases()
+  if(id==='inventory')loadInventory()
   if(id==='config')loadConfig()
 }
 
@@ -1535,5 +1592,333 @@ async function deleteMenuItem() {
 </div>
 
 <div class="modal-bg" id="void-modal"><div class="modal" style="width:420px"><div class="mh"><span class="mt" style="color:#EF4444">Anular venta</span><button class="mc-btn" onclick="closeM('void-modal')">x</button></div><div class="mb"><div style="background:var(--red-l);border-radius:var(--rsm);padding:12px;margin-bottom:14px;font-size:13px;color:var(--red-d)" id="void-order-info"></div><div class="fl"><label>Motivo</label><select class="fs" id="void-reason"><option value="error_producto">Error en producto</option><option value="error_precio">Error en precio</option><option value="cliente_cancelo">Cliente cancelo</option><option value="duplicado">Duplicado</option><option value="otro">Otro</option></select></div><div class="fl" style="margin-top:10px"><label>Notas</label><input class="fi" id="void-notes" placeholder="Descripcion..."></div><div style="margin-top:14px"><div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Confirma con tu PIN</div><div style="display:flex;gap:12px;margin:10px 0"><div class="pin-modal-dot" id="vd0"></div><div class="pin-modal-dot" id="vd1"></div><div class="pin-modal-dot" id="vd2"></div><div class="pin-modal-dot" id="vd3"></div></div><div class="pin-modal-keypad"><button class="pin-modal-key" onclick="vKey('1')">1</button><button class="pin-modal-key" onclick="vKey('2')">2</button><button class="pin-modal-key" onclick="vKey('3')">3</button><button class="pin-modal-key" onclick="vKey('4')">4</button><button class="pin-modal-key" onclick="vKey('5')">5</button><button class="pin-modal-key" onclick="vKey('6')">6</button><button class="pin-modal-key" onclick="vKey('7')">7</button><button class="pin-modal-key" onclick="vKey('8')">8</button><button class="pin-modal-key" onclick="vKey('9')">9</button><button class="pin-modal-key empty"></button><button class="pin-modal-key" onclick="vKey('0')">0</button><button class="pin-modal-key del" onclick="vDel()">x</button></div><div style="color:#EF4444;font-size:12px;min-height:18px;margin-top:8px" id="void-pin-error"></div></div></div></div></div>
+
+<script>
+// ── INVENTORY STATE ───────────────────────────────────────────
+var allIngredients = []
+var invFilter = 'all'
+
+// ── LOAD INVENTORY ────────────────────────────────────────────
+async function loadInventory() {
+  try {
+    allIngredients = await api('inventory') || []
+    renderInventory()
+  } catch(e) { showToast('Error cargando inventario', false) }
+}
+
+function filterInv(cat, el) {
+  document.querySelectorAll('#inv-cats .tab').forEach(t => t.classList.remove('active'))
+  if(el) el.classList.add('active')
+  invFilter = cat
+  renderInventory()
+}
+
+function renderInventory() {
+  const items = invFilter === 'all'
+    ? allIngredients
+    : allIngredients.filter(i => i.category === invFilter)
+
+  const crit = allIngredients.filter(i => Number(i.quantity) === 0).length
+  const low  = allIngredients.filter(i => Number(i.quantity) > 0 && Number(i.quantity) <= Number(i.min_level)).length
+  const ok   = allIngredients.filter(i => Number(i.quantity) > Number(i.min_level)).length
+  const totalVal = allIngredients.reduce((s,i) => s + (Number(i.quantity) * Number(i.cost_per_unit||0)), 0)
+
+  document.getElementById('inv-sum').innerHTML =
+    '<span class="badge br">' + crit + ' criticos</span>' +
+    '<span class="badge ba">' + low + ' bajos</span>' +
+    '<span class="badge bg">' + ok + ' OK</span>'
+  document.getElementById('inv-total-value').textContent = fmt(totalVal)
+
+  // Populate usage and restock selects
+  const sel = document.getElementById('usage-ingredient')
+  if(sel) sel.innerHTML = allIngredients.map(i =>
+    '<option value="' + i.id + '" data-unit="' + i.unit + '" data-qty="' + i.quantity + '">' +
+    i.name + ' (' + i.quantity + ' ' + i.unit + ')</option>'
+  ).join('')
+  const rsSel = document.getElementById('rs-ing')
+  if(rsSel) rsSel.innerHTML = allIngredients.map(i =>
+    '<option value="' + i.id + '">' + i.name + ' (actual: ' + i.quantity + ' ' + i.unit + ')</option>'
+  ).join('')
+
+  const el = document.getElementById('inv-list')
+  if (!items.length) { el.innerHTML = '<div class="empty">No hay ingredientes en esta categoria</div>'; return }
+
+  el.innerHTML =
+    '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:0;padding:8px 18px;font-size:10px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--ink10)">' +
+    '<span>Ingrediente</span><span style="text-align:right">Stock</span><span style="text-align:right">Minimo</span><span style="text-align:right">Costo/u</span><span style="text-align:right">Valor</span></div>' +
+    items.map(function(i) {
+      var pct = Number(i.min_level) > 0 ? Math.min(100, Math.round(Number(i.quantity)/Number(i.min_level)*50)) : 50
+      var state = Number(i.quantity) === 0 ? ['br','Critico','#EF4444'] : Number(i.quantity) <= Number(i.min_level) ? ['ba','Bajo','#B45309'] : ['bg','OK','var(--green)']
+      var val = Number(i.quantity) * Number(i.cost_per_unit||0)
+      return '<div class="row" style="cursor:default">' +
+        '<div class="rm">' +
+          '<div class="rt">' + i.name + '</div>' +
+          '<div style="height:4px;background:var(--ink10);border-radius:2px;overflow:hidden;margin-top:5px;width:120px">' +
+            '<div style="height:100%;border-radius:2px;width:' + pct + '%;background:' + state[2] + '"></div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="text-align:right;font-size:13px;font-weight:500">' + i.quantity + ' <span style="font-size:10px;color:var(--ink60)">' + i.unit + '</span></div>' +
+        '<div style="text-align:right;font-size:11px;color:var(--ink60)">' + i.min_level + ' ' + i.unit + '</div>' +
+        '<div style="text-align:right;font-size:12px;color:var(--ink60)">' + fmt(i.cost_per_unit||0) + '</div>' +
+        '<div style="text-align:right;font-size:12px;font-weight:500;min-width:70px">' + fmt(val) + '</div>' +
+      '</div>'
+    }).join('')
+}
+
+// Usage modal setup
+function openUsageModal() {
+  const sel = document.getElementById('usage-ingredient')
+  if(sel) {
+    sel.onchange = function() {
+      var opt = sel.options[sel.selectedIndex]
+      document.getElementById('usage-unit').textContent = opt.getAttribute('data-unit') || ''
+      var qty = opt.getAttribute('data-qty') || 0
+      document.getElementById('usage-stock-preview').textContent = 'Stock actual: ' + qty + ' ' + (opt.getAttribute('data-unit')||'')
+    }
+  }
+  openM('usage-modal')
+}
+
+async function saveUsage() {
+  var id = document.getElementById('usage-ingredient').value
+  var qty = Number(document.getElementById('usage-qty').value)
+  var reason = document.getElementById('usage-reason').value
+  var notes = document.getElementById('usage-notes').value
+  if (!id || !qty) { showToast('Selecciona ingrediente y cantidad', false); return }
+  try {
+    await api('inventory', { method:'PATCH', body:{ id, quantity:qty, type:'waste', notes: reason + (notes ? ': ' + notes : '') }})
+    showToast('Uso registrado correctamente')
+    closeM('usage-modal')
+    document.getElementById('usage-qty').value = ''
+    document.getElementById('usage-notes').value = ''
+    loadInventory()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function saveNewIngredient() {
+  var name = document.getElementById('ni-name').value.trim()
+  var unit = document.getElementById('ni-unit').value
+  var qty = Number(document.getElementById('ni-qty').value)
+  var min = Number(document.getElementById('ni-min').value)
+  var cost = Number(document.getElementById('ni-cost').value)
+  var cat = document.getElementById('ni-cat').value
+  if (!name) { showToast('Ingresa el nombre del ingrediente', false); return }
+  try {
+    // Insert directly via Supabase through inventory endpoint workaround
+    const r = await fetch('/api/inventory', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name, unit, quantity: qty, min_level: min, cost_per_unit: cost, category: cat })
+    })
+    const data = await r.json()
+    if (data.error) throw new Error(data.error)
+    showToast(name + ' agregado al inventario')
+    closeM('new-ingredient-modal')
+    ;['ni-name','ni-qty','ni-min','ni-cost'].forEach(id => { var el = document.getElementById(id); if(el) el.value = '' })
+    loadInventory()
+  } catch(e) {
+    // If POST not supported, show message
+    showToast('Agrega el ingrediente desde Supabase o contacta soporte', false)
+  }
+}
+
+// ── PURCHASES ─────────────────────────────────────────────────
+var purchaseItems = []
+var allSuppliers = []
+
+async function loadPurchases() {
+  try {
+    // Load suppliers for filter and forms
+    const suppRes = await fetch('/api/purchases?resource=suppliers')
+    allSuppliers = await suppRes.json() || []
+
+    // Populate supplier filter
+    const filterSel = document.getElementById('purch-filter-supplier')
+    if(filterSel) filterSel.innerHTML = '<option value="">Todos los proveedores</option>' +
+      allSuppliers.map(s => '<option value="' + s.id + '">' + s.name + '</option>').join('')
+
+    const suppSel = document.getElementById('np-supplier')
+    if(suppSel) suppSel.innerHTML = '<option value="">Seleccionar proveedor...</option>' +
+      allSuppliers.map(s => '<option value="' + s.id + '">' + s.name + '</option>').join('')
+
+    // Load purchases
+    var month = document.getElementById('purch-filter-month')?.value
+    var supplier = document.getElementById('purch-filter-supplier')?.value
+    var url = '/api/purchases'
+    var params = []
+    if(month) { params.push('from_date=' + month + '-01'); params.push('to_date=' + month + '-31') }
+    if(supplier) params.push('supplier_id=' + supplier)
+    if(params.length) url += '?' + params.join('&')
+
+    const res = await fetch(url)
+    const purchases = await res.json() || []
+
+    // Summary
+    var monthTotal = purchases.reduce(function(s,p) { return s + Number(p.total) }, 0)
+    document.getElementById('p-month-total').textContent = fmt(monthTotal)
+    document.getElementById('p-month-count').textContent = purchases.length + ' compras'
+
+    // Top supplier
+    var bySupplier = {}
+    purchases.forEach(function(p) {
+      var n = p.suppliers?.name || 'Sin proveedor'
+      bySupplier[n] = (bySupplier[n]||0) + Number(p.total)
+    })
+    var top = Object.entries(bySupplier).sort(function(a,b){return b[1]-a[1]})[0]
+    document.getElementById('p-top-supplier').textContent = top ? top[0] : '—'
+
+    // Margin: get today's revenue
+    try {
+      var analytics = await api('analytics')
+      var salesMonth = analytics.today?.revenue || 0
+      var margin = salesMonth - monthTotal
+      document.getElementById('p-margin').textContent = fmt(margin)
+      document.getElementById('p-margin').style.color = margin >= 0 ? 'var(--green)' : 'var(--red)'
+    } catch(e) {}
+
+    // Render list
+    var el = document.getElementById('purchases-list')
+    if (!purchases.length) { el.innerHTML = '<div class="empty">No hay compras registradas aun. Agrega tu primera compra.</div>'; return }
+
+    el.innerHTML = purchases.map(function(p) {
+      var items = p.purchase_items || []
+      return '<div style="border-bottom:1px solid var(--ink10);padding:14px 18px">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">' +
+          '<div style="flex:1">' +
+            '<div style="font-size:13px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px">' +
+              (p.suppliers?.name || 'Sin proveedor') +
+              '<span style="font-size:10px;color:var(--ink60);font-weight:400">' + p.date + '</span>' +
+            '</div>' +
+            '<div style="font-size:11px;color:var(--ink60);margin-top:4px">' +
+              items.map(function(i){ return i.quantity + ' ' + i.unit + ' de ' + i.ingredient_name }).join(' · ').substring(0,80) +
+            '</div>' +
+            (p.notes ? '<div style="font-size:11px;color:var(--ink60);margin-top:2px">' + p.notes + '</div>' : '') +
+          '</div>' +
+          '<div style="text-align:right;flex-shrink:0">' +
+            '<div style="font-size:16px;font-weight:700;color:var(--ink)">' + fmt(p.total) + '</div>' +
+            '<div style="font-size:10px;color:var(--ink60);margin-top:2px">' + items.length + ' productos</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' +
+          items.map(function(i) {
+            return '<span style="font-size:10px;background:var(--cream);border:1px solid var(--ink10);border-radius:20px;padding:2px 8px;color:var(--ink60)">' +
+              i.ingredient_name + ': ' + fmt(i.unit_price) + '/' + i.unit + '</span>'
+          }).join('') +
+        '</div>' +
+      '</div>'
+    }).join('')
+  } catch(e) { showToast('Error cargando compras: ' + e.message, false) }
+}
+
+function openNewPurchase() {
+  purchaseItems = []
+  // Set today's date
+  var today = new Date().toISOString().split('T')[0]
+  document.getElementById('np-date').value = today
+  document.getElementById('np-notes').value = ''
+  renderPurchaseItems()
+  openM('new-purchase-modal')
+}
+
+function addPurchaseItem() {
+  purchaseItems.push({ ingredient_id:'', ingredient_name:'', quantity:1, unit:'kg', unit_price:0 })
+  renderPurchaseItems()
+}
+
+function renderPurchaseItems() {
+  var el = document.getElementById('np-items-list')
+  if (!purchaseItems.length) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--ink60);font-size:13px">Agrega los productos que compraste</div>'
+    document.getElementById('np-total').textContent = '$0.00'
+    return
+  }
+  var total = 0
+  el.innerHTML = purchaseItems.map(function(item, idx) {
+    var lineTotal = item.quantity * item.unit_price
+    total += lineTotal
+    return '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;align-items:center;margin-bottom:8px;padding:8px;background:var(--cream);border-radius:var(--rsm)">' +
+      '<div>' +
+        '<select onchange="setPurchaseIngredient(' + idx + ',this)" style="width:100%;padding:6px 8px;border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px;font-family:'DM Sans',sans-serif;background:var(--wh)">' +
+          '<option value="">Seleccionar ingrediente...</option>' +
+          allIngredients.map(function(i) {
+            return '<option value="' + i.id + '|' + i.unit + '" ' + (item.ingredient_id===i.id?'selected':'') + '>' + i.name + '</option>'
+          }).join('') +
+          '<option value="custom">+ Otro (escribir nombre)</option>' +
+        '</select>' +
+        (item.ingredient_id === 'custom' ? '<input placeholder="Nombre del producto" value="' + item.ingredient_name + '" oninput="purchaseItems[' + idx + '].ingredient_name=this.value;calcPurchaseTotal()" style="width:100%;margin-top:4px;padding:5px 8px;border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px">' : '') +
+      '</div>' +
+      '<input type="number" step="0.1" value="' + item.quantity + '" onchange="purchaseItems[' + idx + '].quantity=Number(this.value);calcPurchaseTotal();renderPurchaseItems()" style="padding:6px 8px;border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px;text-align:right">' +
+      '<select onchange="purchaseItems[' + idx + '].unit=this.value" style="padding:6px 8px;border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px">' +
+        ['kg','g','L','ml','pzas','cajas','bolsas'].map(function(u){ return '<option value="' + u + '" ' + (item.unit===u?'selected':'') + '>' + u + '</option>' }).join('') +
+      '</select>' +
+      '<input type="number" step="0.01" value="' + item.unit_price + '" placeholder="Precio" onchange="purchaseItems[' + idx + '].unit_price=Number(this.value);calcPurchaseTotal();renderPurchaseItems()" style="padding:6px 8px;border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px;text-align:right">' +
+      '<div style="display:flex;align-items:center;gap:6px">' +
+        '<span style="font-size:12px;font-weight:600;min-width:60px;text-align:right">' + fmt(lineTotal) + '</span>' +
+        '<button onclick="purchaseItems.splice(' + idx + ',1);renderPurchaseItems()" style="border:none;background:none;cursor:pointer;color:#EF4444;font-size:16px;padding:2px">x</button>' +
+      '</div>' +
+    '</div>'
+  }).join('')
+  document.getElementById('np-total').textContent = fmt(total)
+}
+
+function setPurchaseIngredient(idx, sel) {
+  var val = sel.value
+  if (val === 'custom') {
+    purchaseItems[idx].ingredient_id = 'custom'
+    purchaseItems[idx].ingredient_name = ''
+  } else if (val) {
+    var parts = val.split('|')
+    purchaseItems[idx].ingredient_id = parts[0]
+    purchaseItems[idx].unit = parts[1] || 'kg'
+    var ing = allIngredients.find(function(i){ return i.id === parts[0] })
+    if(ing) purchaseItems[idx].ingredient_name = ing.name
+  }
+  renderPurchaseItems()
+}
+
+function calcPurchaseTotal() {
+  var total = purchaseItems.reduce(function(s,i){ return s + (i.quantity * i.unit_price) }, 0)
+  var el = document.getElementById('np-total')
+  if(el) el.textContent = fmt(total)
+}
+
+async function savePurchase() {
+  var supplierId = document.getElementById('np-supplier').value
+  var date = document.getElementById('np-date').value
+  var notes = document.getElementById('np-notes').value
+  if (!date) { showToast('Selecciona la fecha de la compra', false); return }
+  if (!purchaseItems.length) { showToast('Agrega al menos un producto', false); return }
+  var validItems = purchaseItems.filter(function(i){ return i.ingredient_name && i.quantity > 0 && i.unit_price > 0 })
+  if (!validItems.length) { showToast('Completa los datos de los productos', false); return }
+  // Fix custom ingredients
+  validItems.forEach(function(i){ if(i.ingredient_id==='custom') i.ingredient_id = null })
+  try {
+    await fetch('/api/purchases', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ supplier_id: supplierId||null, date, notes, items: validItems })
+    })
+    showToast('Compra registrada correctamente')
+    closeM('new-purchase-modal')
+    loadPurchases()
+    loadInventory() // refresh stock levels
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function saveSupplier() {
+  var name = document.getElementById('sup-name').value.trim()
+  if (!name) { showToast('Ingresa el nombre del proveedor', false); return }
+  try {
+    await fetch('/api/purchases?resource=suppliers', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, phone: document.getElementById('sup-phone').value, email: document.getElementById('sup-email').value, notes: document.getElementById('sup-notes').value })
+    })
+    showToast('Proveedor agregado')
+    closeM('supplier-modal')
+    ;['sup-name','sup-phone','sup-email','sup-notes'].forEach(function(id){ var el=document.getElementById(id);if(el)el.value='' })
+    loadPurchases()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+</script>
+
 </body>
 </html>
