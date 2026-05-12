@@ -1088,12 +1088,12 @@ function renderPOSCart() {
     </div>`
   }).join('')
   const discAmt = Math.min(discount, subtotal)
-  const taxable = subtotal - discAmt
-  const tax = taxable * 0.16
-  const total = taxable + tax
+  const total = subtotal - discAmt
   document.getElementById('pos-sub').textContent = fmt(subtotal)
-  document.getElementById('pos-disc-val') && (document.getElementById('pos-disc-val').textContent = '-' + fmt(discAmt))
-  document.getElementById('pos-tax').textContent = fmt(tax)
+  const discEl = document.getElementById('pos-disc-val')
+  if(discEl) discEl.textContent = '-' + fmt(discAmt)
+  const discRow = document.getElementById('pos-disc-row')
+  if(discRow) discRow.style.display = discAmt > 0 ? 'flex' : 'none'
   document.getElementById('pos-tot').textContent = fmt(total)
 }
 
@@ -1106,14 +1106,11 @@ function openPaymentModal() {
   const discount = Number(document.getElementById('pos-discount')?.value || 0)
   const subtotal = posCart.reduce((s,c) => s + c.price*c.qty, 0)
   const discAmt = Math.min(discount, subtotal)
-  const taxable = subtotal - discAmt
-  const tax = taxable * 0.16
-  const total = taxable + tax
+  const total = subtotal - discAmt
 
   document.getElementById('pm-items-count').textContent = posCart.reduce((s,c)=>s+c.qty,0) + ' productos'
   document.getElementById('pm-disc').textContent = '-' + fmt(discAmt)
   document.getElementById('pm-disc-row').style.display = discAmt > 0 ? 'flex' : 'none'
-  document.getElementById('pm-tax').textContent = fmt(tax)
   document.getElementById('pm-total').textContent = fmt(total)
   document.getElementById('pm-customer').value = ''
   document.getElementById('pm-cash-received').value = ''
@@ -1220,9 +1217,7 @@ async function processSale(worker) {
   const discount = Number(document.getElementById('pos-discount')?.value || 0)
   const subtotal = posCart.reduce((s,c) => s + c.price*c.qty, 0)
   const discAmt = Math.min(discount, subtotal)
-  const taxable = subtotal - discAmt
-  const tax = taxable * 0.16
-  const total = taxable + tax
+  const total = subtotal - discAmt
   const tableId = posOrderType === 'dine_in' ? document.getElementById('pos-tbl').value : null
   const customerName = document.getElementById('pm-customer').value.trim()
   const received = parseFloat(document.getElementById('pm-cash-received').value) || 0
@@ -1236,7 +1231,6 @@ async function processSale(worker) {
     customer_name: customerName || null,
     subtotal: Math.round(subtotal*100)/100,
     discount: Math.round(discAmt*100)/100,
-    tax: Math.round(tax*100)/100,
     total: Math.round(total*100)/100,
     notes: `Vendido por: ${worker.name} | Método: ${selectedPayMethod}${received?` | Recibido: ${fmt(received)}`:''}`,
     items: posCart.map(c => ({
@@ -1386,6 +1380,13 @@ async function resetAllTables() {
 // EDIT MENU ITEM
 var editingItemId = null
 
+async function openEditMenuById(id) {
+  try {
+    const menu = await api('menu')
+    const item = (menu.items||[]).find(i => i.id === id)
+    if (item) openEditMenu(item)
+  } catch(e) { showToast('Error', false) }
+}
 function openEditMenu(item) {
   editingItemId = item.id
   document.getElementById('em-id').value = item.id
@@ -1442,5 +1443,6 @@ async function deleteMenuItem() {
 
 
 
+<div class="modal-bg" id="void-modal"><div class="modal" style="width:420px"><div class="mh"><span class="mt" style="color:#EF4444">Anular venta</span><button class="mc-btn" onclick="closeM('void-modal')">x</button></div><div class="mb"><div style="background:var(--red-l);border-radius:var(--rsm);padding:12px;margin-bottom:14px;font-size:13px;color:var(--red-d)" id="void-order-info"></div><div class="fl"><label>Motivo</label><select class="fs" id="void-reason"><option value="error_producto">Error en producto</option><option value="error_precio">Error en precio</option><option value="cliente_cancelo">Cliente cancelo</option><option value="duplicado">Duplicado</option><option value="otro">Otro</option></select></div><div class="fl" style="margin-top:10px"><label>Notas</label><input class="fi" id="void-notes" placeholder="Descripcion..."></div><div style="margin-top:14px"><div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Confirma con tu PIN</div><div style="display:flex;gap:12px;margin:10px 0"><div class="pin-modal-dot" id="vd0"></div><div class="pin-modal-dot" id="vd1"></div><div class="pin-modal-dot" id="vd2"></div><div class="pin-modal-dot" id="vd3"></div></div><div class="pin-modal-keypad"><button class="pin-modal-key" onclick="vKey('1')">1</button><button class="pin-modal-key" onclick="vKey('2')">2</button><button class="pin-modal-key" onclick="vKey('3')">3</button><button class="pin-modal-key" onclick="vKey('4')">4</button><button class="pin-modal-key" onclick="vKey('5')">5</button><button class="pin-modal-key" onclick="vKey('6')">6</button><button class="pin-modal-key" onclick="vKey('7')">7</button><button class="pin-modal-key" onclick="vKey('8')">8</button><button class="pin-modal-key" onclick="vKey('9')">9</button><button class="pin-modal-key empty"></button><button class="pin-modal-key" onclick="vKey('0')">0</button><button class="pin-modal-key del" onclick="vDel()">x</button></div><div style="color:#EF4444;font-size:12px;min-height:18px;margin-top:8px" id="void-pin-error"></div></div></div></div></div>
 </body>
 </html>
