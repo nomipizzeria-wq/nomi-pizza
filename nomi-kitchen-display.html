@@ -228,6 +228,7 @@ function logoutWorker() {
   <div style="display:flex;align-items:center;gap:10px">
     <button class="sbtn" id="sndbtn" onclick="toggleSound()">🔔 Sonido ON</button>
     <button class="sbtn" onclick="loadOrders()">🔄 Actualizar</button>
+    <button class="sbtn" onclick="openKDSUsage()">📤 Marcar uso</button>
     <button class="sbtn" onclick="logoutWorker()">🔒 Salir</button>
     <span style="font-family:'DM Mono',monospace;font-size:22px" id="clk">--:--</span>
   </div>
@@ -368,6 +369,77 @@ loadOrders();updClk()
     })
   } catch(e) {}
 })()
+</script>
+
+
+<div id="kds-usage-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center">
+  <div style="background:#1a1a1a;border-radius:12px;padding:24px;width:380px;border:1px solid #333">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <span style="font-size:15px;font-weight:600;color:#fff">Marcar uso de ingrediente</span>
+      <button onclick="document.getElementById('kds-usage-modal').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer">x</button>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px">Ingrediente</label>
+      <select id="kds-usage-ing" style="width:100%;padding:10px;background:#242424;border:1px solid #444;border-radius:8px;color:#fff;font-size:13px">
+        <option value="">Cargando...</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:12px">
+      <div>
+        <label style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px">Cantidad usada</label>
+        <input type="number" step="0.1" id="kds-usage-qty" placeholder="0" style="width:100%;padding:10px;background:#242424;border:1px solid #444;border-radius:8px;color:#fff;font-size:13px">
+      </div>
+      <div>
+        <label style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px">Unidad</label>
+        <span id="kds-usage-unit" style="display:block;padding:10px;color:rgba(255,255,255,.6);font-size:13px">kg</span>
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px">Motivo</label>
+      <select id="kds-usage-reason" style="width:100%;padding:10px;background:#242424;border:1px solid #444;border-radius:8px;color:#fff;font-size:13px">
+        <option value="cocina">Uso en cocina</option>
+        <option value="merma">Merma / desperdicio</option>
+        <option value="vencido">Producto vencido</option>
+      </select>
+    </div>
+    <button onclick="saveKDSUsage()" style="width:100%;padding:12px;background:#C8392B;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Registrar uso</button>
+  </div>
+</div>
+
+<script>
+async function openKDSUsage() {
+  const modal = document.getElementById('kds-usage-modal')
+  modal.style.display = 'flex'
+  try {
+    const res = await fetch('/api/inventory')
+    const items = await res.json() || []
+    const sel = document.getElementById('kds-usage-ing')
+    sel.innerHTML = items.map(i =>
+      '<option value="' + i.id + '" data-unit="' + i.unit + '">' + i.name + ' (' + i.quantity + ' ' + i.unit + ')</option>'
+    ).join('')
+    sel.onchange = function() {
+      const opt = sel.options[sel.selectedIndex]
+      document.getElementById('kds-usage-unit').textContent = opt.getAttribute('data-unit') || ''
+    }
+    if(items.length) sel.dispatchEvent(new Event('change'))
+  } catch(e) { console.error(e) }
+}
+
+async function saveKDSUsage() {
+  const id = document.getElementById('kds-usage-ing').value
+  const qty = Number(document.getElementById('kds-usage-qty').value)
+  const reason = document.getElementById('kds-usage-reason').value
+  if (!id || !qty) { ktoast('Selecciona ingrediente y cantidad'); return }
+  try {
+    await fetch('/api/inventory', {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id, quantity:qty, type:'waste', notes: reason})
+    })
+    ktoast('Uso registrado correctamente')
+    document.getElementById('kds-usage-modal').style.display = 'none'
+    document.getElementById('kds-usage-qty').value = ''
+  } catch(e) { ktoast('Error: ' + e.message) }
+}
 </script>
 
 </body>
