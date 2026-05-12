@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nomi Pizza — Admin Suite</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--red:#C8392B;--red-d:#9B2A1E;--red-l:#FAECE7;--ink:#1A1714;--ink60:#6B6460;--ink30:#C4BFB9;--ink10:#EDE9E4;--wh:#fff;--cream:#FAF8F5;--green:#2D7A4F;--green-l:#E8F5EE;--amber:#B45309;--amber-l:#FEF3C7;--blue:#1D4ED8;--blue-l:#EFF6FF;--sw:220px;--th:58px;--r:12px;--rsm:8px;--ssh:0 1px 2px rgba(26,23,20,.06);--tr:.18s cubic-bezier(.4,0,.2,1)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);font-size:14px;line-height:1.5;height:100vh;overflow:hidden}
+.shell{display:flex;height:100vh;width:100vw;overflow:hidden}
+.sb{width:var(--sw);background:var(--ink);display:flex;flex-direction:column;flex-shrink:0}
+.sb-brand{padding:18px 16px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:10px}
+.sb-logo{width:34px;height:34px;background:var(--red);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.sb-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#fff}
+.sb-sub{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.08em;text-transform:uppercase}
+.sb-nav{flex:1;padding:8px;overflow-y:auto}
+.sb-sec{font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.22);padding:10px 10px 4px}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--rsm);cursor:pointer;transition:var(--tr);color:rgba(255,255,255,.45);font-size:13px;margin-bottom:1px;user-select:none}
+.ni:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.8)}.ni.active{background:var(--red);color:#fff;font-weight:500}
+.ni svg{width:15px;height:15px;flex-shrink:0}
+.ni-b{margin-left:auto;background:rgba(255,255,255,.15);color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px}
+.ni.active .ni-b{background:rgba(255,255,255,.25)}
+.sb-foot{padding:12px;border-top:1px solid rgba(255,255,255,.07)}
+.sb-user{display:flex;align-items:center;gap:8px;padding:9px 10px;background:rgba(255,255,255,.06);border-radius:var(--rsm)}
+.sb-av{width:28px;height:28px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0}
+.sb-un{font-size:12px;font-weight:500;color:#fff}.sb-ur{font-size:10px;color:rgba(255,255,255,.4)}
+.sdot{width:7px;height:7px;border-radius:50%;background:#22c55e;margin-left:auto;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px rgba(34,197,94,.25)}50%{box-shadow:0 0 0 4px rgba(34,197,94,.12)}}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:var(--th);background:var(--wh);border-bottom:1px solid var(--ink10);display:flex;align-items:center;padding:0 22px;gap:12px;flex-shrink:0}
+.tb-title{font-size:15px;font-weight:600}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.bg{background:var(--green-l);color:var(--green)}.br{background:var(--red-l);color:var(--red-d)}.ba{background:var(--amber-l);color:var(--amber)}.bi{background:var(--blue-l);color:var(--blue)}.bk{background:var(--ink10);color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--rsm);border:1px solid var(--ink10);background:var(--wh);color:var(--ink);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:var(--tr)}
+.btn:hover{background:var(--cream)}.btn-p{background:var(--red);color:#fff;border-color:var(--red)}.btn-p:hover{background:var(--red-d)}.btn-sm{padding:5px 10px;font-size:11px}
+.pc{flex:1;overflow-y:auto;padding:20px 22px;background:var(--cream)}
+.page{display:none;animation:fi .2s ease}.page.active{display:block}#page-pos.active{display:flex;flex-direction:column;margin:-20px -22px;height:calc(100vh - var(--th));}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+.mg4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.mg3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.mc{background:var(--wh);border-radius:var(--r);padding:16px 18px;box-shadow:var(--ssh);border:1px solid var(--ink10);border-top:3px solid var(--red)}
+.mc-l{font-size:10px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.mc-v{font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-.03em;line-height:1}
+.mc-s{font-size:11px;color:var(--ink60);margin-top:5px}
+.card{background:var(--wh);border-radius:var(--r);border:1px solid var(--ink10);box-shadow:var(--ssh);overflow:hidden;margin-bottom:14px}
+.ch{padding:14px 18px;border-bottom:1px solid var(--ink10);display:flex;align-items:center;justify-content:space-between}
+.ct{font-size:13px;font-weight:600}
+.row{display:flex;align-items:center;padding:11px 18px;border-bottom:1px solid var(--ink10);gap:10px}
+.row:last-child{border-bottom:none}
+.rm{flex:1;min-width:0}.rt{font-size:13px;font-weight:500}.rs{font-size:11px;color:var(--ink60);margin-top:2px}
+.rr{text-align:right;flex-shrink:0;margin-left:8px}.rp{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0}
+.av-r{background:var(--red-l);color:var(--red-d)}.av-a{background:var(--amber-l);color:var(--amber)}.av-g{background:var(--green-l);color:var(--green)}.av-b{background:var(--blue-l);color:var(--blue)}
+.tnav{display:flex;border-bottom:1px solid var(--ink10);background:var(--wh);padding:0 18px}
+.tab{padding:11px 12px;font-size:12px;font-weight:500;color:var(--ink60);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:var(--tr)}
+.tab:hover{color:var(--ink)}.tab.active{color:var(--red);border-bottom-color:var(--red)}
+.tgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:18px}
+.tc{border-radius:var(--r);border:2px solid var(--ink10);padding:14px;cursor:pointer;transition:var(--tr);background:var(--wh);text-align:center}
+.tc:hover{transform:translateY(-1px)}.tc.occupied{border-color:var(--red);background:var(--red-l)}.tc.ready{border-color:var(--amber);background:var(--amber-l)}.tc.available{border-color:var(--green);background:var(--green-l)}
+.tc-n{font-family:'Playfair Display',serif;font-size:22px;font-weight:700}.tc-c{font-size:10px;color:var(--ink60);margin-top:2px}
+.tc-s{font-size:10px;font-weight:600;margin-top:8px;text-transform:uppercase;letter-spacing:.05em}
+.tc.occupied .tc-s{color:var(--red-d)}.tc.ready .tc-s{color:var(--amber)}.tc.available .tc-s{color:var(--green)}
+.pos-layout{display:grid;grid-template-columns:1fr 320px;height:calc(100vh - var(--th));overflow:hidden}.pos-cart{background:var(--wh);border-left:1px solid var(--ink10);display:flex;flex-direction:column;min-height:0}
+.pos-menu{overflow-y:auto;padding:16px;background:var(--cream)}
+.pos-cart{background:var(--wh);border-left:1px solid var(--ink10);display:flex;flex-direction:column}
+.pcats{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.pcat{padding:5px 12px;border-radius:20px;border:1px solid var(--ink10);font-size:12px;font-weight:500;cursor:pointer;background:var(--wh);color:var(--ink60)}
+.pcat.active{background:var(--red);color:#fff;border-color:var(--red)}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pi{background:var(--wh);border:1px solid var(--ink10);border-radius:var(--r);padding:14px;cursor:pointer;text-align:center;transition:var(--tr)}
+.pi:hover{border-color:var(--red);background:var(--red-l);transform:translateY(-1px)}
+.pi-ic{font-size:26px;margin-bottom:6px;display:block}.pi-n{font-size:12px;font-weight:600;margin-bottom:4px}.pi-p{font-size:13px;font-weight:700;color:var(--red)}
+.cart-hd{padding:14px 18px;border-bottom:1px solid var(--ink10)}
+.cart-items{flex:1;overflow-y:auto;padding:8px 18px;min-height:0}
+.ci{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--ink10)}
+.ci:last-child{border-bottom:none}.ci-n{flex:1;font-size:13px;font-weight:500}
+.qbc{display:flex;align-items:center;gap:4px}
+.qb{width:22px;height:22px;border-radius:50%;border:1px solid var(--ink10);background:var(--wh);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;line-height:1}
+.qb:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.cart-foot{padding:14px 18px;border-top:1px solid var(--ink10);flex-shrink:0}
+.inv-bar{flex:1;height:4px;background:var(--ink10);border-radius:2px;overflow:hidden}
+.inv-fill{height:100%;border-radius:2px}.ifc{background:#EF4444}.ifl{background:var(--amber)}.ifo{background:var(--red)}
+.wcard{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--ink10)}
+.wcard:last-child{border-bottom:none}
+.wc-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+.wc-n{font-size:13px;font-weight:600}.wc-r{font-size:11px;color:var(--ink60);margin-top:2px}
+.modal-bg{position:fixed;inset:0;background:rgba(26,23,20,.5);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:var(--wh);border-radius:var(--r);width:480px;max-width:90vw;box-shadow:0 20px 60px rgba(26,23,20,.25);overflow:hidden;transform:translateY(20px);transition:transform .25s;max-height:85vh;overflow-y:auto}
+.modal-bg.open .modal{transform:translateY(0)}
+.mh{padding:16px 20px;border-bottom:1px solid var(--ink10);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--wh)}
+.mt{font-size:15px;font-weight:600}
+.mc-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--ink10);background:var(--wh);cursor:pointer;font-size:16px;color:var(--ink60);display:flex;align-items:center;justify-content:center}
+.mb{padding:18px}
+.fl{margin-bottom:12px}.fl label{font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;display:block}
+.fi{width:100%;padding:8px 12px;border:1px solid var(--ink10);border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);background:var(--cream);outline:none}
+.fi:focus{border-color:var(--red);background:var(--wh);box-shadow:0 0 0 3px var(--red-l)}
+.fs{width:100%;padding:8px 12px;border:1px solid var(--ink10);border-radius:var(--rsm);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);background:var(--cream);outline:none}
+.mf{padding:12px 20px;border-top:1px solid var(--ink10);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--wh)}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:#fff;padding:11px 16px;border-radius:var(--rsm);font-size:12px;font-weight:500;display:flex;align-items:center;gap:7px;transform:translateY(50px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:999}
+.toast.show{transform:translateY(0);opacity:1}
+.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--ink60);font-size:13px;gap:8px}
+.spinner{width:18px;height:18px;border:2px solid var(--ink10);border-top-color:var(--red);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:40px;color:var(--ink60);font-size:13px}
+.zrow{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid var(--ink10);font-size:13px}
+.zrow:last-child{border-bottom:none}.zl{color:var(--ink60)}.zv{font-weight:500}
+.ocard{border-bottom:1px solid var(--ink10);padding:14px 18px;display:flex;align-items:flex-start;gap:10px}
+.ocard:hover{background:var(--cream)}.ocard:last-child{border-bottom:none}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--ink30);border-radius:2px}
+</style>
+</head>
+<body>
+<!-- PIN LOGIN SCREEN — injected at top of each staff app -->
+<style>
+.pin-screen{position:fixed;inset:0;background:var(--ink,#1A1714);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:'DM Sans',sans-serif}
+.pin-logo{font-size:48px;margin-bottom:8px}
+.pin-brand{font-size:22px;font-weight:700;color:#fff;margin-bottom:4px}
+.pin-sub{font-size:12px;color:rgba(255,255,255,.4);margin-bottom:40px;text-transform:uppercase;letter-spacing:.1em}
+.pin-label{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:16px}
+.pin-dots{display:flex;gap:14px;margin-bottom:32px}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.25);transition:all .2s}
+.pin-dot.filled{background:#fff;border-color:#fff;transform:scale(1.15)}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:260px}
+.pin-key{height:70px;border-radius:14px;border:none;background:rgba(255,255,255,.08);color:#fff;font-family:'DM Sans',sans-serif;font-size:22px;font-weight:500;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;justify-content:center;user-select:none;-webkit-tap-highlight-color:transparent}
+.pin-key:hover{background:rgba(255,255,255,.14)}
+.pin-key:active{background:rgba(255,255,255,.22);transform:scale(.94)}
+.pin-key.del{font-size:18px;color:rgba(255,255,255,.6)}
+.pin-key.empty{background:transparent;cursor:default;pointer-events:none}
+.pin-key-sub{font-size:8px;color:rgba(255,255,255,.3);letter-spacing:.1em;margin-top:2px}
+.pin-error{color:#EF4444;font-size:12px;margin-bottom:16px;min-height:18px;text-align:center}
+.pin-loading{color:rgba(255,255,255,.5);font-size:13px;margin-bottom:16px;display:none}
+.pin-shake{animation:shake .4s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.pin-worker-info{position:absolute;bottom:24px;left:0;right:0;text-align:center;color:rgba(255,255,255,.2);font-size:11px}
+</style>
+
+<div class="pin-screen" id="pin-screen">
+  <div class="pin-logo">🍕</div>
+  <div class="pin-brand">Nomi Pizza</div>
+  <div class="pin-sub" id="pin-role-label">ADMIN ACCESS</div>
+  <div class="pin-label">Ingresa tu PIN de 4 dígitos</div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+  <div class="pin-keypad">
+    <button class="pin-key" onclick="pinKey('1')">1<span class="pin-key-sub"></span></button>
+    <button class="pin-key" onclick="pinKey('2')">2<span class="pin-key-sub">ABC</span></button>
+    <button class="pin-key" onclick="pinKey('3')">3<span class="pin-key-sub">DEF</span></button>
+    <button class="pin-key" onclick="pinKey('4')">4<span class="pin-key-sub">GHI</span></button>
+    <button class="pin-key" onclick="pinKey('5')">5<span class="pin-key-sub">JKL</span></button>
+    <button class="pin-key" onclick="pinKey('6')">6<span class="pin-key-sub">MNO</span></button>
+    <button class="pin-key" onclick="pinKey('7')">7<span class="pin-key-sub">PQRS</span></button>
+    <button class="pin-key" onclick="pinKey('8')">8<span class="pin-key-sub">TUV</span></button>
+    <button class="pin-key" onclick="pinKey('9')">9<span class="pin-key-sub">WXYZ</span></button>
+    <button class="pin-key empty"></button>
+    <button class="pin-key" onclick="pinKey('0')">0</button>
+    <button class="pin-key del" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="pin-loading" id="pin-loading">Verificando...</div>
+  <div class="pin-worker-info" id="pin-info">Habla con tu gerente si olvidaste tu PIN</div>
+</div>
+
+<script>
+var pinVal = ''
+var currentWorker = null
+
+function pinKey(n) {
+  if (pinVal.length >= 4) return
+  pinVal += n
+  updateDots()
+  clearPinError()
+  if (pinVal.length === 4) verifyPIN()
+}
+
+function pinDel() {
+  pinVal = pinVal.slice(0, -1)
+  updateDots()
+  clearPinError()
+}
+
+function updateDots() {
+  for (var i = 0; i < 4; i++) {
+    document.getElementById('d' + i).classList.toggle('filled', i < pinVal.length)
+  }
+}
+
+function clearPinError() {
+  document.getElementById('pin-error').textContent = ''
+}
+
+function showPinError(msg) {
+  const el = document.getElementById('pin-error')
+  el.textContent = msg
+  const dots = document.getElementById('pin-dots')
+  dots.classList.add('pin-shake')
+  setTimeout(() => dots.classList.remove('pin-shake'), 400)
+  pinVal = ''
+  updateDots()
+}
+
+async function verifyPIN() {
+  document.getElementById('pin-loading').style.display = 'block'
+  document.getElementById('pin-error').textContent = ''
+  try {
+    const res = await fetch('/api/workers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'login_pin', pin: pinVal })
+    })
+    const worker = await res.json()
+    document.getElementById('pin-loading').style.display = 'none'
+
+    if (!res.ok || worker.error) {
+      showPinError('PIN incorrecto. Intenta de nuevo.')
+      return
+    }
+
+    // Success — store worker and hide login
+    currentWorker = worker
+    sessionStorage.setItem('nomi_worker', JSON.stringify(worker))
+    onLoginSuccess(worker)
+  } catch(e) {
+    document.getElementById('pin-loading').style.display = 'none'
+    showPinError('Error de conexión. Intenta de nuevo.')
+  }
+}
+
+function onLoginSuccess(worker) {
+  const screen = document.getElementById('pin-screen')
+  screen.style.transition = 'opacity .3s'
+  screen.style.opacity = '0'
+  setTimeout(() => {
+    screen.style.display = 'none'
+    // Update worker info in the app if functions exist
+    if (typeof onWorkerLoggedIn === 'function') onWorkerLoggedIn(worker)
+  }, 300)
+}
+
+// Check if already logged in this session
+(function() {
+  const saved = sessionStorage.getItem('nomi_worker')
+  if (saved) {
+    try {
+      currentWorker = JSON.parse(saved)
+      document.getElementById('pin-screen').style.display = 'none'
+      if (typeof onWorkerLoggedIn === 'function') onWorkerLoggedIn(currentWorker)
+    } catch(e) {
+      sessionStorage.removeItem('nomi_worker')
+    }
+  }
+})()
+</script>
+
+
+<script>
+function onWorkerLoggedIn(worker) {
+  const roleLabels = {admin:'Administrador',manager:'Gerente',waiter:'Mesero',kitchen:'Cocina',delivery:'Repartidor',cashier:'Cajero'}
+  document.querySelector('.sb-un').textContent = worker.name
+  document.querySelector('.sb-ur').textContent = roleLabels[worker.role] || worker.role
+  document.querySelector('.sb-av').textContent = worker.name ? worker.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase() : 'AD'
+  window.currentWorker = worker
+
+  // Hide nav items based on permissions
+  const perms = worker.permissions || {}
+  const permMap = {
+    'page-menu': 'menu',
+    'page-inventory': 'inventory',
+    'page-analytics': 'analytics',
+    'page-workers': 'team',
+  }
+  // Only admins and managers see everything — others see limited view
+  if (!['admin','manager'].includes(worker.role)) {
+    // Hide sensitive nav items
+    document.querySelectorAll('.ni').forEach(ni => {
+      const txt = ni.textContent.trim()
+      if (['Analíticas','Equipo','Inventario','Menú'].some(s => txt.startsWith(s)) && !perms[txt.toLowerCase().replace('é','e').replace('ú','u')]) {
+        ni.style.display = 'none'
+      }
+    })
+  }
+}
+
+function logoutWorker() {
+  if (!confirm('¿Cerrar sesión?')) return
+  sessionStorage.removeItem('nomi_worker')
+  document.getElementById('pin-screen').style.display = 'flex'
+  document.getElementById('pin-screen').style.opacity = '1'
+  pinVal = ''
+  updateDots()
+  clearPinError()
+}
+</script>
+
+<div class="shell">
+<aside class="sb">
+  <div class="sb-brand"><div class="sb-logo">🍕</div><div><div class="sb-name">Nomi Pizza</div><div class="sb-sub">Admin Suite</div></div></div>
+  <nav class="sb-nav">
+    <div class="sb-sec">General</div>
+    <div class="ni active" onclick="showPage('dashboard',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dashboard</div>
+    <div class="sb-sec">Operaciones</div>
+    <div class="ni" onclick="showPage('orders',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>Pedidos<span class="ni-b" id="ob">0</span></div>
+    <div class="ni" onclick="showPage('tables',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>Mesas<span class="ni-b" id="tb">0</span></div>
+    <div class="ni" onclick="showPage('pos',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 2H7c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>POS</div>
+    <div class="sb-sec">Gestión</div>
+    <div class="ni" onclick="showPage('menu',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.1 13.34l2.83-2.83L3.91 3.5c-1.56 1.56-1.56 4.09 0 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/></svg>Menú</div>
+    <div class="ni" onclick="showPage('inventory',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 7h-4V5l-2-2h-4L8 5v2H4c-1.1 0-2 .9-2 2v5c0 .75.4 1.38 1 1.73V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-3.28c.59-.35 1-.99 1-1.72V9c0-1.1-.9-2-2-2z"/></svg>Inventario</div>
+    <div class="ni" onclick="showPage('loyalty',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>Lealtad</div>
+    <div class="ni" onclick="showPage('analytics',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>Analíticas</div>
+    <div class="sb-sec">Equipo</div>
+    <div class="ni" onclick="showPage('config',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>Configuración</div>
+    <div class="ni" onclick="showPage('workers',this)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>Equipo</div>
+  </nav>
+  <div class="sb-foot"><div class="sb-user"><div class="sb-av">AD</div><div><div class="sb-un">Admin Nomi</div><div class="sb-ur">Administrador</div></div><div class="sdot"></div></div><div style="margin-top:8px;text-align:center"><button onclick="logoutWorker()" style="background:none;border:none;color:rgba(255,255,255,.3);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;padding:4px 8px;border-radius:4px">🔒 Cerrar sesión</button></div>
+</div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <span class="tb-title" id="ptitle">Dashboard</span>
+    <div class="tb-right">
+      <span class="badge bg">● Abierto</span>
+      <button class="btn btn-sm" onclick="showPage('tables',document.querySelectorAll('.ni')[2])">Ver mesas</button>
+      <button class="btn btn-p btn-sm" onclick="showPage('pos',document.querySelectorAll('.ni')[3])">⚡ POS</button>
+    </div>
+  </header>
+  <div class="pc">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="mg4">
+        <div class="mc"><div class="mc-l">Ventas hoy</div><div class="mc-v" id="d-rev">$0</div><div class="mc-s">Cargando...</div></div>
+        <div class="mc"><div class="mc-l">Pedidos hoy</div><div class="mc-v" id="d-ord">0</div><div class="mc-s" id="d-act">0 activos</div></div>
+        <div class="mc"><div class="mc-l">Mesas activas</div><div class="mc-v" id="d-tbl">0/0</div><div class="mc-s" id="d-tbl-s">–</div></div>
+        <div class="mc"><div class="mc-l">Tiempo entrega</div><div class="mc-v">26 min</div><div class="mc-s">Promedio del día</div></div>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="ch"><span class="ct">Pedidos en vivo</span><span class="badge br" id="live-b">0</span></div><div id="live-orders"><div class="loading"><div class="spinner"></div>Cargando...</div></div></div>
+        <div class="card"><div class="ch"><span class="ct">Stock crítico</span><span class="badge br" id="stock-b">0</span></div><div id="stock-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div></div>
+      </div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="page" id="page-orders">
+      <div class="card">
+        <div class="tnav" id="otabs">
+          <div class="tab active" onclick="filterO('all',this)">Todos</div>
+          <div class="tab" onclick="filterO('pending',this)">Nuevos</div>
+          <div class="tab" onclick="filterO('preparing',this)">Preparando</div>
+          <div class="tab" onclick="filterO('ready',this)">Listos</div>
+          <div class="tab" onclick="filterO('delivered',this)">Entregados</div>
+        </div>
+        <div id="orders-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+      </div>
+    </div>
+
+    <!-- TABLES -->
+    <div class="page" id="page-tables">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="display:flex;gap:8px"><span class="badge bg" id="ta">0 Libres</span><span class="badge br" id="to">0 Ocupadas</span><span class="badge ba" id="tr">0 Cuenta</span></div>
+        <button class="btn btn-sm" onclick="loadTables()">🔄 Actualizar</button>
+      </div>
+      <div class="card"><div class="tgrid" id="tgrid"><div class="loading"><div class="spinner"></div>Cargando...</div></div></div>
+    </div>
+
+    <!-- POS -->
+    <div class="page" id="page-pos">
+      <div class="pos-layout">
+        <div class="pos-menu">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span style="font-size:14px;font-weight:600">Punto de Venta</span>
+            <select id="pos-tbl" style="padding:5px 8px;border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px;background:var(--cream)"><option value="">Mostrador</option></select>
+          </div>
+          <div class="pcats" id="pcats"><div class="pcat active" onclick="posF('all',this)">Todo</div></div>
+          <div class="pgrid" id="pgrid"><div class="loading"><div class="spinner"></div>Cargando menú...</div></div>
+        </div>
+        <div style="background:var(--wh);border-left:1px solid var(--ink10);display:flex;flex-direction:column;height:100%;overflow:hidden">
+          <div style="padding:14px 18px;border-bottom:1px solid var(--ink10);flex-shrink:0"><div style="font-size:14px;font-weight:600">Orden actual</div><div style="font-size:11px;color:var(--ink60)" id="pos-tbl-lbl">Mostrador</div></div>
+          <div style="flex:1;overflow-y:auto;padding:8px 18px;min-height:0" id="pos-items"><div style="padding:20px;text-align:center;color:var(--ink60);font-size:13px">Toca un producto para agregar</div></div>
+          <div style="padding:14px 18px;border-top:1px solid var(--ink10);flex-shrink:0;background:var(--wh)">
+            <div style="display:flex;justify-content:space-between;margin-bottom:10px;align-items:center"><span style="font-size:13px;color:var(--ink60)">Total</span><span style="font-size:22px;font-weight:700;color:var(--ink)" id="pos-tot">$0.00</span></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-sm" onclick="clrPOS()" style="flex:1;justify-content:center">🗑 Limpiar</button>
+              <button class="btn btn-p" onclick="chrgPOS()" style="flex:2;justify-content:center;padding:9px">💳 Cobrar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MENU -->
+    <div class="page" id="page-menu">
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px"><span style="font-size:13px;color:var(--ink60)" id="menu-cnt">Cargando...</span><button class="btn btn-p btn-sm" onclick="openM('menu-modal')">+ Agregar producto</button></div>
+      <div id="menu-list"><div class="loading"><div class="spinner"></div>Cargando menú...</div></div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div class="page" id="page-inventory">
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px"><div style="display:flex;gap:6px" id="inv-sum"></div><button class="btn btn-p btn-sm" onclick="openM('restock-modal')">+ Reabastecer</button></div>
+      <div class="card"><div id="inv-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div></div>
+    </div>
+
+    <!-- LOYALTY -->
+    <div class="page" id="page-loyalty">
+      <div class="mg4">
+        <div class="mc"><div class="mc-l">Miembros</div><div class="mc-v" id="l-m">0</div></div>
+        <div class="mc"><div class="mc-l">Pts emitidos</div><div class="mc-v" id="l-p">0</div></div>
+        <div class="mc"><div class="mc-l">Nivel Oro+</div><div class="mc-v" id="l-g">0</div></div>
+        <div class="mc"><div class="mc-l">Retención</div><div class="mc-v">68%</div></div>
+      </div>
+      <div class="card"><div class="ch"><span class="ct">Clientes</span></div><div id="loyalty-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="page" id="page-analytics">
+      <div class="mg4">
+        <div class="mc"><div class="mc-l">Ingresos hoy</div><div class="mc-v" id="a-rev">$0</div></div>
+        <div class="mc"><div class="mc-l">Pedidos hoy</div><div class="mc-v" id="a-ord">0</div></div>
+        <div class="mc"><div class="mc-l">Ticket prom.</div><div class="mc-v" id="a-avg">$0</div></div>
+        <div class="mc"><div class="mc-l">Calificación</div><div class="mc-v">4.8 ★</div></div>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="ch"><span class="ct">Top productos</span></div><div id="top-items"><div class="loading"><div class="spinner"></div>Cargando...</div></div></div>
+        <div class="card"><div class="ch"><span class="ct">Por tipo</span></div><div id="by-type"></div></div>
+      </div>
+    </div>
+
+
+    <!-- CONFIGURATION -->
+    <div class="page" id="page-config">
+
+      <!-- LOGO UPLOAD -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="ch"><span class="ct">🖼️ Logo del restaurante</span><span class="badge bi">Se muestra en todas las apps</span></div>
+        <div style="padding:20px;display:flex;align-items:center;gap:24px">
+          <!-- Current logo preview -->
+          <div id="logo-preview-wrap" style="flex-shrink:0;text-align:center">
+            <div id="logo-preview" style="width:100px;height:100px;border-radius:16px;background:var(--red-l);border:2px dashed var(--red);display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;margin-bottom:6px">🍕</div>
+            <div style="font-size:10px;color:var(--ink60)">Logo actual</div>
+          </div>
+          <!-- Upload controls -->
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:6px">Sube tu logo</div>
+            <div style="font-size:12px;color:var(--ink60);margin-bottom:14px;line-height:1.5">PNG o JPG. Recomendado: cuadrado, mínimo 200×200px. El logo aparecerá en el Admin, Mesero, Cocina y App del cliente.</div>
+            <label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--cream);border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px;font-weight:500;cursor:pointer;margin-bottom:10px">
+              📁 Elegir archivo
+              <input type="file" id="logo-upload" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none" onchange="handleLogoUpload(this)">
+            </label>
+            <div style="font-size:11px;color:var(--ink60);margin-bottom:10px" id="logo-filename">Ningún archivo seleccionado</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-p btn-sm" id="logo-save-btn" onclick="saveLogo()" disabled>☁️ Guardar y sincronizar</button>
+              <button class="btn btn-sm" onclick="removeLogo()">🗑 Quitar logo</button>
+            </div>
+            <div style="font-size:11px;color:var(--green);margin-top:8px" id="logo-status"></div>
+          </div>
+        </div>
+        <!-- URL alternative -->
+        <div style="padding:0 20px 16px;border-top:1px solid var(--ink10);margin-top:4px;padding-top:14px">
+          <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">O pega una URL de imagen</div>
+          <div style="display:flex;gap:8px">
+            <input class="fi" id="logo-url" placeholder="https://tu-dominio.com/logo.png" style="flex:1">
+            <button class="btn btn-p btn-sm" onclick="saveLogoUrl()">Usar URL</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="g2">
+        <!-- Business Info -->
+        <div class="card">
+          <div class="ch"><span class="ct">🏪 Información del negocio</span><button class="btn btn-p btn-sm" onclick="saveConfig()">✓ Guardar</button></div>
+          <div style="padding:16px">
+            <div class="fl"><label>Nombre del restaurante</label><input class="fi" id="cfg-name" placeholder="Nomi Pizza"></div>
+            <div class="fl"><label>Teléfono</label><input class="fi" id="cfg-phone" placeholder="+52 55 XXXX XXXX"></div>
+            <div class="fl"><label>Dirección</label><input class="fi" id="cfg-address" placeholder="Calle, número, colonia, ciudad"></div>
+            <div class="fl"><label>RFC</label><input class="fi" id="cfg-rfc" placeholder="NPZ230401AA1"></div>
+            <div class="fl"><label>Correo de contacto</label><input class="fi" id="cfg-email" type="email" placeholder="contacto@nomipizza.mx"></div>
+          </div>
+        </div>
+        <!-- Hours -->
+        <div class="card">
+          <div class="ch"><span class="ct">🕐 Horarios y operación</span><button class="btn btn-p btn-sm" onclick="saveConfig()">✓ Guardar</button></div>
+          <div style="padding:16px">
+            <div class="fl"><label>Horario de apertura</label><input class="fi" id="cfg-open" type="time" value="12:00"></div>
+            <div class="fl"><label>Horario de cierre</label><input class="fi" id="cfg-close" type="time" value="23:00"></div>
+            <div class="fl"><label>Días de operación</label>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px" id="cfg-days">
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="lun" checked> Lun</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="mar" checked> Mar</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="mié" checked> Mié</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="jue" checked> Jue</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="vie" checked> Vie</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="sáb" checked> Sáb</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="dom"> Dom</label>
+              </div>
+            </div>
+            <div class="fl"><label>Estado del restaurante</label>
+              <select class="fs" id="cfg-status">
+                <option value="open">🟢 Abierto — aceptando pedidos</option>
+                <option value="busy">🟡 Ocupado — tiempo de espera alto</option>
+                <option value="closed">🔴 Cerrado — sin pedidos por ahora</option>
+              </select>
+            </div>
+            <div class="fl"><label>Costo de envío (MXN)</label><input class="fi" id="cfg-delivery-fee" type="number" value="45" placeholder="45"></div>
+            <div class="fl"><label>Tiempo estimado de entrega (min)</label><input class="fi" id="cfg-delivery-time" type="number" value="30" placeholder="30"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="g2">
+        <!-- Payments -->
+        <div class="card">
+          <div class="ch"><span class="ct">💳 Métodos de pago</span></div>
+          <div style="padding:16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ink10)">
+              <div><div style="font-size:13px;font-weight:500">Mercado Pago</div><div style="font-size:11px;color:var(--ink60)">Pagos en línea con tarjeta</div></div>
+              <span class="badge bg">Conectado ✓</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ink10)">
+              <div><div style="font-size:13px;font-weight:500">Efectivo</div><div style="font-size:11px;color:var(--ink60)">Cobro en mostrador y domicilio</div></div>
+              <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0">
+                <input type="checkbox" id="cfg-cash" checked style="opacity:0;width:0;height:0">
+                <span onclick="this.previousElementSibling.checked=!this.previousElementSibling.checked" style="position:absolute;cursor:pointer;inset:0;background:var(--green);border-radius:20px;transition:.3s"></span>
+              </label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
+              <div><div style="font-size:13px;font-weight:500">Terminal física</div><div style="font-size:11px;color:var(--ink60)">Cobro con tarjeta en mostrador</div></div>
+              <span class="badge ba">Pendiente</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notifications & Integrations -->
+        <div class="card">
+          <div class="ch"><span class="ct">🔔 Notificaciones</span></div>
+          <div style="padding:16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ink10)">
+              <div><div style="font-size:13px;font-weight:500">WhatsApp al cliente</div><div style="font-size:11px;color:var(--ink60)">Confirmación y tracking</div></div>
+              <span class="badge ba">Pendiente</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ink10)">
+              <div><div style="font-size:13px;font-weight:500">Alertas de stock</div><div style="font-size:11px;color:var(--ink60)">Aviso cuando hay ingrediente bajo</div></div>
+              <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0">
+                <input type="checkbox" id="cfg-stock-alert" checked style="opacity:0;width:0;height:0">
+                <span onclick="this.previousElementSibling.checked=!this.previousElementSibling.checked" style="position:absolute;cursor:pointer;inset:0;background:var(--green);border-radius:20px;transition:.3s"></span>
+              </label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
+              <div><div style="font-size:13px;font-weight:500">Resumen diario</div><div style="font-size:11px;color:var(--ink60)">Reporte al cerrar turno</div></div>
+              <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0">
+                <input type="checkbox" id="cfg-daily" checked style="opacity:0;width:0;height:0">
+                <span onclick="this.previousElementSibling.checked=!this.previousElementSibling.checked" style="position:absolute;cursor:pointer;inset:0;background:var(--green);border-radius:20px;transition:.3s"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="card" style="border-color:#EF4444">
+        <div class="ch"><span class="ct" style="color:#EF4444">⚠️ Zona de peligro</span></div>
+        <div style="padding:16px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="if(confirm('¿Cerrar el restaurante ahora?')){document.getElementById('cfg-status').value='closed';saveConfig();showToast('Restaurante cerrado')}">🔴 Cerrar restaurante ahora</button>
+          <button class="btn btn-sm" onclick="if(confirm('¿Marcar todas las mesas como disponibles?')){resetAllTables()}">🔄 Resetear todas las mesas</button>
+          <button class="btn btn-sm" onclick="showToast('Exportando datos...')">📊 Exportar datos (CSV)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORKERS -->
+    <div class="page" id="page-workers">
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px"><span style="font-size:14px;font-weight:600">Equipo y permisos</span><button class="btn btn-p btn-sm" onclick="openM('worker-modal')">+ Agregar</button></div>
+      <div class="card"><div id="workers-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg" id="menu-modal"><div class="modal"><div class="mh"><span class="mt">Agregar producto</span><button class="mc-btn" onclick="closeM('menu-modal')">×</button></div><div class="mb"><div class="fl"><label>Nombre</label><input class="fi" id="mi-name" placeholder="Ej: Margherita Nomi"></div><div class="fl"><label>Descripción</label><input class="fi" id="mi-desc" placeholder="Ingredientes..."></div><div class="fl"><label>Precio (MXN)</label><input class="fi" id="mi-price" type="number" placeholder="159"></div><div class="fl"><label>Emoji</label><input class="fi" id="mi-emoji" placeholder="🍕" style="width:80px"></div><div class="fl"><label>Categoría</label><select class="fs" id="mi-cat"><option value="">Seleccionar...</option></select></div></div><div class="mf"><button class="btn" onclick="closeM('menu-modal')">Cancelar</button><button class="btn btn-p" onclick="saveMenu()">✓ Guardar</button></div></div></div>
+
+<div class="modal-bg" id="worker-modal"><div class="modal"><div class="mh"><span class="mt">Agregar trabajador</span><button class="mc-btn" onclick="closeM('worker-modal')">×</button></div><div class="mb"><div class="fl"><label>Nombre</label><input class="fi" id="w-name" placeholder="Jorge López"></div><div class="fl"><label>Correo</label><input class="fi" id="w-email" type="email" placeholder="jorge@nomipizza.mx"></div><div class="fl"><label>PIN (4 dígitos)</label><input class="fi" id="w-pin" type="password" maxlength="4" placeholder="••••"></div><div class="fl"><label>Rol</label><select class="fs" id="w-role"><option value="admin">👑 Administrador</option><option value="manager">👨‍💼 Gerente</option><option value="waiter" selected>🍽 Mesero</option><option value="kitchen">👨‍🍳 Cocina</option><option value="delivery">🛵 Repartidor</option><option value="cashier">💰 Cajero</option></select></div></div><div class="mf"><button class="btn" onclick="closeM('worker-modal')">Cancelar</button><button class="btn btn-p" onclick="saveWorker()">✓ Crear</button></div></div></div>
+
+<div class="modal-bg" id="restock-modal"><div class="modal"><div class="mh"><span class="mt">Reabastecer</span><button class="mc-btn" onclick="closeM('restock-modal')">×</button></div><div class="mb"><div class="fl"><label>Ingrediente</label><select class="fs" id="rs-ing"></select></div><div class="fl"><label>Cantidad</label><input class="fi" id="rs-qty" type="number" step="0.1" placeholder="0.0"></div><div class="fl"><label>Notas</label><input class="fi" id="rs-notes" placeholder="Proveedor, lote..."></div></div><div class="mf"><button class="btn" onclick="closeM('restock-modal')">Cancelar</button><button class="btn btn-p" onclick="saveRestock()">✓ Registrar</button></div></div></div>
+
+<div class="toast" id="toast"><svg width="13" height="13" viewBox="0 0 24 24" fill="#22c55e"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span id="toast-msg"></span></div>
+
+<script>
+const fmt=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(n||0)
+const initials=n=>n?n.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase():'?'
+const stLbl={pending:'Nuevo',accepted:'Aceptado',preparing:'Preparando',ready:'Listo',on_the_way:'En camino',delivered:'Entregado',cancelled:'Cancelado'}
+const stBdg={pending:'br',accepted:'bi',preparing:'ba',ready:'bg',on_the_way:'bi',delivered:'bg',cancelled:'bk'}
+const avC=['av-r','av-a','av-g','av-b']
+const avCls=i=>avC[i%avC.length]
+
+async function api(path,opts={}){
+  const r=await fetch('/api/'+path,{headers:{'Content-Type':'application/json'},...opts,body:opts.body?JSON.stringify(opts.body):undefined})
+  return r.json()
+}
+
+const titles={dashboard:'Dashboard',config:'Configuración',orders:'Pedidos',tables:'Mesas',pos:'POS',menu:'Menú',inventory:'Inventario',loyalty:'Lealtad',analytics:'Analíticas',workers:'Equipo'}
+
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
+  document.getElementById('page-'+id).classList.add('active')
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'))
+  if(el)el.classList.add('active')
+  document.getElementById('ptitle').textContent=titles[id]||id
+  if(id==='dashboard')loadDash()
+  if(id==='orders')loadOrders()
+  if(id==='tables')loadTables()
+  if(id==='pos')loadPOS()
+  if(id==='menu')loadMenu()
+  if(id==='inventory')loadInventory()
+  if(id==='loyalty')loadLoyalty()
+  if(id==='analytics')loadAnalytics()
+  if(id==='workers')loadWorkers()
+  if(id==='config')loadConfig()
+}
+
+var toastTimer
+function showToast(msg,ok=true){
+  const t=document.getElementById('toast')
+  document.getElementById('toast-msg').textContent=msg
+  t.querySelector('svg').style.fill=ok?'#22c55e':'#EF4444'
+  t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2800)
+}
+
+function openM(id){document.getElementById(id).classList.add('open')}
+function closeM(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e=>{if(e.target===bg)bg.classList.remove('open')}))
+
+// DASHBOARD
+async function loadDash(){
+  try{
+    const [an,ord,tbl,inv]=await Promise.all([api('analytics'),api('orders'),api('tables'),api('inventory')])
+    document.getElementById('d-rev').textContent=fmt(an.today?.revenue)
+    document.getElementById('d-ord').textContent=an.today?.orders||0
+    document.getElementById('d-act').textContent=(an.today?.active_orders||0)+' activos'
+    const occ=(tbl||[]).filter(t=>t.status!=='available').length
+    const rdy=(tbl||[]).filter(t=>t.status==='ready').length
+    document.getElementById('d-tbl').textContent=occ+'/'+(tbl||[]).length
+    document.getElementById('d-tbl-s').textContent=rdy+' esperando cuenta'
+    document.getElementById('ob').textContent=an.today?.active_orders||0
+    document.getElementById('tb').textContent=occ
+    const active=(ord||[]).filter(o=>['pending','accepted','preparing','ready'].includes(o.status)).slice(0,4)
+    const lel=document.getElementById('live-orders')
+    document.getElementById('live-b').textContent=active.length
+    lel.innerHTML=active.length?active.map((o,i)=>`<div class="row"><div class="av ${avCls(i)}">${initials(o.customer_name||'P')}</div><div class="rm"><div class="rt">${o.customer_name||'Mesa '+(o.restaurant_tables?.number||'?')} <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink60)">#${String(o.order_number||'').padStart(4,'0')}</span></div><div class="rs">${(o.order_items||[]).map(i=>i.item_name).join(', ').substring(0,40)}</div></div><div class="rr"><span class="badge ${stBdg[o.status]||'bk'}">${stLbl[o.status]||o.status}</span><div class="rp" style="margin-top:4px">${fmt(o.total)}</div></div></div>`).join(''):'<div class="empty">No hay pedidos activos</div>'
+    const low=(inv||[]).filter(i=>Number(i.quantity)<=Number(i.min_level))
+    document.getElementById('stock-b').textContent=low.length
+    document.getElementById('stock-list').innerHTML=low.length?low.map(i=>`<div class="row"><div class="rm"><div class="rt">${i.name}</div><div class="rs">Mín: ${i.min_level} ${i.unit}</div></div><div class="rr"><span class="badge ${Number(i.quantity)===0?'br':'ba'}">${i.quantity} ${i.unit}</span></div></div>`).join(''):'<div class="empty" style="color:var(--green)">✓ Inventario OK</div>'
+  }catch(e){showToast('Error cargando dashboard',false)}
+}
+
+// ORDERS
+var allOrders=[],curFilter='all'
+async function loadOrders(){
+  document.getElementById('orders-list').innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  try{allOrders=await api('orders')||[];renderOrders()}catch(e){showToast('Error',false)}
+}
+function filterO(s,el){document.querySelectorAll('#otabs .tab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');curFilter=s;renderOrders()}
+function renderOrders(){
+  const f=curFilter==='all'?allOrders:allOrders.filter(o=>o.status===curFilter)
+  const el=document.getElementById('orders-list')
+  if(!f.length){el.innerHTML='<div class="empty">No hay pedidos</div>';return}
+  el.innerHTML=f.map((o,i)=>`<div class="ocard"><div class="av ${avCls(i)}" style="margin-top:2px">${initials(o.customer_name||'P')}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><div class="rt">${o.customer_name||'Mesa '+(o.restaurant_tables?.number||'?')}</div><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink60)">#${String(o.order_number||'').padStart(4,'0')}</span><span class="badge ${stBdg[o.status]||'bk'}" style="margin-left:auto">${stLbl[o.status]||o.status}</span></div><div class="rs">${(o.order_items||[]).map(i=>i.item_name+'x'+i.quantity).join(', ').substring(0,60)}</div>${['pending','accepted','preparing','ready'].includes(o.status)?`<div style="display:flex;gap:6px;margin-top:8px">${o.status==='pending'?`<button class="btn btn-p btn-sm" onclick="updO('${o.id}','preparing')">▶ Aceptar</button>`:''} ${o.status==='preparing'?`<button class="btn btn-p btn-sm" onclick="updO('${o.id}','ready')">✓ Listo</button>`:''} ${o.status==='ready'?`<button class="btn btn-p btn-sm" onclick="updO('${o.id}','delivered')">✓ Entregado</button>`:''}<button class="btn btn-sm" onclick="updO('${o.id}','cancelled')">Cancelar</button></div>`:''}</div><div style="text-align:right;flex-shrink:0;margin-left:10px"><div class="rp">${fmt(o.total)}</div></div></div>`).join('')
+}
+async function updO(id,status){try{await api('orders',{method:'PATCH',body:{id,status}});showToast('Actualizado: '+(stLbl[status]||status));loadOrders();loadDash()}catch(e){showToast('Error',false)}}
+
+// TABLES
+async function loadTables(){
+  const el=document.getElementById('tgrid')
+  el.innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  try{
+    const t=await api('tables')||[]
+    document.getElementById('ta').textContent=t.filter(x=>x.status==='available').length+' Libres'
+    document.getElementById('to').textContent=t.filter(x=>x.status==='occupied').length+' Ocupadas'
+    document.getElementById('tr').textContent=t.filter(x=>x.status==='ready').length+' Cuenta'
+    el.innerHTML=t.map(x=>`<div class="tc ${x.status}" onclick="togTbl('${x.id}','${x.status}','${x.number}')"><div class="tc-n">${x.number}</div><div class="tc-c">${x.capacity} pers.</div><div class="tc-s">${{available:'Libre',occupied:'Ocupada',ready:'Cuenta',reserved:'Reservada'}[x.status]||x.status}</div></div>`).join('')
+  }catch(e){showToast('Error',false)}
+}
+async function togTbl(id,status,num){
+  const next={available:'occupied',occupied:'ready',ready:'available',reserved:'available'}
+  const lbl={available:'Disponible',occupied:'Ocupada',ready:'Cuenta',reserved:'Reservada'}
+  if(!confirm('Mesa '+num+' → '+lbl[next[status]]+'?'))return
+  try{await api('tables',{method:'PATCH',body:{id,status:next[status]}});showToast('Mesa '+num+' actualizada');loadTables()}catch(e){showToast('Error',false)}
+}
+
+// POS
+var posCart=[],menuData={categories:[],items:[]}
+async function loadPOS(){
+  try{
+    const [menu,tbls]=await Promise.all([api('menu'),api('tables')])
+    menuData=menu||{categories:[],items:[]}
+    const sel=document.getElementById('pos-tbl')
+    sel.innerHTML='<option value="">Mostrador</option>'+(tbls||[]).map(t=>`<option value="${t.id}">Mesa ${t.number}</option>`).join('')
+    sel.addEventListener('change',()=>{document.getElementById('pos-tbl-lbl').textContent=sel.options[sel.selectedIndex].text})
+    const cats=document.getElementById('pcats')
+    cats.innerHTML='<div class="pcat active" onclick="posF(\'all\',this)">Todo</div>'+(menuData.categories||[]).map(c=>`<div class="pcat" onclick="posF('${c.id}',this)">${c.emoji||''} ${c.name}</div>`).join('')
+    renderPOS('all')
+  }catch(e){showToast('Error POS',false)}
+}
+function posF(catId,el){document.querySelectorAll('.pcat').forEach(c=>c.classList.remove('active'));if(el)el.classList.add('active');renderPOS(catId)}
+function renderPOS(catId){const its=catId==='all'?(menuData.items||[]):(menuData.items||[]).filter(i=>i.category_id===catId);document.getElementById('pgrid').innerHTML=its.map(item=>`<div class="pi" onclick="addPOS(${JSON.stringify(item).replace(/"/g,'&quot;')})"><span class="pi-ic" style="font-size:28px;display:block;margin-bottom:6px;line-height:1">${item.emoji||'🍽'}</span><div class="pi-n">${item.name}</div><div class="pi-p">${fmt(item.price)}</div></div>`).join('')||'<div class="empty">Sin productos</div>'}
+function addPOS(item){const f=posCart.find(c=>c.id===item.id);if(f)f.qty++;else posCart.push({id:item.id,name:item.name,price:Number(item.price),emoji:item.emoji||'🍽',qty:1});renderCart()}
+function renderCart(){
+  const el=document.getElementById('pos-items');let tot=0
+  if(!posCart.length){el.innerHTML='<div style="padding:20px;text-align:center;color:var(--ink60);font-size:13px">Toca un producto</div>';document.getElementById('pos-tot').textContent='$0.00';return}
+  el.innerHTML=posCart.map((c,i)=>{tot+=c.price*c.qty;return`<div class="ci"><span style="font-size:18px">${c.emoji}</span><span class="ci-n">${c.name}</span><div class="qbc"><button class="qb" onclick="chPOS(${i},-1)">−</button><span style="font-size:12px;font-weight:600;min-width:14px;text-align:center">${c.qty}</span><button class="qb" onclick="chPOS(${i},1)">+</button></div><span style="font-size:12px;font-weight:600;min-width:40px;text-align:right">${fmt(c.price*c.qty)}</span></div>`}).join('')
+  document.getElementById('pos-tot').textContent=fmt(tot)
+}
+function chPOS(i,d){posCart[i].qty+=d;if(posCart[i].qty<=0)posCart.splice(i,1);renderCart()}
+function clrPOS(){posCart=[];renderCart()}
+async function chrgPOS(){
+  if(!posCart.length){showToast('Agrega al menos un producto',false);return}
+  const tblId=document.getElementById('pos-tbl').value
+  const sub=posCart.reduce((s,c)=>s+c.price*c.qty,0)
+  const tax=sub*0.16
+  try{await api('orders',{method:'POST',body:{type:tblId?'dine_in':'pickup',status:'delivered',table_id:tblId||null,subtotal:sub,tax:Math.round(tax*100)/100,total:Math.round((sub+tax)*100)/100,payment_method:'cash',payment_status:'paid',items:posCart.map(c=>({item_id:c.id,item_name:c.name,unit_price:c.price,quantity:c.qty,subtotal:c.price*c.qty}))}});showToast('Pedido cobrado ✓');clrPOS();loadDash()}catch(e){showToast('Error',false)}
+}
+
+// MENU
+async function loadMenu(){
+  document.getElementById('menu-list').innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  try{
+    const d=await api('menu')||{}
+    const{categories=[],items=[]}=d
+    document.getElementById('menu-cnt').textContent=items.length+' productos · '+categories.length+' categorías'
+    window._menuCategories = categories
+    const catSel=document.getElementById('mi-cat')
+    catSel.innerHTML='<option value="">Seleccionar...</option>'+categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')
+    document.getElementById('menu-list').innerHTML=categories.map(cat=>`<div class="card" style="margin-bottom:12px"><div class="ch"><span class="ct">${cat.emoji||''} ${cat.name}</span><span class="badge bg">${items.filter(i=>i.category_id===cat.id).length} items</span></div>${items.filter(i=>i.category_id===cat.id).map(item=>`<div class="row"><span style="font-size:22px;margin-right:4px">${item.emoji||'🍽'}</span><div class="rm"><div class="rt">${item.name}</div><div class="rs">${item.description||''}</div></div><div class="rr"><div class="rp">${fmt(item.price)}</div><button class="btn btn-sm" style="margin-top:4px" onclick="togMenu('${item.id}',${!item.available})">${item.available?'✓ Activo':'Inactivo'}</button></div></div>`).join('')}</div>`).join('')
+  }catch(e){showToast('Error',false)}
+}
+async function saveMenu(){
+  const name=document.getElementById('mi-name').value.trim(),price=document.getElementById('mi-price').value
+  if(!name||!price){showToast('Nombre y precio son obligatorios',false);return}
+  try{await api('menu',{method:'POST',body:{name,description:document.getElementById('mi-desc').value,price:Number(price),emoji:document.getElementById('mi-emoji').value||'🍽',category_id:document.getElementById('mi-cat').value||null,available:true}});showToast('Producto agregado ✓');closeM('menu-modal');loadMenu()}catch(e){showToast('Error',false)}
+}
+async function togMenu(id,available){try{await api('menu',{method:'PATCH',body:{id,available}});showToast(available?'Activado':'Desactivado');loadMenu()}catch(e){showToast('Error',false)}}
+
+// INVENTORY
+async function loadInventory(){
+  try{
+    const items=await api('inventory')||[]
+    const crit=items.filter(i=>Number(i.quantity)===0).length
+    const low=items.filter(i=>Number(i.quantity)>0&&Number(i.quantity)<=Number(i.min_level)).length
+    const ok=items.filter(i=>Number(i.quantity)>Number(i.min_level)).length
+    document.getElementById('inv-sum').innerHTML=`<span class="badge br">${crit} críticos</span><span class="badge ba">${low} bajos</span><span class="badge bg">${ok} OK</span>`
+    document.getElementById('rs-ing').innerHTML=items.map(i=>`<option value="${i.id}">${i.name} (${i.quantity} ${i.unit})</option>`).join('')
+    document.getElementById('inv-list').innerHTML=items.map(i=>{
+      const pct=Number(i.min_level)>0?Math.min(100,Math.round(Number(i.quantity)/Number(i.min_level)*50)):50
+      const st=Number(i.quantity)===0?['br','Crítico','ifc']:Number(i.quantity)<=Number(i.min_level)?['ba','Bajo','ifl']:['bg','OK','ifo']
+      return`<div class="row"><div class="rm"><div class="rt">${i.name}</div><div class="rs">Mín: ${i.min_level} ${i.unit}</div></div><div style="display:flex;align-items:center;gap:6px;margin-left:auto"><div class="inv-bar" style="width:90px"><div class="inv-fill ${st[2]}" style="width:${pct}%"></div></div></div><span style="font-size:11px;font-weight:500;color:var(--ink60);min-width:60px;text-align:right;margin:0 10px">${i.quantity} ${i.unit}</span><span class="badge ${st[0]}" style="min-width:60px;justify-content:center">${st[1]}</span></div>`
+    }).join('')
+  }catch(e){showToast('Error',false)}
+}
+async function saveRestock(){
+  const id=document.getElementById('rs-ing').value,qty=Number(document.getElementById('rs-qty').value)
+  if(!id||!qty){showToast('Selecciona ingrediente y cantidad',false);return}
+  try{await api('inventory',{method:'PATCH',body:{id,quantity:qty,type:'restock',notes:document.getElementById('rs-notes').value}});showToast('Reabastecimiento registrado ✓');closeM('restock-modal');document.getElementById('rs-qty').value='';loadInventory()}catch(e){showToast('Error',false)}
+}
+
+// LOYALTY
+async function loadLoyalty(){
+  try{
+    const c=await api('customers')||[]
+    document.getElementById('l-m').textContent=c.length
+    document.getElementById('l-p').textContent=c.reduce((s,x)=>s+(x.loyalty_points||0),0)
+    document.getElementById('l-g').textContent=c.filter(x=>['gold','platinum'].includes(x.tier)).length
+    const el=document.getElementById('loyalty-list')
+    if(!c.length){el.innerHTML='<div class="empty">No hay clientes registrados</div>';return}
+    el.innerHTML=c.slice(0,10).map((x,i)=>`<div class="row"><div class="av ${avCls(i)}">${initials(x.name||'C')}</div><div class="rm"><div class="rt">${x.name||'Sin nombre'}</div><div class="rs">${x.phone||x.email||''} · ${x.tier||'bronze'}</div></div><div class="rr"><span class="badge br">${x.loyalty_points||0} pts</span><div style="font-size:11px;color:var(--ink60);margin-top:3px">${fmt(x.total_spent||0)}</div></div></div>`).join('')
+  }catch(e){showToast('Error',false)}
+}
+
+// ANALYTICS
+async function loadAnalytics(){
+  try{
+    const d=await api('analytics')||{}
+    const t=d.today||{}
+    document.getElementById('a-rev').textContent=fmt(t.revenue)
+    document.getElementById('a-ord').textContent=t.orders||0
+    document.getElementById('a-avg').textContent=fmt(t.avg_ticket)
+    const top=document.getElementById('top-items')
+    if(!d.top_items?.length){top.innerHTML='<div class="empty">Sin datos de hoy</div>'}
+    else{const max=d.top_items[0][1];top.innerHTML=d.top_items.map(([n,q])=>`<div class="row"><div class="rm"><div class="rt">${n}</div></div><div style="display:flex;align-items:center;gap:6px;margin-left:auto"><div class="inv-bar" style="width:80px"><div class="inv-fill ifo" style="width:${Math.round(q/max*100)}%"></div></div><span style="font-size:12px;font-weight:600">${q}</span></div></div>`).join('')}
+    const bt=t.by_type||{}
+    document.getElementById('by-type').innerHTML=`<div class="zrow"><span class="zl">Comer aquí</span><span class="zv">${bt.dine_in||0}</span></div><div class="zrow"><span class="zl">Domicilio</span><span class="zv">${bt.delivery||0}</span></div><div class="zrow"><span class="zl">Para llevar</span><span class="zv">${bt.pickup||0}</span></div><div class="zrow"><span class="zl">Activos</span><span class="zv">${t.active_orders||0}</span></div>`
+  }catch(e){showToast('Error',false)}
+}
+
+// WORKERS
+async function loadWorkers(){
+  try{
+    const w=await api('workers')||[]
+    const el=document.getElementById('workers-list')
+    if(!w.length){el.innerHTML='<div class="empty">No hay trabajadores</div>';return}
+    const rl={admin:'👑 Admin',manager:'👨‍💼 Gerente',waiter:'🍽 Mesero',kitchen:'👨‍🍳 Cocina',delivery:'🛵 Repartidor',cashier:'💰 Cajero'}
+    el.innerHTML=w.map((x,i)=>`<div class="wcard"><div class="wc-av ${avCls(i)}">${initials(x.name)}</div><div style="flex:1;min-width:0"><div class="wc-n">${x.name}</div><div class="wc-r">${rl[x.role]||x.role} · ${x.email}</div></div><button class="btn btn-sm" onclick="deactW('${x.id}','${x.name}')">Desactivar</button></div>`).join('')
+  }catch(e){showToast('Error',false)}
+}
+async function saveWorker(){
+  const name=document.getElementById('w-name').value.trim(),email=document.getElementById('w-email').value.trim(),pin=document.getElementById('w-pin').value,role=document.getElementById('w-role').value
+  if(!name||!email||!pin){showToast('Todos los campos son obligatorios',false);return}
+  const rp={admin:{pos:true,tables:true,orders:true,menu:true,inventory:true,delivery:true,analytics:true,team:true},manager:{pos:true,tables:true,orders:true,inventory:true,delivery:true},waiter:{tables:true,orders:true},kitchen:{orders:true},delivery:{delivery:true},cashier:{pos:true,orders:true}}
+  try{await api('workers',{method:'POST',body:{action:'create',name,email,pin,role,permissions:rp[role]||{}}});showToast('Cuenta creada ✓');closeM('worker-modal');document.getElementById('w-name').value='';document.getElementById('w-email').value='';document.getElementById('w-pin').value='';loadWorkers()}catch(e){showToast('Error: '+e.message,false)}
+}
+async function deactW(id,name){if(!confirm('¿Desactivar '+name+'?'))return;try{await api('workers',{method:'PATCH',body:{id,active:false}});showToast(name+' desactivado');loadWorkers()}catch(e){showToast('Error',false)}}
+
+loadDash()
+setInterval(()=>{const ap=document.querySelector('.page.active');if(ap?.id==='page-dashboard')loadDash();if(ap?.id==='page-orders')loadOrders()},30000)
+</script>
+
+<!-- EDIT MENU ITEM MODAL -->
+<div class="modal-bg" id="edit-menu-modal"><div class="modal"><div class="mh"><span class="mt">Editar producto</span><button class="mc-btn" onclick="closeM('edit-menu-modal')">×</button></div><div class="mb">
+<div class="fl"><label>Nombre</label><input class="fi" id="em-name" placeholder="Nombre del producto"></div>
+<div class="fl"><label>Descripción</label><input class="fi" id="em-desc" placeholder="Ingredientes..."></div>
+<div class="fl"><label>Precio (MXN)</label><input class="fi" id="em-price" type="number" placeholder="159"></div>
+<div class="fl"><label>Emoji</label><input class="fi" id="em-emoji" placeholder="🍕" style="width:80px"></div>
+<div class="fl"><label>Categoría</label><select class="fs" id="em-cat"><option value="">Sin categoría</option></select></div>
+<div class="fl"><label>Disponible</label><select class="fs" id="em-available"><option value="true">✓ Disponible</option><option value="false">✗ No disponible</option></select></div>
+<input type="hidden" id="em-id">
+</div><div class="mf"><button class="btn" onclick="closeM('edit-menu-modal')">Cancelar</button><button class="btn" style="background:#EF4444;color:#fff;border-color:#EF4444" onclick="deleteMenuItem()">🗑 Eliminar</button><button class="btn btn-p" onclick="saveEditMenu()">✓ Guardar cambios</button></div></div></div>
+
+
+<script>
+// CONFIG — load from localStorage (in production would come from a settings API)
+function loadConfig() {
+  const cfg = JSON.parse(localStorage.getItem('nomi_config') || '{}')
+  if (cfg.name) document.getElementById('cfg-name').value = cfg.name
+  if (cfg.phone) document.getElementById('cfg-phone').value = cfg.phone
+  if (cfg.address) document.getElementById('cfg-address').value = cfg.address
+  if (cfg.rfc) document.getElementById('cfg-rfc').value = cfg.rfc
+  if (cfg.email) document.getElementById('cfg-email').value = cfg.email
+  if (cfg.open) document.getElementById('cfg-open').value = cfg.open
+  if (cfg.close) document.getElementById('cfg-close').value = cfg.close
+  if (cfg.delivery_fee) document.getElementById('cfg-delivery-fee').value = cfg.delivery_fee
+  if (cfg.delivery_time) document.getElementById('cfg-delivery-time').value = cfg.delivery_time
+  if (cfg.status) document.getElementById('cfg-status').value = cfg.status
+}
+
+function saveConfig() {
+  const cfg = {
+    name: document.getElementById('cfg-name').value,
+    phone: document.getElementById('cfg-phone').value,
+    address: document.getElementById('cfg-address').value,
+    rfc: document.getElementById('cfg-rfc').value,
+    email: document.getElementById('cfg-email').value,
+    open: document.getElementById('cfg-open').value,
+    close: document.getElementById('cfg-close').value,
+    delivery_fee: document.getElementById('cfg-delivery-fee').value,
+    delivery_time: document.getElementById('cfg-delivery-time').value,
+    status: document.getElementById('cfg-status').value
+  }
+  localStorage.setItem('nomi_config', JSON.stringify(cfg))
+  showToast('Configuración guardada ✓')
+}
+
+async function resetAllTables() {
+  try {
+    const tables = await api('tables') || []
+    await Promise.all(tables.map(t => api('tables', { method:'PATCH', body:{ id:t.id, status:'available' } })))
+    showToast('Todas las mesas reseteadas ✓')
+  } catch(e) { showToast('Error', false) }
+}
+
+// EDIT MENU ITEM
+var editingItemId = null
+
+function openEditMenu(item) {
+  editingItemId = item.id
+  document.getElementById('em-id').value = item.id
+  document.getElementById('em-name').value = item.name || ''
+  document.getElementById('em-desc').value = item.description || ''
+  document.getElementById('em-price').value = item.price || ''
+  document.getElementById('em-emoji').value = item.emoji || ''
+  document.getElementById('em-available').value = item.available ? 'true' : 'false'
+  // Populate categories
+  const catSel = document.getElementById('em-cat')
+  // Reuse existing menu data if available
+  if (window._menuCategories) {
+    catSel.innerHTML = '<option value="">Sin categoría</option>' + window._menuCategories.map(c => `<option value="${c.id}" ${c.id===item.category_id?'selected':''}>${c.name}</option>`).join('')
+  }
+  openM('edit-menu-modal')
+}
+
+async function saveEditMenu() {
+  const id = document.getElementById('em-id').value
+  const updates = {
+    id,
+    name: document.getElementById('em-name').value.trim(),
+    description: document.getElementById('em-desc').value,
+    price: Number(document.getElementById('em-price').value),
+    emoji: document.getElementById('em-emoji').value || '🍽',
+    category_id: document.getElementById('em-cat').value || null,
+    available: document.getElementById('em-available').value === 'true'
+  }
+  if (!updates.name || !updates.price) { showToast('Nombre y precio son obligatorios', false); return }
+  try {
+    await api('menu', { method:'PATCH', body: updates })
+    showToast('Producto actualizado ✓')
+    closeM('edit-menu-modal')
+    loadMenu()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function deleteMenuItem() {
+  const id = document.getElementById('em-id').value
+  const name = document.getElementById('em-name').value
+  if (!confirm('¿Eliminar "' + name + '"? Esta acción no se puede deshacer.')) return
+  try {
+    // Mark as unavailable (soft delete)
+    await api('menu', { method:'PATCH', body:{ id, available: false } })
+    showToast(name + ' eliminado del menú')
+    closeM('edit-menu-modal')
+    loadMenu()
+  } catch(e) { showToast('Error', false) }
+}
+</script>
+
+
+<script>
+var pendingLogoBase64 = null
+
+function handleLogoUpload(input) {
+  const file = input.files[0]
+  if (!file) return
+  if (file.size > 500000) { // 500KB limit for base64 storage
+    showToast('Imagen muy grande. Usa menos de 500KB o una URL.', false)
+    return
+  }
+  document.getElementById('logo-filename').textContent = file.name
+  const reader = new FileReader()
+  reader.onload = function(e) {
+    pendingLogoBase64 = e.target.result
+    // Show preview
+    const preview = document.getElementById('logo-preview')
+    preview.innerHTML = ''
+    const img = document.createElement('img')
+    img.src = pendingLogoBase64
+    img.style.cssText = 'width:100%;height:100%;object-fit:contain;border-radius:12px'
+    preview.appendChild(img)
+    document.getElementById('logo-save-btn').disabled = false
+    document.getElementById('logo-status').textContent = 'Listo para guardar'
+  }
+  reader.readAsDataURL(file)
+}
+
+async function saveLogo() {
+  if (!pendingLogoBase64) return
+  const btn = document.getElementById('logo-save-btn')
+  btn.disabled = true; btn.textContent = 'Guardando...'
+  try {
+    await api('settings', {
+      method: 'POST',
+      body: { key: 'logo_base64', value: pendingLogoBase64 }
+    })
+    // Clear url setting
+    await api('settings', { method: 'POST', body: { key: 'logo_url', value: '' } })
+    localStorage.setItem('nomi_logo', pendingLogoBase64)
+    document.getElementById('logo-status').textContent = '✓ Logo guardado y sincronizado en todas las apps'
+    document.getElementById('logo-status').style.color = 'var(--green)'
+    showToast('Logo actualizado en todas las apps ✓')
+  } catch(e) {
+    showToast('Error guardando logo: ' + e.message, false)
+  }
+  btn.disabled = false; btn.textContent = '☁️ Guardar y sincronizar'
+}
+
+async function saveLogoUrl() {
+  const url = document.getElementById('logo-url').value.trim()
+  if (!url) { showToast('Ingresa una URL válida', false); return }
+  try {
+    await api('settings', { method: 'POST', body: { key: 'logo_url', value: url } })
+    await api('settings', { method: 'POST', body: { key: 'logo_base64', value: '' } })
+    // Update preview
+    const preview = document.getElementById('logo-preview')
+    preview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:contain;border-radius:12px" onerror="this.parentElement.textContent='❌ URL inválida'">`
+    localStorage.setItem('nomi_logo', url)
+    showToast('Logo URL guardada ✓')
+    document.getElementById('logo-status').textContent = '✓ Logo guardado desde URL'
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function removeLogo() {
+  if (!confirm('¿Quitar el logo? Se usará el emoji 🍕 por defecto.')) return
+  try {
+    await api('settings', { method: 'POST', body: { key: 'logo_base64', value: '' } })
+    await api('settings', { method: 'POST', body: { key: 'logo_url', value: '' } })
+    localStorage.removeItem('nomi_logo')
+    document.getElementById('logo-preview').innerHTML = '🍕'
+    document.getElementById('logo-preview').style.fontSize = '40px'
+    document.getElementById('logo-filename').textContent = 'Ningún archivo seleccionado'
+    pendingLogoBase64 = null
+    document.getElementById('logo-save-btn').disabled = true
+    document.getElementById('logo-status').textContent = 'Logo eliminado'
+    showToast('Logo eliminado ✓')
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+// Load existing logo on config page open
+async function loadLogoPreview() {
+  try {
+    const settings = await api('settings')
+    const logo = settings.logo_base64 || settings.logo_url
+    if (logo) {
+      localStorage.setItem('nomi_logo', logo)
+      const preview = document.getElementById('logo-preview')
+      preview.innerHTML = ''
+      const img = document.createElement('img')
+      img.src = logo
+      img.style.cssText = 'width:100%;height:100%;object-fit:contain;border-radius:12px'
+      preview.appendChild(img)
+      if (settings.logo_url) document.getElementById('logo-url').value = settings.logo_url
+    }
+  } catch(e) {}
+}
+
+// Apply logo to admin suite itself
+async function applyLogoToApp() {
+  try {
+    // Check localStorage first (fast)
+    let logo = localStorage.getItem('nomi_logo')
+    if (!logo) {
+      const settings = await api('settings')
+      logo = settings.logo_base64 || settings.logo_url
+      if (logo) localStorage.setItem('nomi_logo', logo)
+    }
+    if (logo) {
+      // Replace the emoji logo in sidebar
+      const sbLogo = document.querySelector('.sb-logo')
+      if (sbLogo) {
+        sbLogo.innerHTML = ''
+        sbLogo.style.overflow = 'hidden'
+        sbLogo.style.padding = '0'
+        sbLogo.style.background = 'transparent'
+        const img = document.createElement('img')
+        img.src = logo
+        img.style.cssText = 'width:34px;height:34px;object-fit:cover;border-radius:9px'
+        sbLogo.appendChild(img)
+      }
+    }
+  } catch(e) {}
+}
+
+// Override loadConfig to also load logo preview
+const _origLoadConfig = loadConfig
+function loadConfig() {
+  _origLoadConfig()
+  loadLogoPreview()
+}
+
+// Apply logo on load
+applyLogoToApp()
+</script>
+
+</body>
+</html>
