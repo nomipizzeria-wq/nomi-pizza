@@ -135,6 +135,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 .pin-modal-key.del{font-size:14px;color:var(--ink60)}
 .pin-modal-key.empty{background:transparent;border:none;cursor:default;pointer-events:none}
 
+
+.cfg-tab{padding:8px 14px;border-radius:var(--rsm);border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--ink60);cursor:pointer;transition:var(--tr)}
+.cfg-tab:hover{background:var(--cream);color:var(--ink)}
+.cfg-tab.active{background:var(--red);color:#fff}
+.cfg-panel{display:none}.cfg-panel.active{display:block;animation:fi .2s ease}
+.ing-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:0;align-items:center;padding:10px 18px;border-bottom:1px solid var(--ink10);font-size:13px}
+.ing-row:last-child{border-bottom:none}
+.ing-row:hover{background:var(--cream)}
+.editable{border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);width:100%;padding:2px 4px;border-radius:4px}
+.editable:focus{background:var(--wh);outline:2px solid var(--red);border-radius:4px}
+
 </style>
 </head>
 <body>
@@ -182,6 +193,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 .pin-modal-key:hover{background:var(--ink10)}.pin-modal-key:active{background:var(--red);color:#fff;border-color:var(--red);transform:scale(.95)}
 .pin-modal-key.del{font-size:14px;color:var(--ink60)}
 .pin-modal-key.empty{background:transparent;border:none;cursor:default;pointer-events:none}
+
+
+.cfg-tab{padding:8px 14px;border-radius:var(--rsm);border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--ink60);cursor:pointer;transition:var(--tr)}
+.cfg-tab:hover{background:var(--cream);color:var(--ink)}
+.cfg-tab.active{background:var(--red);color:#fff}
+.cfg-panel{display:none}.cfg-panel.active{display:block;animation:fi .2s ease}
+.ing-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:0;align-items:center;padding:10px 18px;border-bottom:1px solid var(--ink10);font-size:13px}
+.ing-row:last-child{border-bottom:none}
+.ing-row:hover{background:var(--cream)}
+.editable{border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);width:100%;padding:2px 4px;border-radius:4px}
+.editable:focus{background:var(--wh);outline:2px solid var(--red);border-radius:4px}
 
 </style>
 
@@ -575,141 +597,153 @@ function logoutWorker() {
     <!-- CONFIGURATION -->
     <div class="page" id="page-config">
 
-      <!-- LOGO UPLOAD -->
-      <div class="card" style="margin-bottom:14px">
-        <div class="ch"><span class="ct">🖼️ Logo del restaurante</span><span class="badge bi">Se muestra en todas las apps</span></div>
-        <div style="padding:20px;display:flex;align-items:center;gap:24px">
-          <!-- Current logo preview -->
-          <div id="logo-preview-wrap" style="flex-shrink:0;text-align:center">
-            <div id="logo-preview" style="width:100px;height:100px;border-radius:16px;background:var(--red-l);border:2px dashed var(--red);display:flex;align-items:center;justify-content:center;font-size:40px;overflow:hidden;margin-bottom:6px">🍕</div>
-            <div style="font-size:10px;color:var(--ink60)">Logo actual</div>
-          </div>
-          <!-- Upload controls -->
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:6px">Sube tu logo</div>
-            <div style="font-size:12px;color:var(--ink60);margin-bottom:14px;line-height:1.5">PNG o JPG. Recomendado: cuadrado, mínimo 200×200px. El logo aparecerá en el Admin, Mesero, Cocina y App del cliente.</div>
-            <label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--cream);border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px;font-weight:500;cursor:pointer;margin-bottom:10px">
-              📁 Elegir archivo
-              <input type="file" id="logo-upload" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none" onchange="handleLogoUpload(this)">
-            </label>
-            <div style="font-size:11px;color:var(--ink60);margin-bottom:10px" id="logo-filename">Ningún archivo seleccionado</div>
-            <div style="display:flex;gap:8px">
-              <button class="btn btn-p btn-sm" id="logo-save-btn" onclick="saveLogo()" disabled>☁️ Guardar y sincronizar</button>
-              <button class="btn btn-sm" onclick="removeLogo()">🗑 Quitar logo</button>
-            </div>
-            <div style="font-size:11px;color:var(--green);margin-top:8px" id="logo-status"></div>
-          </div>
-        </div>
-        <!-- URL alternative -->
-        <div style="padding:0 20px 16px;border-top:1px solid var(--ink10);margin-top:4px;padding-top:14px">
-          <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">O pega una URL de imagen</div>
-          <div style="display:flex;gap:8px">
-            <input class="fi" id="logo-url" placeholder="https://tu-dominio.com/logo.png" style="flex:1">
-            <button class="btn btn-p btn-sm" onclick="saveLogoUrl()">Usar URL</button>
-          </div>
-        </div>
+      <!-- Config tabs -->
+      <div style="display:flex;gap:4px;margin-bottom:16px;background:var(--wh);border:1px solid var(--ink10);border-radius:var(--r);padding:4px;flex-wrap:wrap">
+        <button class="cfg-tab active" onclick="switchCfgTab('restaurante',this)">🏪 Restaurante</button>
+        <button class="cfg-tab" onclick="switchCfgTab('menu',this)">🍕 Menu</button>
+        <button class="cfg-tab" onclick="switchCfgTab('inventario',this)">📦 Inventario</button>
+        <button class="cfg-tab" onclick="switchCfgTab('equipo',this)">👥 Equipo</button>
+        <button class="cfg-tab" onclick="switchCfgTab('proveedores',this)">🏪 Proveedores</button>
+        <button class="cfg-tab" onclick="switchCfgTab('pagos',this)">💳 Pagos</button>
       </div>
 
-      <div class="g2">
-        <!-- Business Info -->
-        <div class="card">
-          <div class="ch"><span class="ct">🏪 Información del negocio</span><button class="btn btn-p btn-sm" onclick="saveConfig()">✓ Guardar</button></div>
-          <div style="padding:16px">
-            <div class="fl"><label>Nombre del restaurante</label><input class="fi" id="cfg-name" placeholder="Nomi Pizza"></div>
-            <div class="fl"><label>Teléfono</label><input class="fi" id="cfg-phone" placeholder="+52 55 XXXX XXXX"></div>
-            <div class="fl"><label>Dirección</label><input class="fi" id="cfg-address" placeholder="Calle, número, colonia, ciudad"></div>
-            <div class="fl"><label>RFC</label><input class="fi" id="cfg-rfc" placeholder="NPZ230401AA1"></div>
-            <div class="fl"><label>Correo de contacto</label><input class="fi" id="cfg-email" type="email" placeholder="contacto@nomipizza.mx"></div>
-          </div>
-        </div>
-        <!-- Hours -->
-        <div class="card">
-          <div class="ch"><span class="ct">🕐 Horarios y operación</span><button class="btn btn-p btn-sm" onclick="saveConfig()">✓ Guardar</button></div>
-          <div style="padding:16px">
-            <div class="fl"><label>Horario de apertura</label><input class="fi" id="cfg-open" type="time" value="12:00"></div>
-            <div class="fl"><label>Horario de cierre</label><input class="fi" id="cfg-close" type="time" value="23:00"></div>
-            <div class="fl"><label>Días de operación</label>
-              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px" id="cfg-days">
-                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="lun" checked> Lun</label>
-                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="mar" checked> Mar</label>
-                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="mié" checked> Mié</label>
-                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="jue" checked> Jue</label>
-                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="vie" checked> Vie</label>
-                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="sáb" checked> Sáb</label>
-                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="checkbox" value="dom"> Dom</label>
+      <!-- RESTAURANTE TAB -->
+      <div class="cfg-panel active" id="cfgp-restaurante">
+        <!-- Logo -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="ch"><span class="ct">🖼️ Logo del restaurante</span><span class="badge bi">Se muestra en todas las apps</span></div>
+          <div style="padding:20px;display:flex;align-items:center;gap:24px">
+            <div style="flex-shrink:0;text-align:center">
+              <div id="logo-preview" style="width:90px;height:90px;border-radius:14px;background:var(--red-l);border:2px dashed var(--red);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden;margin-bottom:6px">🍕</div>
+              <div style="font-size:10px;color:var(--ink60)">Vista previa</div>
+            </div>
+            <div style="flex:1">
+              <label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--cream);border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px;font-weight:500;cursor:pointer;margin-bottom:8px">
+                📁 Elegir archivo
+                <input type="file" id="logo-upload" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="handleLogoUpload(this)">
+              </label>
+              <div style="font-size:11px;color:var(--ink60);margin-bottom:8px" id="logo-filename">Ningún archivo seleccionado</div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-p btn-sm" id="logo-save-btn" onclick="saveLogo()" disabled>☁️ Guardar logo</button>
+                <button class="btn btn-sm" onclick="removeLogo()">🗑 Quitar</button>
+              </div>
+              <div style="font-size:11px;color:var(--green);margin-top:6px" id="logo-status"></div>
+              <div style="margin-top:10px;display:flex;gap:8px">
+                <input class="fi" id="logo-url" placeholder="O pega una URL de imagen..." style="flex:1;font-size:12px">
+                <button class="btn btn-p btn-sm" onclick="saveLogoUrl()">Usar URL</button>
               </div>
             </div>
-            <div class="fl"><label>Estado del restaurante</label>
-              <select class="fs" id="cfg-status">
-                <option value="open">🟢 Abierto — aceptando pedidos</option>
-                <option value="busy">🟡 Ocupado — tiempo de espera alto</option>
-                <option value="closed">🔴 Cerrado — sin pedidos por ahora</option>
-              </select>
+          </div>
+        </div>
+        <!-- Business info + hours -->
+        <div class="g2">
+          <div class="card">
+            <div class="ch"><span class="ct">Información del negocio</span><button class="btn btn-p btn-sm" onclick="saveConfig()">✓ Guardar</button></div>
+            <div style="padding:16px">
+              <div class="fl"><label>Nombre</label><input class="fi" id="cfg-name" placeholder="Nomi Pizza"></div>
+              <div class="fl"><label>Teléfono</label><input class="fi" id="cfg-phone" placeholder="+52 55 XXXX XXXX"></div>
+              <div class="fl"><label>Dirección</label><input class="fi" id="cfg-address" placeholder="Calle, número, colonia"></div>
+              <div class="fl"><label>RFC</label><input class="fi" id="cfg-rfc" placeholder="NPZ230401AA1"></div>
+              <div class="fl"><label>Correo</label><input class="fi" id="cfg-email" type="email" placeholder="contacto@nomipizza.mx"></div>
             </div>
-            <div class="fl"><label>Costo de envío (MXN)</label><input class="fi" id="cfg-delivery-fee" type="number" value="45" placeholder="45"></div>
-            <div class="fl"><label>Tiempo estimado de entrega (min)</label><input class="fi" id="cfg-delivery-time" type="number" value="30" placeholder="30"></div>
+          </div>
+          <div class="card">
+            <div class="ch"><span class="ct">Horarios y operación</span><button class="btn btn-p btn-sm" onclick="saveConfig()">✓ Guardar</button></div>
+            <div style="padding:16px">
+              <div class="fl"><label>Estado del restaurante</label>
+                <select class="fs" id="cfg-status">
+                  <option value="open">🟢 Abierto</option>
+                  <option value="busy">🟡 Ocupado — espera alta</option>
+                  <option value="closed">🔴 Cerrado</option>
+                </select>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div class="fl"><label>Apertura</label><input class="fi" id="cfg-open" type="time" value="12:00"></div>
+                <div class="fl"><label>Cierre</label><input class="fi" id="cfg-close" type="time" value="23:00"></div>
+              </div>
+              <div class="fl"><label>Costo de envío (MXN)</label><input class="fi" id="cfg-delivery-fee" type="number" value="45"></div>
+              <div class="fl"><label>Tiempo estimado entrega (min)</label><input class="fi" id="cfg-delivery-time" type="number" value="30"></div>
+              <div style="margin-top:12px"><button class="btn btn-sm" style="color:#EF4444;border-color:#EF4444" onclick="if(confirm('Cerrar restaurante ahora?')){document.getElementById('cfg-status').value='closed';saveConfig()}">🔴 Cerrar ahora</button></div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="g2">
-        <!-- Payments -->
+      <!-- MENU TAB -->
+      <div class="cfg-panel" id="cfgp-menu">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="openM('cfg-add-category-modal')">+ Categoría</button>
+            <button class="btn btn-p btn-sm" onclick="openM('cfg-add-item-modal')">+ Producto</button>
+          </div>
+        </div>
+        <div id="cfg-menu-list"><div class="loading"><div class="spinner"></div>Cargando menú...</div></div>
+      </div>
+
+      <!-- INVENTARIO TAB -->
+      <div class="cfg-panel" id="cfgp-inventario">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-size:13px;color:var(--ink60)" id="cfg-inv-summary">Cargando...</div>
+          <button class="btn btn-p btn-sm" onclick="openM('cfg-add-ingredient-modal')">+ Ingrediente</button>
+        </div>
         <div class="card">
-          <div class="ch"><span class="ct">💳 Métodos de pago</span></div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:0;padding:8px 18px;font-size:10px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--ink10)">
+            <span>Ingrediente</span><span style="text-align:right">Stock</span><span style="text-align:right">Mínimo</span><span style="text-align:right">Costo/u</span><span style="text-align:right">Valor</span><span></span>
+          </div>
+          <div id="cfg-inv-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+        </div>
+      </div>
+
+      <!-- EQUIPO TAB -->
+      <div class="cfg-panel" id="cfgp-equipo">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-size:13px;color:var(--ink60)" id="cfg-team-summary">Cargando...</div>
+          <button class="btn btn-p btn-sm" onclick="openM('cfg-add-worker-modal')">+ Trabajador</button>
+        </div>
+        <div class="card" id="cfg-team-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+      </div>
+
+      <!-- PROVEEDORES TAB -->
+      <div class="cfg-panel" id="cfgp-proveedores">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div style="font-size:13px;color:var(--ink60)" id="cfg-sup-summary">Cargando...</div>
+          <button class="btn btn-p btn-sm" onclick="openM('cfg-add-supplier-modal')">+ Proveedor</button>
+        </div>
+        <div class="card" id="cfg-sup-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+      </div>
+
+      <!-- PAGOS TAB -->
+      <div class="cfg-panel" id="cfgp-pagos">
+        <div class="card" style="margin-bottom:12px">
+          <div class="ch"><span class="ct">Métodos de pago</span></div>
           <div style="padding:16px">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ink10)">
-              <div><div style="font-size:13px;font-weight:500">Mercado Pago</div><div style="font-size:11px;color:var(--ink60)">Pagos en línea con tarjeta</div></div>
+              <div><div style="font-size:13px;font-weight:500">Mercado Pago</div><div style="font-size:11px;color:var(--ink60)">Pagos en línea y QR</div></div>
               <span class="badge bg">Conectado ✓</span>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ink10)">
-              <div><div style="font-size:13px;font-weight:500">Efectivo</div><div style="font-size:11px;color:var(--ink60)">Cobro en mostrador y domicilio</div></div>
-              <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0">
-                <input type="checkbox" id="cfg-cash" checked style="opacity:0;width:0;height:0">
-                <span onclick="this.previousElementSibling.checked=!this.previousElementSibling.checked" style="position:absolute;cursor:pointer;inset:0;background:var(--green);border-radius:20px;transition:.3s"></span>
-              </label>
+              <div><div style="font-size:13px;font-weight:500">Efectivo</div><div style="font-size:11px;color:var(--ink60)">Cobro en mostrador</div></div>
+              <span class="badge bg">Activo ✓</span>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
-              <div><div style="font-size:13px;font-weight:500">Terminal física</div><div style="font-size:11px;color:var(--ink60)">Cobro con tarjeta en mostrador</div></div>
+              <div><div style="font-size:13px;font-weight:500">Terminal bancaria</div><div style="font-size:11px;color:var(--ink60)">Tarjeta física</div></div>
               <span class="badge ba">Pendiente</span>
             </div>
           </div>
         </div>
-
-        <!-- Notifications & Integrations -->
         <div class="card">
-          <div class="ch"><span class="ct">🔔 Notificaciones</span></div>
+          <div class="ch"><span class="ct">IVA y precios</span><button class="btn btn-p btn-sm" onclick="saveConfig()">✓ Guardar</button></div>
           <div style="padding:16px">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ink10)">
-              <div><div style="font-size:13px;font-weight:500">WhatsApp al cliente</div><div style="font-size:11px;color:var(--ink60)">Confirmación y tracking</div></div>
-              <span class="badge ba">Pendiente</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ink10);font-size:13px">
+              <span>Los precios del menú incluyen IVA</span>
+              <span class="badge bg">Activado ✓</span>
             </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--ink10)">
-              <div><div style="font-size:13px;font-weight:500">Alertas de stock</div><div style="font-size:11px;color:var(--ink60)">Aviso cuando hay ingrediente bajo</div></div>
-              <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0">
-                <input type="checkbox" id="cfg-stock-alert" checked style="opacity:0;width:0;height:0">
-                <span onclick="this.previousElementSibling.checked=!this.previousElementSibling.checked" style="position:absolute;cursor:pointer;inset:0;background:var(--green);border-radius:20px;transition:.3s"></span>
-              </label>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
-              <div><div style="font-size:13px;font-weight:500">Resumen diario</div><div style="font-size:11px;color:var(--ink60)">Reporte al cerrar turno</div></div>
-              <label style="position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0">
-                <input type="checkbox" id="cfg-daily" checked style="opacity:0;width:0;height:0">
-                <span onclick="this.previousElementSibling.checked=!this.previousElementSibling.checked" style="position:absolute;cursor:pointer;inset:0;background:var(--green);border-radius:20px;transition:.3s"></span>
-              </label>
-            </div>
+            <div style="padding:8px 0;border-bottom:1px solid var(--ink10);font-size:12px;color:var(--ink60)">Los precios que ves en el menú son los precios finales que se cobran al cliente. No se agrega IVA adicional en el POS.</div>
+            <div class="fl" style="margin-top:8px"><label>Facturación — RFC del restaurante</label><input class="fi" id="cfg-rfc2" placeholder="NPZ230401AA1"></div>
           </div>
         </div>
       </div>
 
-      <!-- Danger Zone -->
-      <div class="card" style="border-color:#EF4444">
-        <div class="ch"><span class="ct" style="color:#EF4444">⚠️ Zona de peligro</span></div>
-        <div style="padding:16px;display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-sm" onclick="if(confirm('¿Cerrar el restaurante ahora?')){document.getElementById('cfg-status').value='closed';saveConfig();showToast('Restaurante cerrado')}">🔴 Cerrar restaurante ahora</button>
-          <button class="btn btn-sm" onclick="if(confirm('¿Marcar todas las mesas como disponibles?')){resetAllTables()}">🔄 Resetear todas las mesas</button>
-          <button class="btn btn-sm" onclick="showToast('Exportando datos...')">📊 Exportar datos (CSV)</button>
-        </div>
-      </div>
     </div>
 
     <!-- WORKERS -->
@@ -1049,10 +1083,7 @@ async function applyLogoToApp() {
 
 // Override loadConfig to also load logo preview
 const _origLoadConfig = loadConfig
-function loadConfig() {
-  _origLoadConfig()
-  loadLogoPreview()
-}
+
 
 // ── POS STATE ────────────────────────────────────────────────
 var posCart = [], menuData = {categories:[], items:[]}, posOrderType = 'counter'
@@ -1417,22 +1448,7 @@ function loadConfig() {
   if (cfg.status) document.getElementById('cfg-status').value = cfg.status
 }
 
-function saveConfig() {
-  const cfg = {
-    name: document.getElementById('cfg-name').value,
-    phone: document.getElementById('cfg-phone').value,
-    address: document.getElementById('cfg-address').value,
-    rfc: document.getElementById('cfg-rfc').value,
-    email: document.getElementById('cfg-email').value,
-    open: document.getElementById('cfg-open').value,
-    close: document.getElementById('cfg-close').value,
-    delivery_fee: document.getElementById('cfg-delivery-fee').value,
-    delivery_time: document.getElementById('cfg-delivery-time').value,
-    status: document.getElementById('cfg-status').value
-  }
-  localStorage.setItem('nomi_config', JSON.stringify(cfg))
-  showToast('Configuración guardada ✓')
-}
+
 
 async function resetAllTables() {
   try {
@@ -1919,6 +1935,572 @@ async function saveSupplier() {
   } catch(e) { showToast('Error: ' + e.message, false) }
 }
 </script>
+
+<script>
+// ── CONFIGURATION TAB SYSTEM ──────────────────────────────────
+var cfgTabData = {}
+
+function switchCfgTab(tab, el) {
+  document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'))
+  document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'))
+  if(el) el.classList.add('active')
+  document.getElementById('cfgp-' + tab).classList.add('active')
+  if(tab === 'menu') cfgLoadMenu()
+  if(tab === 'inventario') cfgLoadInventory()
+  if(tab === 'equipo') cfgLoadTeam()
+  if(tab === 'proveedores') cfgLoadSuppliers()
+  if(tab === 'restaurante') loadConfig()
+}
+
+// ── RESTAURANT TAB ────────────────────────────────────────────
+function loadConfig() {
+  const cfg = JSON.parse(localStorage.getItem('nomi_config') || '{}')
+  if(cfg.name) document.getElementById('cfg-name').value = cfg.name
+  if(cfg.phone) document.getElementById('cfg-phone').value = cfg.phone
+  if(cfg.address) document.getElementById('cfg-address').value = cfg.address
+  if(cfg.rfc) document.getElementById('cfg-rfc').value = cfg.rfc
+  if(cfg.email) document.getElementById('cfg-email').value = cfg.email
+  if(cfg.open) document.getElementById('cfg-open').value = cfg.open
+  if(cfg.close) document.getElementById('cfg-close').value = cfg.close
+  if(cfg.delivery_fee) document.getElementById('cfg-delivery-fee').value = cfg.delivery_fee
+  if(cfg.delivery_time) document.getElementById('cfg-delivery-time').value = cfg.delivery_time
+  if(cfg.status) document.getElementById('cfg-status').value = cfg.status
+  loadLogoPreview()
+}
+
+function saveConfig() {
+  const cfg = {
+    name: document.getElementById('cfg-name').value,
+    phone: document.getElementById('cfg-phone').value,
+    address: document.getElementById('cfg-address').value,
+    rfc: document.getElementById('cfg-rfc').value,
+    email: document.getElementById('cfg-email').value,
+    open: document.getElementById('cfg-open').value,
+    close: document.getElementById('cfg-close').value,
+    delivery_fee: document.getElementById('cfg-delivery-fee').value,
+    delivery_time: document.getElementById('cfg-delivery-time').value,
+    status: document.getElementById('cfg-status').value
+  }
+  localStorage.setItem('nomi_config', JSON.stringify(cfg))
+  showToast('Configuración guardada ✓')
+}
+
+// ── MENU TAB ──────────────────────────────────────────────────
+async function cfgLoadMenu() {
+  const el = document.getElementById('cfg-menu-list')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  try {
+    const d = await api('menu') || {}
+    cfgTabData.menu = d
+    const { categories = [], items = [] } = d
+
+    // Populate category select in item modal
+    const catSel = document.getElementById('cfg-item-cat')
+    catSel.innerHTML = '<option value="">Sin categoría</option>' +
+      categories.map(c => `<option value="${c.id}">${c.emoji||''} ${c.name}</option>`).join('')
+
+    if(!categories.length && !items.length) {
+      el.innerHTML = '<div class="empty">No hay productos. Agrega tu primera categoría y producto.</div>'
+      return
+    }
+
+    el.innerHTML = categories.map(cat => {
+      const catItems = items.filter(i => i.category_id === cat.id)
+      return `
+        <div class="card" style="margin-bottom:12px">
+          <div class="ch">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:20px">${cat.emoji||'🍽'}</span>
+              <span class="ct">${cat.name}</span>
+              <span class="badge bk">${catItems.length} items</span>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-sm" onclick="cfgOpenAddItem('${cat.id}')">+ Item</button>
+              <button class="btn btn-sm" style="color:#EF4444;border-color:#EF4444" onclick="cfgDeleteCategory('${cat.id}','${cat.name}')">🗑</button>
+            </div>
+          </div>
+          ${catItems.map(item => `
+            <div style="display:flex;align-items:center;padding:10px 18px;border-bottom:1px solid var(--ink10);gap:10px">
+              <span style="font-size:20px;flex-shrink:0">${item.emoji||'🍽'}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:500">${item.name}</div>
+                <div style="font-size:11px;color:var(--ink60)">${item.description||''}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-size:14px;font-weight:700;color:var(--red)">${fmt(item.price)}</div>
+                <span class="badge ${item.available?'bg':'bk'}" style="margin-top:3px">${item.available?'Activo':'Inactivo'}</span>
+              </div>
+              <button class="btn btn-sm" onclick='cfgOpenEditItem(${JSON.stringify(item).replace(/'/g,"&apos;")})'>✏️</button>
+            </div>`).join('')}
+          ${catItems.length === 0 ? '<div style="padding:14px 18px;font-size:12px;color:var(--ink60)">Sin productos en esta categoría</div>' : ''}
+        </div>`
+    }).join('')
+
+    // Items without category
+    const noCat = items.filter(i => !i.category_id)
+    if(noCat.length) {
+      el.innerHTML += `<div class="card"><div class="ch"><span class="ct" style="color:var(--ink60)">Sin categoría</span></div>
+        ${noCat.map(item => `<div style="display:flex;align-items:center;padding:10px 18px;border-bottom:1px solid var(--ink10);gap:10px">
+          <span style="font-size:20px">${item.emoji||'🍽'}</span>
+          <div style="flex:1"><div style="font-size:13px;font-weight:500">${item.name}</div></div>
+          <div style="font-size:14px;font-weight:700;color:var(--red)">${fmt(item.price)}</div>
+          <button class="btn btn-sm" onclick='cfgOpenEditItem(${JSON.stringify(item).replace(/'/g,"&apos;")})'>✏️</button>
+        </div>`).join('')}
+      </div>`
+    }
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando menú</div>'; showToast('Error', false) }
+}
+
+function cfgOpenAddItem(catId) {
+  document.getElementById('cfg-item-id').value = ''
+  document.getElementById('cfg-item-name').value = ''
+  document.getElementById('cfg-item-desc').value = ''
+  document.getElementById('cfg-item-price').value = ''
+  document.getElementById('cfg-item-emoji').value = '🍕'
+  document.getElementById('cfg-item-available').value = 'true'
+  document.getElementById('cfg-item-cat').value = catId || ''
+  document.getElementById('cfg-item-modal-title').textContent = 'Nuevo producto'
+  document.getElementById('cfg-item-delete-btn').style.display = 'none'
+  openM('cfg-add-item-modal')
+}
+
+function cfgOpenEditItem(item) {
+  document.getElementById('cfg-item-id').value = item.id
+  document.getElementById('cfg-item-name').value = item.name || ''
+  document.getElementById('cfg-item-desc').value = item.description || ''
+  document.getElementById('cfg-item-price').value = item.price || ''
+  document.getElementById('cfg-item-emoji').value = item.emoji || '🍕'
+  document.getElementById('cfg-item-available').value = item.available ? 'true' : 'false'
+  document.getElementById('cfg-item-cat').value = item.category_id || ''
+  document.getElementById('cfg-item-modal-title').textContent = 'Editar: ' + item.name
+  document.getElementById('cfg-item-delete-btn').style.display = 'inline-flex'
+  openM('cfg-add-item-modal')
+}
+
+async function cfgSaveItem() {
+  const id = document.getElementById('cfg-item-id').value
+  const name = document.getElementById('cfg-item-name').value.trim()
+  const price = Number(document.getElementById('cfg-item-price').value)
+  if(!name || !price) { showToast('Nombre y precio son obligatorios', false); return }
+  const body = {
+    name,
+    description: document.getElementById('cfg-item-desc').value,
+    price,
+    emoji: document.getElementById('cfg-item-emoji').value || '🍕',
+    category_id: document.getElementById('cfg-item-cat').value || null,
+    available: document.getElementById('cfg-item-available').value === 'true'
+  }
+  try {
+    if(id) { await api('menu', { method:'PATCH', body: { id, ...body } }); showToast(name + ' actualizado ✓') }
+    else { await api('menu', { method:'POST', body }); showToast(name + ' agregado ✓') }
+    closeM('cfg-add-item-modal')
+    cfgLoadMenu()
+    // Also refresh operational menu view if active
+    if(document.getElementById('page-menu')?.classList.contains('active')) loadMenu()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function cfgDeleteItem() {
+  const id = document.getElementById('cfg-item-id').value
+  const name = document.getElementById('cfg-item-name').value
+  if(!confirm('Eliminar "' + name + '"? Esta acción no se puede deshacer.')) return
+  try {
+    await api('menu', { method:'PATCH', body: { id, available: false } })
+    showToast(name + ' eliminado del menú')
+    closeM('cfg-add-item-modal')
+    cfgLoadMenu()
+  } catch(e) { showToast('Error', false) }
+}
+
+async function cfgSaveCategory() {
+  const name = document.getElementById('cfg-cat-name').value.trim()
+  if(!name) { showToast('Ingresa el nombre de la categoría', false); return }
+  try {
+    await fetch('/api/menu', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        type: 'category',
+        name,
+        emoji: document.getElementById('cfg-cat-emoji').value || '🍽',
+        sort_order: Number(document.getElementById('cfg-cat-order').value) || 1
+      })
+    })
+    showToast('Categoría "' + name + '" agregada ✓')
+    closeM('cfg-add-category-modal')
+    document.getElementById('cfg-cat-name').value = ''
+    document.getElementById('cfg-cat-emoji').value = ''
+    cfgLoadMenu()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function cfgDeleteCategory(id, name) {
+  if(!confirm('Eliminar categoría "' + name + '"? Los productos quedarán sin categoría.')) return
+  try {
+    // Move items to no category
+    const items = (cfgTabData.menu?.items||[]).filter(i => i.category_id === id)
+    await Promise.all(items.map(i => api('menu', { method:'PATCH', body:{ id:i.id, category_id: null } })))
+    // Delete category - we'll just mark items uncategorized for now
+    showToast('Categoría eliminada')
+    cfgLoadMenu()
+  } catch(e) { showToast('Error', false) }
+}
+
+// ── INVENTORY TAB ─────────────────────────────────────────────
+async function cfgLoadInventory() {
+  const el = document.getElementById('cfg-inv-list')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  try {
+    const items = await api('inventory') || []
+    cfgTabData.inventory = items
+    const totalVal = items.reduce((s,i) => s + Number(i.quantity) * Number(i.cost_per_unit||0), 0)
+    const crit = items.filter(i => Number(i.quantity) <= 0).length
+    const low = items.filter(i => Number(i.quantity) > 0 && Number(i.quantity) <= Number(i.min_level)).length
+    document.getElementById('cfg-inv-summary').innerHTML =
+      `${items.length} ingredientes &nbsp;·&nbsp; <span style="color:var(--red)">${crit} críticos</span> &nbsp;·&nbsp; <span style="color:var(--amber)">${low} bajos</span> &nbsp;·&nbsp; Valor total: <strong>${fmt(totalVal)}</strong>`
+
+    if(!items.length) { el.innerHTML = '<div class="empty">No hay ingredientes. Agrega tu primer ingrediente.</div>'; return }
+
+    // Group by category
+    const cats = [...new Set(items.map(i => i.category || 'general'))]
+    el.innerHTML = cats.map(cat => {
+      const catItems = items.filter(i => (i.category||'general') === cat)
+      const catLabel = {masa:'Masa',quesos:'Quesos',embutidos:'Embutidos',verduras:'Verduras',salsas:'Salsas',hierbas:'Hierbas',aceites:'Aceites',dairy:'Lácteos',conservas:'Conservas',general:'General'}[cat] || cat
+      return catItems.map((ing, idx) => {
+        const stColor = Number(ing.quantity) <= 0 ? '#EF4444' : Number(ing.quantity) <= Number(ing.min_level) ? 'var(--amber)' : 'var(--green)'
+        const val = Number(ing.quantity) * Number(ing.cost_per_unit||0)
+        return `<div class="ing-row">
+          <div>
+            ${idx === 0 ? `<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink60);margin-bottom:4px">${catLabel}</div>` : ''}
+            <div style="font-size:13px;font-weight:500">${ing.name}</div>
+          </div>
+          <div style="text-align:right;font-weight:600;color:${stColor}">${ing.quantity} <span style="font-size:10px;color:var(--ink60);font-weight:400">${ing.unit}</span></div>
+          <div style="text-align:right;font-size:11px;color:var(--ink60)">${ing.min_level} ${ing.unit}</div>
+          <div style="text-align:right;font-size:12px;color:var(--ink60)">${fmt(ing.cost_per_unit||0)}</div>
+          <div style="text-align:right;font-size:12px;font-weight:500">${fmt(val)}</div>
+          <button class="btn btn-sm" style="margin-left:8px" onclick='cfgOpenEditIngredient(${JSON.stringify(ing).replace(/'/g,"&apos;")})'>✏️</button>
+        </div>`
+      }).join('')
+    }).join('<div style="height:1px;background:var(--ink10);margin:4px 0"></div>')
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando inventario</div>' }
+}
+
+function cfgOpenEditIngredient(ing) {
+  document.getElementById('cfg-ing-id').value = ing.id
+  document.getElementById('cfg-ing-name').value = ing.name || ''
+  document.getElementById('cfg-ing-unit').value = ing.unit || 'kg'
+  document.getElementById('cfg-ing-cat').value = ing.category || 'general'
+  document.getElementById('cfg-ing-qty').value = ing.quantity || 0
+  document.getElementById('cfg-ing-min').value = ing.min_level || 0
+  document.getElementById('cfg-ing-cost').value = ing.cost_per_unit || 0
+  document.getElementById('cfg-ing-modal-title').textContent = 'Editar: ' + ing.name
+  document.getElementById('cfg-ing-delete-btn').style.display = 'inline-flex'
+  openM('cfg-add-ingredient-modal')
+}
+
+function cfgOpenAddIngredient() {
+  document.getElementById('cfg-ing-id').value = ''
+  document.getElementById('cfg-ing-name').value = ''
+  document.getElementById('cfg-ing-qty').value = '0'
+  document.getElementById('cfg-ing-min').value = '0'
+  document.getElementById('cfg-ing-cost').value = '0'
+  document.getElementById('cfg-ing-modal-title').textContent = 'Nuevo ingrediente'
+  document.getElementById('cfg-ing-delete-btn').style.display = 'none'
+  openM('cfg-add-ingredient-modal')
+}
+
+async function cfgSaveIngredient() {
+  const id = document.getElementById('cfg-ing-id').value
+  const name = document.getElementById('cfg-ing-name').value.trim()
+  if(!name) { showToast('Ingresa el nombre', false); return }
+  const body = {
+    name,
+    unit: document.getElementById('cfg-ing-unit').value,
+    category: document.getElementById('cfg-ing-cat').value,
+    quantity: Number(document.getElementById('cfg-ing-qty').value),
+    min_level: Number(document.getElementById('cfg-ing-min').value),
+    cost_per_unit: Number(document.getElementById('cfg-ing-cost').value)
+  }
+  try {
+    if(id) { await api('inventory', { method:'PATCH', body:{ id, ...body } }); showToast(name + ' actualizado ✓') }
+    else {
+      const r = await fetch('/api/inventory', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+      const d = await r.json()
+      if(d.error) throw new Error(d.error)
+      showToast(name + ' agregado ✓')
+    }
+    closeM('cfg-add-ingredient-modal')
+    cfgLoadInventory()
+    if(document.getElementById('page-inventory')?.classList.contains('active')) loadInventory()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function cfgDeleteIngredient() {
+  const id = document.getElementById('cfg-ing-id').value
+  const name = document.getElementById('cfg-ing-name').value
+  if(!confirm('Eliminar "' + name + '"?')) return
+  try {
+    // Mark as inactive via patch (no delete endpoint but set min to -1 as flag, or just remove)
+    await fetch('/api/inventory', { method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ id }) })
+    showToast(name + ' eliminado')
+    closeM('cfg-add-ingredient-modal')
+    cfgLoadInventory()
+  } catch(e) {
+    showToast('No se puede eliminar si tiene movimientos registrados', false)
+  }
+}
+
+// ── TEAM TAB ──────────────────────────────────────────────────
+const roleLabels = {admin:'👑 Admin',manager:'👨‍💼 Gerente',waiter:'🍽 Mesero',kitchen:'👨‍🍳 Cocina',cashier:'💰 Cajero',delivery:'🛵 Repartidor'}
+
+async function cfgLoadTeam() {
+  const el = document.getElementById('cfg-team-list')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  try {
+    const workers = await api('workers') || []
+    document.getElementById('cfg-team-summary').textContent = workers.length + ' trabajadores registrados'
+    if(!workers.length) { el.innerHTML = '<div class="empty">No hay trabajadores. Agrega tu equipo.</div>'; return }
+    el.innerHTML = workers.map((w,i) => `
+      <div style="display:flex;align-items:center;padding:12px 18px;border-bottom:1px solid var(--ink10);gap:12px">
+        <div class="av ${avCls(i)}" style="width:36px;height:36px;font-size:13px">${initials(w.name)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">${w.name}</div>
+          <div style="font-size:11px;color:var(--ink60)">${roleLabels[w.role]||w.role} · ${w.email}</div>
+        </div>
+        <span class="badge ${w.active?'bg':'bk'}">${w.active?'Activo':'Inactivo'}</span>
+        <button class="btn btn-sm" onclick='cfgOpenEditWorker(${JSON.stringify(w).replace(/'/g,"&apos;")})'>✏️ Editar</button>
+      </div>`).join('')
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando equipo</div>' }
+}
+
+function cfgOpenEditWorker(w) {
+  document.getElementById('cfg-w-id').value = w.id
+  document.getElementById('cfg-w-name').value = w.name || ''
+  document.getElementById('cfg-w-email').value = w.email || ''
+  document.getElementById('cfg-w-pin').value = ''
+  document.getElementById('cfg-w-role').value = w.role || 'waiter'
+  document.getElementById('cfg-worker-modal-title').textContent = 'Editar: ' + w.name
+  document.getElementById('cfg-w-deactivate-btn').style.display = 'inline-flex'
+  openM('cfg-add-worker-modal')
+}
+
+function cfgOpenAddWorker() {
+  document.getElementById('cfg-w-id').value = ''
+  document.getElementById('cfg-w-name').value = ''
+  document.getElementById('cfg-w-email').value = ''
+  document.getElementById('cfg-w-pin').value = ''
+  document.getElementById('cfg-w-role').value = 'waiter'
+  document.getElementById('cfg-worker-modal-title').textContent = 'Nuevo trabajador'
+  document.getElementById('cfg-w-deactivate-btn').style.display = 'none'
+  openM('cfg-add-worker-modal')
+}
+
+async function cfgSaveWorker() {
+  const id = document.getElementById('cfg-w-id').value
+  const name = document.getElementById('cfg-w-name').value.trim()
+  const email = document.getElementById('cfg-w-email').value.trim()
+  const pin = document.getElementById('cfg-w-pin').value
+  const role = document.getElementById('cfg-w-role').value
+  if(!name || !email) { showToast('Nombre y correo son obligatorios', false); return }
+  if(!id && !pin) { showToast('El PIN es obligatorio para nuevos trabajadores', false); return }
+  const rp = {admin:{pos:true,tables:true,orders:true,menu:true,inventory:true,analytics:true,team:true},manager:{pos:true,tables:true,orders:true,inventory:true},waiter:{tables:true,orders:true},kitchen:{orders:true},cashier:{pos:true,orders:true},delivery:{delivery:true}}
+  try {
+    if(id) {
+      const body = { action:'update', id, name, email, role }
+      if(pin) body.pin = pin
+      await api('workers', { method:'PATCH', body })
+      showToast(name + ' actualizado ✓')
+    } else {
+      await api('workers', { method:'POST', body:{ action:'create', name, email, pin, role, permissions: rp[role]||{} } })
+      showToast(name + ' agregado al equipo ✓')
+    }
+    closeM('cfg-add-worker-modal')
+    cfgLoadTeam()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function cfgDeactivateWorker() {
+  const id = document.getElementById('cfg-w-id').value
+  const name = document.getElementById('cfg-w-name').value
+  if(!confirm('Desactivar a ' + name + '? No podrá iniciar sesión.')) return
+  try {
+    await api('workers', { method:'PATCH', body:{ id, active: false } })
+    showToast(name + ' desactivado')
+    closeM('cfg-add-worker-modal')
+    cfgLoadTeam()
+  } catch(e) { showToast('Error', false) }
+}
+
+// ── SUPPLIERS TAB ─────────────────────────────────────────────
+async function cfgLoadSuppliers() {
+  const el = document.getElementById('cfg-sup-list')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  try {
+    const res = await fetch('/api/purchases?resource=suppliers')
+    const suppliers = await res.json() || []
+    document.getElementById('cfg-sup-summary').textContent = suppliers.length + ' proveedores registrados'
+    if(!suppliers.length) { el.innerHTML = '<div class="empty">No hay proveedores. Agrega tu primer proveedor.</div>'; return }
+    el.innerHTML = suppliers.map(s => `
+      <div style="display:flex;align-items:center;padding:12px 18px;border-bottom:1px solid var(--ink10);gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--blue-l);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏪</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">${s.name}</div>
+          <div style="font-size:11px;color:var(--ink60)">${[s.phone,s.email].filter(Boolean).join(' · ')}</div>
+          ${s.notes ? `<div style="font-size:11px;color:var(--ink60)">${s.notes}</div>` : ''}
+        </div>
+        <button class="btn btn-sm" onclick='cfgOpenEditSupplier(${JSON.stringify(s).replace(/'/g,"&apos;")})'>✏️ Editar</button>
+      </div>`).join('')
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando proveedores</div>' }
+}
+
+function cfgOpenEditSupplier(s) {
+  document.getElementById('cfg-sup-id').value = s.id
+  document.getElementById('cfg-sup-name').value = s.name || ''
+  document.getElementById('cfg-sup-phone').value = s.phone || ''
+  document.getElementById('cfg-sup-email').value = s.email || ''
+  document.getElementById('cfg-sup-notes').value = s.notes || ''
+  document.getElementById('cfg-sup-modal-title').textContent = 'Editar: ' + s.name
+  openM('cfg-add-supplier-modal')
+}
+
+async function cfgSaveSupplier() {
+  const id = document.getElementById('cfg-sup-id').value
+  const name = document.getElementById('cfg-sup-name').value.trim()
+  if(!name) { showToast('Ingresa el nombre del proveedor', false); return }
+  const body = { name, phone: document.getElementById('cfg-sup-phone').value, email: document.getElementById('cfg-sup-email').value, notes: document.getElementById('cfg-sup-notes').value }
+  try {
+    if(id) {
+      await fetch('/api/purchases?resource=suppliers', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, ...body}) })
+      showToast(name + ' actualizado ✓')
+    } else {
+      await fetch('/api/purchases?resource=suppliers', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
+      showToast(name + ' agregado ✓')
+    }
+    closeM('cfg-add-supplier-modal')
+    cfgLoadSuppliers()
+    // refresh purchase supplier dropdowns
+    if(document.getElementById('page-purchases')?.classList.contains('active')) loadPurchases()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+// Load config on startup
+applyLogoToApp()
+</script>
+
+
+<!-- CFG MODALS -->
+<div class="modal-bg" id="cfg-add-category-modal">
+  <div class="modal" style="width:400px">
+    <div class="mh"><span class="mt">Nueva categoria</span><button class="mc-btn" onclick="closeM('cfg-add-category-modal')">x</button></div>
+    <div class="mb">
+      <div class="fl"><label>Nombre</label><input class="fi" id="cfg-cat-name" placeholder="Ej: Pizzas, Bebidas..."></div>
+      <div class="fl"><label>Emoji</label><input class="fi" id="cfg-cat-emoji" placeholder="🍕" style="width:80px"></div>
+      <div class="fl"><label>Orden</label><input class="fi" id="cfg-cat-order" type="number" value="1"></div>
+    </div>
+    <div class="mf"><button class="btn" onclick="closeM('cfg-add-category-modal')">Cancelar</button><button class="btn btn-p" onclick="cfgSaveCategory()">+ Agregar</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="cfg-add-item-modal">
+  <div class="modal">
+    <div class="mh"><span class="mt" id="cfg-item-modal-title">Nuevo producto</span><button class="mc-btn" onclick="closeM('cfg-add-item-modal')">x</button></div>
+    <div class="mb">
+      <div class="fl"><label>Nombre</label><input class="fi" id="cfg-item-name" placeholder="Ej: Margherita"></div>
+      <div class="fl"><label>Descripcion</label><input class="fi" id="cfg-item-desc" placeholder="Ingredientes..."></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div class="fl"><label>Precio (MXN)</label><input class="fi" id="cfg-item-price" type="number" placeholder="200"></div>
+        <div class="fl"><label>Emoji</label><input class="fi" id="cfg-item-emoji" placeholder="🍕"></div>
+        <div class="fl"><label>Disponible</label>
+          <select class="fs" id="cfg-item-available"><option value="true">Si</option><option value="false">No</option></select>
+        </div>
+      </div>
+      <div class="fl"><label>Categoria</label><select class="fs" id="cfg-item-cat"><option value="">Sin categoria</option></select></div>
+      <input type="hidden" id="cfg-item-id">
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeM('cfg-add-item-modal')">Cancelar</button>
+      <button class="btn" style="color:#EF4444;border-color:#EF4444;display:none" id="cfg-item-delete-btn" onclick="cfgDeleteItem()">Eliminar</button>
+      <button class="btn btn-p" onclick="cfgSaveItem()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="cfg-add-ingredient-modal">
+  <div class="modal">
+    <div class="mh"><span class="mt" id="cfg-ing-modal-title">Nuevo ingrediente</span><button class="mc-btn" onclick="closeM('cfg-add-ingredient-modal')">x</button></div>
+    <div class="mb">
+      <div class="fl"><label>Nombre</label><input class="fi" id="cfg-ing-name" placeholder="Ej: Mozzarella fresca"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fl"><label>Unidad</label>
+          <select class="fs" id="cfg-ing-unit">
+            <option value="kg">kg</option><option value="g">g</option><option value="L">Litros</option>
+            <option value="ml">ml</option><option value="pzas">Piezas</option><option value="cajas">Cajas</option>
+          </select>
+        </div>
+        <div class="fl"><label>Categoria</label>
+          <select class="fs" id="cfg-ing-cat">
+            <option value="masa">Masa</option><option value="quesos">Quesos</option><option value="embutidos">Embutidos</option>
+            <option value="verduras">Verduras</option><option value="salsas">Salsas</option><option value="hierbas">Hierbas</option>
+            <option value="aceites">Aceites</option><option value="dairy">Lacteos</option><option value="conservas">Conservas</option><option value="general">General</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div class="fl"><label>Stock actual</label><input class="fi" id="cfg-ing-qty" type="number" step="0.1" placeholder="0"></div>
+        <div class="fl"><label>Stock minimo</label><input class="fi" id="cfg-ing-min" type="number" step="0.1" placeholder="0"></div>
+        <div class="fl"><label>Costo/unidad</label><input class="fi" id="cfg-ing-cost" type="number" step="0.01" placeholder="0.00"></div>
+      </div>
+      <input type="hidden" id="cfg-ing-id">
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeM('cfg-add-ingredient-modal')">Cancelar</button>
+      <button class="btn" style="color:#EF4444;border-color:#EF4444" id="cfg-ing-delete-btn" onclick="cfgDeleteIngredient()">Eliminar</button>
+      <button class="btn btn-p" onclick="cfgSaveIngredient()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="cfg-add-worker-modal">
+  <div class="modal">
+    <div class="mh"><span class="mt" id="cfg-worker-modal-title">Nuevo trabajador</span><button class="mc-btn" onclick="closeM('cfg-add-worker-modal')">x</button></div>
+    <div class="mb">
+      <div class="fl"><label>Nombre</label><input class="fi" id="cfg-w-name" placeholder="Jorge Lopez"></div>
+      <div class="fl"><label>Correo</label><input class="fi" id="cfg-w-email" type="email" placeholder="jorge@nomipizza.mx"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fl"><label>PIN (4 digitos)</label><input class="fi" id="cfg-w-pin" type="password" maxlength="4" placeholder="----"></div>
+        <div class="fl"><label>Rol</label>
+          <select class="fs" id="cfg-w-role">
+            <option value="admin">Admin</option><option value="manager">Gerente</option>
+            <option value="waiter" selected>Mesero</option><option value="kitchen">Cocina</option><option value="cashier">Cajero</option>
+          </select>
+        </div>
+      </div>
+      <input type="hidden" id="cfg-w-id">
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeM('cfg-add-worker-modal')">Cancelar</button>
+      <button class="btn" style="color:#EF4444;border-color:#EF4444" id="cfg-w-deactivate-btn" onclick="cfgDeactivateWorker()">Desactivar</button>
+      <button class="btn btn-p" onclick="cfgSaveWorker()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="cfg-add-supplier-modal">
+  <div class="modal" style="width:420px">
+    <div class="mh"><span class="mt" id="cfg-sup-modal-title">Nuevo proveedor</span><button class="mc-btn" onclick="closeM('cfg-add-supplier-modal')">x</button></div>
+    <div class="mb">
+      <div class="fl"><label>Nombre</label><input class="fi" id="cfg-sup-name" placeholder="Ej: Sam's Club"></div>
+      <div class="fl"><label>Telefono</label><input class="fi" id="cfg-sup-phone" type="tel" placeholder="+52 55 XXXX XXXX"></div>
+      <div class="fl"><label>Correo</label><input class="fi" id="cfg-sup-email" type="email" placeholder="ventas@proveedor.com"></div>
+      <div class="fl"><label>Notas</label><input class="fi" id="cfg-sup-notes" placeholder="Membresia, condiciones..."></div>
+      <input type="hidden" id="cfg-sup-id">
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeM('cfg-add-supplier-modal')">Cancelar</button>
+      <button class="btn btn-p" onclick="cfgSaveSupplier()">Guardar</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
