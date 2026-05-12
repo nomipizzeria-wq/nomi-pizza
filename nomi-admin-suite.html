@@ -1031,7 +1031,7 @@ async function loadPOS() {
       (tbls||[]).map(t => `<option value="${t.id}">Mesa ${t.number} — ${{available:'Libre',occupied:'Ocupada',ready:'Cuenta'}[t.status]||t.status}</option>`).join('')
     sel.style.display = 'none' // hidden by default (counter mode)
     const cats = document.getElementById('pcats')
-    cats.innerHTML = '<div class="pcat active" onclick="posF('all',this)">Todo</div>' +
+    cats.innerHTML = `<div class="pcat active" onclick="posF('all',this)">Todo</div>` +
       (menuData.categories||[]).map(c => `<div class="pcat" onclick="posF('${c.id}',this)">${c.emoji||''} ${c.name}</div>`).join('')
     renderPOS('all')
     loadRecentSales()
