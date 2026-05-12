@@ -468,7 +468,7 @@ function logoutWorker() {
             <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink60);margin-bottom:4px"><span>Subtotal</span><span id="pos-sub">$0.00</span></div>
             <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink60);margin-bottom:4px" id="pos-disc-row" style="display:none"><span>Descuento</span><span id="pos-disc-val">-$0.00</span></div>
             <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink60);margin-bottom:6px"><span>IVA (16%)</span><span id="pos-tax">$0.00</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;color:var(--ink)"><span>Total</span><span id="pos-tot">$0.00</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;color:var(--ink)"><span>Total (IVA inc.)</span><span id="pos-tot">$0.00</span></div>
           </div>
           <!-- Action buttons -->
           <div style="padding:12px 18px;border-top:1px solid var(--ink10);display:flex;gap:8px;flex-shrink:0">
@@ -1127,20 +1127,28 @@ function openPaymentModal() {
   openM('payment-modal')
 }
 
+
 function selectPM(method, el) {
   selectedPayMethod = method
-  document.querySelectorAll('.pm-opt').forEach(o => o.classList.remove('active'))
-  if(el) el.classList.add('active')
+  document.querySelectorAll('.pm-opt').forEach(function(o) {
+    o.style.borderColor = 'var(--ink10)'
+    o.style.background = 'var(--wh)'
+  })
+  if(el) {
+    el.style.borderColor = 'var(--red)'
+    el.style.background = 'var(--red-l)'
+  }
   document.getElementById('pm-cash-section').style.display = method === 'cash' ? 'block' : 'none'
   document.getElementById('pm-card-section').style.display = method !== 'cash' ? 'block' : 'none'
   if (method === 'mercadopago') {
-    document.getElementById('pm-card-icon').textContent = '📱'
+    document.getElementById('pm-card-icon').textContent = 'QR'
     document.getElementById('pm-card-msg').textContent = 'Muestra el QR de Mercado Pago al cliente'
-  } else if (method === 'card') {
-    document.getElementById('pm-card-icon').textContent = '💳'
+  } else {
+    document.getElementById('pm-card-icon').textContent = 'CARD'
     document.getElementById('pm-card-msg').textContent = 'Pasa la tarjeta en la terminal'
   }
 }
+
 
 function calcChange() {
   const total = parseFloat(document.getElementById('pm-total').textContent.replace(/[^0-9.]/g,'')) || 0
@@ -1442,6 +1450,89 @@ async function deleteMenuItem() {
 
 
 
+
+
+<!-- PAYMENT MODAL -->
+<div class="modal-bg" id="payment-modal">
+  <div class="modal" style="width:520px">
+    <div class="mh"><span class="mt">Cobrar pedido</span><button class="mc-btn" onclick="closeM('payment-modal')">x</button></div>
+    <div class="mb">
+      <div style="background:var(--cream);border-radius:var(--rsm);padding:12px 14px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink60);margin-bottom:4px"><span>Productos</span><span id="pm-items-count">0</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink60);margin-bottom:4px" id="pm-disc-row"><span>Descuento</span><span id="pm-disc">$0.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;color:var(--ink);margin-top:8px;padding-top:8px;border-top:1px solid var(--ink10)"><span>Total a cobrar</span><span id="pm-total">$0.00</span></div>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Metodo de pago</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <div class="pm-opt active" id="pmo-cash" onclick="selectPM('cash',this)" style="border:2px solid var(--red);background:var(--red-l);border-radius:var(--r);padding:14px;cursor:pointer;text-align:center;flex:1">
+          <div style="font-size:28px;margin-bottom:6px">&#128181;</div><div style="font-size:12px;font-weight:600">Efectivo</div>
+        </div>
+        <div class="pm-opt" id="pmo-card" onclick="selectPM('card',this)" style="border:2px solid var(--ink10);border-radius:var(--r);padding:14px;cursor:pointer;text-align:center;flex:1">
+          <div style="font-size:28px;margin-bottom:6px">&#128179;</div><div style="font-size:12px;font-weight:600">Tarjeta</div>
+        </div>
+        <div class="pm-opt" id="pmo-mp" onclick="selectPM('mercadopago',this)" style="border:2px solid var(--ink10);border-radius:var(--r);padding:14px;cursor:pointer;text-align:center;flex:1">
+          <div style="font-size:28px;margin-bottom:6px">&#128241;</div><div style="font-size:12px;font-weight:600">Mercado Pago</div>
+        </div>
+      </div>
+      <div id="pm-cash-section">
+        <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Efectivo recibido</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap" id="pm-quick-amounts"></div>
+        <input type="number" class="fi" id="pm-cash-received" placeholder="0.00" oninput="calcChange()">
+        <div style="background:var(--green-l);border:1px solid var(--green);border-radius:var(--rsm);padding:12px;text-align:center;margin-top:10px;display:none" id="pm-change-box">
+          <div style="font-size:11px;color:var(--green);margin-bottom:4px">Cambio a entregar</div>
+          <div style="font-size:24px;font-weight:700;color:var(--green)" id="pm-change">$0.00</div>
+        </div>
+      </div>
+      <div id="pm-card-section" style="display:none">
+        <div style="background:var(--blue-l);border-radius:var(--rsm);padding:14px;text-align:center;color:var(--blue)">
+          <div style="font-size:24px;margin-bottom:6px" id="pm-card-icon">&#128179;</div>
+          <div style="font-size:14px;font-weight:600" id="pm-card-msg">Pasa la tarjeta en la terminal</div>
+          <div style="font-size:12px;margin-top:4px">Confirma cuando el pago sea exitoso</div>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Cliente (opcional)</div>
+        <input class="fi" id="pm-customer" placeholder="Nombre del cliente...">
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeM('payment-modal')">Cancelar</button>
+      <button class="btn btn-p" onclick="openPINConfirm()" style="min-width:160px">Confirmar venta</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN CONFIRM MODAL -->
+<div class="modal-bg" id="pin-confirm-modal">
+  <div class="modal" style="width:360px">
+    <div class="mh"><span class="mt">Confirmar con tu PIN</span><button class="mc-btn" onclick="closeM('pin-confirm-modal')">x</button></div>
+    <div class="mb" style="text-align:center">
+      <div style="font-size:13px;color:var(--ink60);margin-bottom:4px">Ingresa tu PIN para registrar la venta</div>
+      <div style="font-size:11px;color:var(--ink60);margin-bottom:12px" id="pin-confirm-sub">La venta quedara registrada a tu nombre</div>
+      <div style="display:flex;gap:12px;justify-content:center;margin:16px 0" id="pcd-wrap">
+        <div class="pin-modal-dot" id="pcd0"></div>
+        <div class="pin-modal-dot" id="pcd1"></div>
+        <div class="pin-modal-dot" id="pcd2"></div>
+        <div class="pin-modal-dot" id="pcd3"></div>
+      </div>
+      <div style="color:#EF4444;font-size:12px;min-height:18px;margin-bottom:10px" id="pin-confirm-error"></div>
+      <div class="pin-modal-keypad">
+        <button class="pin-modal-key" onclick="pcKey('1')">1</button>
+        <button class="pin-modal-key" onclick="pcKey('2')">2</button>
+        <button class="pin-modal-key" onclick="pcKey('3')">3</button>
+        <button class="pin-modal-key" onclick="pcKey('4')">4</button>
+        <button class="pin-modal-key" onclick="pcKey('5')">5</button>
+        <button class="pin-modal-key" onclick="pcKey('6')">6</button>
+        <button class="pin-modal-key" onclick="pcKey('7')">7</button>
+        <button class="pin-modal-key" onclick="pcKey('8')">8</button>
+        <button class="pin-modal-key" onclick="pcKey('9')">9</button>
+        <button class="pin-modal-key empty"></button>
+        <button class="pin-modal-key" onclick="pcKey('0')">0</button>
+        <button class="pin-modal-key del" onclick="pcDel()">x</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="modal-bg" id="void-modal"><div class="modal" style="width:420px"><div class="mh"><span class="mt" style="color:#EF4444">Anular venta</span><button class="mc-btn" onclick="closeM('void-modal')">x</button></div><div class="mb"><div style="background:var(--red-l);border-radius:var(--rsm);padding:12px;margin-bottom:14px;font-size:13px;color:var(--red-d)" id="void-order-info"></div><div class="fl"><label>Motivo</label><select class="fs" id="void-reason"><option value="error_producto">Error en producto</option><option value="error_precio">Error en precio</option><option value="cliente_cancelo">Cliente cancelo</option><option value="duplicado">Duplicado</option><option value="otro">Otro</option></select></div><div class="fl" style="margin-top:10px"><label>Notas</label><input class="fi" id="void-notes" placeholder="Descripcion..."></div><div style="margin-top:14px"><div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Confirma con tu PIN</div><div style="display:flex;gap:12px;margin:10px 0"><div class="pin-modal-dot" id="vd0"></div><div class="pin-modal-dot" id="vd1"></div><div class="pin-modal-dot" id="vd2"></div><div class="pin-modal-dot" id="vd3"></div></div><div class="pin-modal-keypad"><button class="pin-modal-key" onclick="vKey('1')">1</button><button class="pin-modal-key" onclick="vKey('2')">2</button><button class="pin-modal-key" onclick="vKey('3')">3</button><button class="pin-modal-key" onclick="vKey('4')">4</button><button class="pin-modal-key" onclick="vKey('5')">5</button><button class="pin-modal-key" onclick="vKey('6')">6</button><button class="pin-modal-key" onclick="vKey('7')">7</button><button class="pin-modal-key" onclick="vKey('8')">8</button><button class="pin-modal-key" onclick="vKey('9')">9</button><button class="pin-modal-key empty"></button><button class="pin-modal-key" onclick="vKey('0')">0</button><button class="pin-modal-key del" onclick="vDel()">x</button></div><div style="color:#EF4444;font-size:12px;min-height:18px;margin-top:8px" id="void-pin-error"></div></div></div></div></div>
 </body>
