@@ -5,7 +5,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
@@ -14,9 +14,16 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const { data, error } = await supabase
-        .from('ingredients').select('*').order('name')
+        .from('ingredients').select('*').order('category').order('name')
       if (error) throw error
       return res.status(200).json(data)
+    }
+
+    if (req.method === 'POST') {
+      const { data, error } = await supabase
+        .from('ingredients').insert([req.body]).select().single()
+      if (error) throw error
+      return res.status(201).json(data)
     }
 
     if (req.method === 'PATCH') {
