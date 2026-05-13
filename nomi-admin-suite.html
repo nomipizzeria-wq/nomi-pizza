@@ -2030,7 +2030,7 @@ async function cfgLoadMenu() {
                 <div style="font-size:14px;font-weight:700;color:var(--red)">${fmt(item.price)}</div>
                 <span class="badge ${item.available?'bg':'bk'}" style="margin-top:3px">${item.available?'Activo':'Inactivo'}</span>
               </div>
-              <button class="btn btn-sm" onclick='cfgOpenEditItem(${JSON.stringify(item).replace(/'/g,"&apos;")})'>✏️</button>
+              <button class="btn btn-sm" onclick="cfgEditItemById('${item.id}')">✏️</button>
             </div>`).join('')}
           ${catItems.length === 0 ? '<div style="padding:14px 18px;font-size:12px;color:var(--ink60)">Sin productos en esta categoría</div>' : ''}
         </div>`
@@ -2044,7 +2044,7 @@ async function cfgLoadMenu() {
           <span style="font-size:20px">${item.emoji||'🍽'}</span>
           <div style="flex:1"><div style="font-size:13px;font-weight:500">${item.name}</div></div>
           <div style="font-size:14px;font-weight:700;color:var(--red)">${fmt(item.price)}</div>
-          <button class="btn btn-sm" onclick='cfgOpenEditItem(${JSON.stringify(item).replace(/'/g,"&apos;")})'>✏️</button>
+          <button class="btn btn-sm" onclick="cfgEditItemById('${item.id}')">✏️</button>
         </div>`).join('')}
       </div>`
     }
@@ -2153,6 +2153,7 @@ async function cfgLoadInventory() {
   try {
     const items = await api('inventory') || []
     cfgTabData.inventory = items
+    window._invCache = items
     const totalVal = items.reduce((s,i) => s + Number(i.quantity) * Number(i.cost_per_unit||0), 0)
     const crit = items.filter(i => Number(i.quantity) <= 0).length
     const low = items.filter(i => Number(i.quantity) > 0 && Number(i.quantity) <= Number(i.min_level)).length
@@ -2178,7 +2179,7 @@ async function cfgLoadInventory() {
           <div style="text-align:right;font-size:11px;color:var(--ink60)">${ing.min_level} ${ing.unit}</div>
           <div style="text-align:right;font-size:12px;color:var(--ink60)">${fmt(ing.cost_per_unit||0)}</div>
           <div style="text-align:right;font-size:12px;font-weight:500">${fmt(val)}</div>
-          <button class="btn btn-sm" style="margin-left:8px" onclick='cfgOpenEditIngredient(${JSON.stringify(ing).replace(/'/g,"&apos;")})'>✏️</button>
+          <button class="btn btn-sm" style="margin-left:8px" onclick='cfgOpenEditIngredientById('${ing.id}')">✏️</button>
         </div>`
       }).join('')
     }).join('<div style="height:1px;background:var(--ink10);margin:4px 0"></div>')
@@ -2268,7 +2269,7 @@ async function cfgLoadTeam() {
           <div style="font-size:11px;color:var(--ink60)">${roleLabels[w.role]||w.role} · ${w.email}</div>
         </div>
         <span class="badge ${w.active?'bg':'bk'}">${w.active?'Activo':'Inactivo'}</span>
-        <button class="btn btn-sm" onclick='cfgOpenEditWorker(${JSON.stringify(w).replace(/'/g,"&apos;")})'>✏️ Editar</button>
+        <button class="btn btn-sm" onclick='cfgEditWorkerById('${w.id}')">✏️ Editar</button>
       </div>`).join('')
   } catch(e) { el.innerHTML = '<div class="empty">Error cargando equipo</div>' }
 }
@@ -2348,7 +2349,7 @@ async function cfgLoadSuppliers() {
           <div style="font-size:11px;color:var(--ink60)">${[s.phone,s.email].filter(Boolean).join(' · ')}</div>
           ${s.notes ? `<div style="font-size:11px;color:var(--ink60)">${s.notes}</div>` : ''}
         </div>
-        <button class="btn btn-sm" onclick='cfgOpenEditSupplier(${JSON.stringify(s).replace(/'/g,"&apos;")})'>✏️ Editar</button>
+        <button class="btn btn-sm" onclick='cfgEditSupplierById('${s.id}')">✏️ Editar</button>
       </div>`).join('')
   } catch(e) { el.innerHTML = '<div class="empty">Error cargando proveedores</div>' }
 }
@@ -2381,6 +2382,30 @@ async function cfgSaveSupplier() {
     // refresh purchase supplier dropdowns
     if(document.getElementById('page-purchases')?.classList.contains('active')) loadPurchases()
   } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+
+// ── ID-BASED LOOKUP HELPERS ───────────────────────────────────
+function cfgEditItemById(id) {
+  const item = (cfgTabData.menu?.items||[]).find(i => i.id === id)
+  if(item) cfgOpenEditItem(item)
+}
+function cfgOpenEditIngredientById(id) {
+  const ing = (cfgTabData.inventory||[]).find(i => i.id === id)
+  if(ing) cfgOpenEditIngredient(ing)
+}
+function cfgEditWorkerById(id) {
+  // fetch fresh from cache or re-fetch
+  fetch('/api/workers').then(r=>r.json()).then(workers => {
+    const w = (workers||[]).find(x => x.id === id)
+    if(w) cfgOpenEditWorker(w)
+  })
+}
+function cfgEditSupplierById(id) {
+  fetch('/api/purchases?resource=suppliers').then(r=>r.json()).then(suppliers => {
+    const s = (suppliers||[]).find(x => x.id === id)
+    if(s) cfgOpenEditSupplier(s)
+  })
 }
 
 // Load config on startup
