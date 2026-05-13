@@ -926,7 +926,8 @@ async function verifyPIN() {
     onLoginSuccess(worker)
   } catch(e) {
     document.getElementById('pin-loading').style.display = 'none'
-    showPinError('Error de conexión. Intenta de nuevo.')
+    showPinError('Error: ' + (e.message || 'Sin conexión. Intenta de nuevo.'))
+    console.error('PIN verify error:', e)
   }
 }
 
@@ -942,18 +943,7 @@ function onLoginSuccess(worker) {
 }
 
 // Check if already logged in this session
-(function() {
-  const saved = sessionStorage.getItem('nomi_worker')
-  if (saved) {
-    try {
-      currentWorker = JSON.parse(saved)
-      document.getElementById('pin-screen').style.display = 'none'
-      if (typeof onWorkerLoggedIn === 'function') onWorkerLoggedIn(currentWorker)
-    } catch(e) {
-      sessionStorage.removeItem('nomi_worker')
-    }
-  }
-})()
+// auto-login check moved to DOMContentLoaded
 
 
 
@@ -1414,4 +1404,8 @@ function chPOS(i, d) { posCart[i].qty += d; if(posCart[i].qty <= 0) posCart.spli
 function clrPOS() { posCart = []; document.getElementById('pos-discount').value=''; renderPOSCart() }
 
 // ── PAYMENT MODAL ─────────────────────────────────────────────
-function openPa
+function openPaymentModal() {
+  if (!posCart.length) { showToast('Agrega al menos un producto', false); return }
+  const discount = Number(document.getElementById('pos-discount')?.value || 0)
+  const subtotal = posCart.reduce((s,c) => s + c.price*c.qty, 0)
+  const d
