@@ -362,9 +362,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
           </div>
           <!-- Totals -->
           <div style="padding:10px 18px;border-top:1px solid var(--ink10);flex-shrink:0;background:var(--cream)">
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink60);margin-bottom:4px"><span>Subtotal</span><span id="pos-sub">$0.00</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink60);margin-bottom:4px"><span>Subtotal sin IVA</span><span id="pos-sub">$0.00</span></div>
             <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink60);margin-bottom:4px" id="pos-disc-row" style="display:none"><span>Descuento</span><span id="pos-disc-val">-$0.00</span></div>
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink60);margin-bottom:6px"><span>IVA (16%)</span><span id="pos-tax">$0.00</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink60);margin-bottom:6px"><span>IVA (16%)</span><span id="pos-iva-amt">$0.00</span></div>
             <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;color:var(--ink)"><span>Total (IVA inc.)</span><span id="pos-tot">$0.00</span></div>
           </div>
           <!-- Action buttons -->
@@ -1393,11 +1393,15 @@ function renderPOSCart() {
   }).join('')
   const discAmt = Math.min(discount, subtotal)
   const total = subtotal - discAmt
-  document.getElementById('pos-sub').textContent = fmt(subtotal)
+  const ivaBase = Math.round(total/1.16*100)/100
+  const ivaAmt = Math.round((total-ivaBase)*100)/100
+  document.getElementById('pos-sub').textContent = fmt(ivaBase)
   const discEl = document.getElementById('pos-disc-val')
   if(discEl) discEl.textContent = '-' + fmt(discAmt)
   const discRow = document.getElementById('pos-disc-row')
   if(discRow) discRow.style.display = discAmt > 0 ? 'flex' : 'none'
+  const ivaEl = document.getElementById('pos-iva-amt')
+  if(ivaEl) ivaEl.textContent = fmt(ivaAmt)
   document.getElementById('pos-tot').textContent = fmt(total)
 }
 
@@ -2539,8 +2543,9 @@ ${item.notes ? `<div class="note">* ${item.notes}</div>` : ''}`).join('')}
 
 <div class="dash"></div>
 
-${Number(order.subtotal) !== total && order.subtotal ? `<div class="row md"><span>Subtotal</span><span>${fmt$(order.subtotal)}</span></div>` : ''}
+${order.subtotal ? `<div class="row md"><span>Subtotal sin IVA</span><span>${fmt$(Math.round(Number(order.subtotal)/1.16*100)/100)}</span></div>` : ''}
 ${discount > 0 ? `<div class="row md"><span>Descuento</span><span>-${fmt$(discount)}</span></div>` : ''}
+<div class="row md"><span>IVA (16%)</span><span>${fmt$(Math.round((Number(order.subtotal||total)/1.16*0.16)*100)/100)}</span></div>
 <div class="solid"></div>
 <div class="total-row"><span>TOTAL</span><span>${fmt$(total)}</span></div>
 <div class="dash"></div>
