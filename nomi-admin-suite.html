@@ -480,6 +480,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
         <button class="cfg-tab" onclick="switchCfgTab('equipo',this)">👥 Equipo</button>
         <button class="cfg-tab" onclick="switchCfgTab('proveedores',this)">🏪 Proveedores</button>
         <button class="cfg-tab" onclick="switchCfgTab('pagos',this)">💳 Pagos</button>
+        <button class="cfg-tab" onclick="switchCfgTab('recetas',this)">📊 Recetas</button>
       </div>
 
       <!-- RESTAURANTE TAB -->
@@ -619,6 +620,44 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
         </div>
       </div>
 
+      <!-- RECETAS TAB -->
+      <div class="cfg-panel" id="cfgp-recetas">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <div style="font-size:13px;color:var(--ink60)" id="cfg-rec-summary">Cargando...</div>
+          <div style="display:flex;gap:6px">
+            <select class="fs" id="rec-filter" onchange="recFilterChange(this)" style="font-size:12px;padding:5px 10px">
+              <option value="all">Todos los productos</option>
+              <option value="no-recipe">Sin receta</option>
+              <option value="high">Margen alto (&gt;50%)</option>
+              <option value="mid">Margen medio (30–50%)</option>
+              <option value="low">Margen bajo (&lt;30%)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- P&L Summary cards -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px" id="rec-kpi-row">
+          <div class="mc"><div class="mc-l">Con receta</div><div class="mc-v" id="rec-k-count">—</div><div class="mc-s">de <span id="rec-k-total">0</span> productos</div></div>
+          <div class="mc"><div class="mc-l">Food cost prom.</div><div class="mc-v" id="rec-k-fc">—</div><div class="mc-s">% del neto sin IVA</div></div>
+          <div class="mc"><div class="mc-l">Margen prom.</div><div class="mc-v" id="rec-k-margin">—</div><div class="mc-s">promedio con receta</div></div>
+          <div class="mc"><div class="mc-l">Sin receta</div><div class="mc-v" id="rec-k-missing" style="color:var(--red)">—</div><div class="mc-s">pendientes de costear</div></div>
+        </div>
+
+        <!-- Items table -->
+        <div class="card">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr auto;gap:0;padding:8px 18px;font-size:10px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--ink10)">
+            <span>Producto</span>
+            <span style="text-align:right">Precio venta</span>
+            <span style="text-align:right">Neto (sin IVA)</span>
+            <span style="text-align:right">Costo receta</span>
+            <span style="text-align:right">Food cost %</span>
+            <span style="text-align:right">Margen $</span>
+            <span></span>
+          </div>
+          <div id="cfg-rec-list"><div class="loading"><div class="spinner"></div>Cargando...</div></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- WORKERS -->
@@ -637,6 +676,90 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 <div class="modal-bg" id="worker-modal"><div class="modal"><div class="mh"><span class="mt">Agregar trabajador</span><button class="mc-btn" onclick="closeM('worker-modal')">×</button></div><div class="mb"><div class="fl"><label>Nombre</label><input class="fi" id="w-name" placeholder="Jorge López"></div><div class="fl"><label>Correo</label><input class="fi" id="w-email" type="email" placeholder="jorge@nomipizza.mx"></div><div class="fl"><label>PIN (4 dígitos)</label><input class="fi" id="w-pin" type="password" maxlength="4" placeholder="••••"></div><div class="fl"><label>Rol</label><select class="fs" id="w-role"><option value="admin">👑 Administrador</option><option value="manager">👨‍💼 Gerente</option><option value="waiter" selected>🍽 Mesero</option><option value="kitchen">👨‍🍳 Cocina</option><option value="delivery">🛵 Repartidor</option><option value="cashier">💰 Cajero</option></select></div></div><div class="mf"><button class="btn" onclick="closeM('worker-modal')">Cancelar</button><button class="btn btn-p" onclick="saveWorker()">✓ Crear</button></div></div></div>
 
 <div class="modal-bg" id="restock-modal"><div class="modal"><div class="mh"><span class="mt">Reabastecer</span><button class="mc-btn" onclick="closeM('restock-modal')">×</button></div><div class="mb"><div class="fl"><label>Ingrediente</label><select class="fs" id="rs-ing"></select></div><div class="fl"><label>Cantidad</label><input class="fi" id="rs-qty" type="number" step="0.1" placeholder="0.0"></div><div class="fl"><label>Notas</label><input class="fi" id="rs-notes" placeholder="Proveedor, lote..."></div></div><div class="mf"><button class="btn" onclick="closeM('restock-modal')">Cancelar</button><button class="btn btn-p" onclick="saveRestock()">✓ Registrar</button></div></div></div>
+
+<!-- RECIPE EDITOR MODAL -->
+<div class="modal-bg" id="recipe-modal">
+  <div class="modal" style="width:640px;max-width:96vw">
+    <div class="mh">
+      <div>
+        <div class="mt" id="rec-modal-title">Receta</div>
+        <div style="font-size:11px;color:var(--ink60);margin-top:2px" id="rec-modal-subtitle"></div>
+      </div>
+      <button class="mc-btn" onclick="closeM('recipe-modal')">×</button>
+    </div>
+    <div class="mb" style="padding:0">
+
+      <!-- P&L strip -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--ink10);background:var(--cream)">
+        <div style="padding:12px 16px;border-right:1px solid var(--ink10)">
+          <div style="font-size:9px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Precio venta</div>
+          <div style="font-size:16px;font-weight:700;color:var(--ink)" id="rec-pl-price">—</div>
+        </div>
+        <div style="padding:12px 16px;border-right:1px solid var(--ink10)">
+          <div style="font-size:9px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">IVA incluido</div>
+          <div style="font-size:16px;font-weight:700;color:var(--ink)" id="rec-pl-iva">—</div>
+        </div>
+        <div style="padding:12px 16px;border-right:1px solid var(--ink10)">
+          <div style="font-size:9px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Neto sin IVA</div>
+          <div style="font-size:16px;font-weight:700;color:var(--ink)" id="rec-pl-net">—</div>
+        </div>
+        <div style="padding:12px 16px;border-right:1px solid var(--ink10)">
+          <div style="font-size:9px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Costo receta</div>
+          <div style="font-size:16px;font-weight:700;color:var(--red)" id="rec-pl-cost">—</div>
+        </div>
+        <div style="padding:12px 16px">
+          <div style="font-size:9px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Margen</div>
+          <div style="font-size:16px;font-weight:700" id="rec-pl-margin">—</div>
+          <div style="font-size:10px;color:var(--ink60)" id="rec-pl-margin-pct">—% food cost</div>
+        </div>
+      </div>
+
+      <!-- Ingredients list -->
+      <div style="padding:14px 18px">
+        <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Ingredientes de la receta</div>
+        <div id="rec-ing-list" style="margin-bottom:12px">
+          <div style="font-size:12px;color:var(--ink60);padding:8px 0">Sin ingredientes. Agrega el primero abajo.</div>
+        </div>
+
+        <!-- Add ingredient row -->
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;padding:12px;background:var(--cream);border-radius:var(--rsm);border:1px dashed var(--ink10)">
+          <div class="fl" style="margin-bottom:0">
+            <label style="font-size:10px">Ingrediente</label>
+            <select class="fs" id="rec-add-ing" style="font-size:12px" onchange="recIngChange()">
+              <option value="">— Seleccionar —</option>
+            </select>
+          </div>
+          <div class="fl" style="margin-bottom:0">
+            <label style="font-size:10px">Cantidad</label>
+            <input class="fi" id="rec-add-qty" type="number" step="0.001" min="0" placeholder="0" oninput="recCalcCost()" style="font-size:12px">
+          </div>
+          <div class="fl" style="margin-bottom:0">
+            <label style="font-size:10px">Costo override</label>
+            <div style="position:relative">
+              <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--ink60)">$</span>
+              <input class="fi" id="rec-add-override" type="number" step="0.01" min="0" placeholder="auto" oninput="recCalcCost()" style="font-size:12px;padding-left:18px">
+            </div>
+          </div>
+          <button class="btn btn-p btn-sm" onclick="recAddIngredient()" style="height:34px;align-self:end">+ Agregar</button>
+        </div>
+        <div style="font-size:10px;color:var(--ink60);margin-top:5px" id="rec-add-hint">Selecciona un ingrediente para ver su costo/unidad actual del inventario</div>
+
+        <!-- Notes -->
+        <div class="fl" style="margin-top:12px">
+          <label>Notas de la receta (opcional)</label>
+          <input class="fi" id="rec-notes" placeholder="Ej: tamaño 30cm, rendimiento 1 pizza...">
+        </div>
+      </div>
+      <input type="hidden" id="rec-item-id">
+      <input type="hidden" id="rec-recipe-id">
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeM('recipe-modal')">Cancelar</button>
+      <button class="btn" style="color:var(--red);border-color:var(--red)" id="rec-delete-btn" onclick="recDeleteRecipe()" style="display:none">🗑 Borrar receta</button>
+      <button class="btn btn-p" onclick="recSaveRecipe()">✓ Guardar receta</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"><svg width="13" height="13" viewBox="0 0 24 24" fill="#22c55e"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span id="toast-msg"></span></div>
 
@@ -1974,6 +2097,7 @@ function switchCfgTab(tab, el) {
   if(tab === 'inventario') cfgLoadInventory()
   if(tab === 'equipo') cfgLoadTeam()
   if(tab === 'proveedores') cfgLoadSuppliers()
+  if(tab === 'recetas') cfgLoadRecetas()
   if(tab === 'restaurante') loadConfig()
 }
 
@@ -2423,6 +2547,292 @@ async function cfgSaveSupplier() {
   } catch(e) { showToast('Error: ' + e.message, false) }
 }
 
+
+// ── RECETAS TAB ───────────────────────────────────────────────
+let _recMenuItems = []
+let _recInventory = []
+let _recRecipes   = []   // [{id, menu_item_id, notes, ingredients:[{id,ingredient_id,ingredient_name,quantity,unit,cost_per_unit,cost_override}]}]
+let _recFilter    = 'all'
+
+async function cfgLoadRecetas() {
+  const el = document.getElementById('cfg-rec-list')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  try {
+    const [menuData, inventory, recipes] = await Promise.all([
+      api('menu'),
+      api('inventory'),
+      api('recipes')
+    ])
+    _recMenuItems = (menuData?.items || []).filter(i => i.available !== false)
+    _recInventory = inventory || []
+    _recRecipes   = recipes || []
+    recRender()
+  } catch(e) {
+    el.innerHTML = '<div class="empty">Error cargando recetas</div>'
+    showToast('Error cargando recetas', false)
+  }
+}
+
+function recFilterChange(sel) {
+  _recFilter = sel.value
+  recRender()
+}
+
+function recRender() {
+  const recMap = {}
+  _recRecipes.forEach(r => { recMap[r.menu_item_id] = r })
+
+  let items = _recMenuItems
+  if(_recFilter === 'no-recipe') items = items.filter(i => !recMap[i.id])
+  else if(_recFilter === 'high')  items = items.filter(i => recMap[i.id] && recMarginPct(i, recMap[i.id]) >= 50)
+  else if(_recFilter === 'mid')   items = items.filter(i => recMap[i.id] && recMarginPct(i, recMap[i.id]) >= 30 && recMarginPct(i, recMap[i.id]) < 50)
+  else if(_recFilter === 'low')   items = items.filter(i => recMap[i.id] && recMarginPct(i, recMap[i.id]) < 30)
+
+  // KPIs
+  const withRec = _recMenuItems.filter(i => recMap[i.id])
+  const missing = _recMenuItems.filter(i => !recMap[i.id]).length
+  const fcPcts  = withRec.map(i => recFoodCostPct(i, recMap[i.id]))
+  const avgFC   = fcPcts.length ? (fcPcts.reduce((a,b) => a+b, 0) / fcPcts.length) : 0
+  const margPcts= withRec.map(i => recMarginPct(i, recMap[i.id]))
+  const avgMarg = margPcts.length ? (margPcts.reduce((a,b) => a+b, 0) / margPcts.length) : 0
+
+  document.getElementById('rec-k-count').textContent   = withRec.length
+  document.getElementById('rec-k-total').textContent   = _recMenuItems.length
+  document.getElementById('rec-k-fc').textContent      = avgFC ? avgFC.toFixed(1) + '%' : '—'
+  document.getElementById('rec-k-margin').textContent  = avgMarg ? avgMarg.toFixed(1) + '%' : '—'
+  document.getElementById('rec-k-missing').textContent = missing
+  document.getElementById('cfg-rec-summary').innerHTML =
+    `${_recMenuItems.length} productos &nbsp;·&nbsp; <strong>${withRec.length}</strong> con receta &nbsp;·&nbsp; <span style="color:var(--red)">${missing} sin costear</span>`
+
+  const el = document.getElementById('cfg-rec-list')
+  if(!items.length) { el.innerHTML = '<div class="empty">No hay productos que mostrar</div>'; return }
+
+  el.innerHTML = items.map(item => {
+    const rec   = recMap[item.id]
+    const cost  = rec ? recTotalCost(rec) : null
+    const net   = item.price / 1.16
+    const iva   = item.price - net
+    const margin = cost !== null ? (net - cost) : null
+    const marginPct = (cost !== null && net > 0) ? ((margin / net) * 100) : null
+    const fcPct = (cost !== null && net > 0) ? ((cost / net) * 100) : null
+    const badge = marginPct === null ? ['bk','Sin receta'] :
+                  marginPct >= 50    ? ['bg','Excelente'] :
+                  marginPct >= 30    ? ['ba','Bien'] :
+                                       ['br','Bajo']
+    return `<div class="row">
+      <span style="font-size:22px;flex-shrink:0">${item.emoji||'🍽'}</span>
+      <div class="rm">
+        <div class="rt">${item.name}</div>
+        <div class="rs">${rec ? (rec.ingredients?.length||0) + ' ingredientes' : 'Sin receta'}</div>
+      </div>
+      <div style="text-align:right;min-width:80px;font-size:13px;font-weight:600">${fmt(item.price)}</div>
+      <div style="text-align:right;min-width:80px;font-size:12px;color:var(--ink60)">${fmt(net)}</div>
+      <div style="text-align:right;min-width:80px;font-size:13px;font-weight:600;color:var(--red)">${cost !== null ? fmt(cost) : '—'}</div>
+      <div style="text-align:right;min-width:80px;font-size:12px;color:var(--ink60)">${fcPct !== null ? fcPct.toFixed(1)+'%' : '—'}</div>
+      <div style="text-align:right;min-width:80px">
+        <div style="font-size:13px;font-weight:600;color:${margin!==null&&margin<0?'var(--red)':'var(--green)'}">${margin !== null ? fmt(margin) : '—'}</div>
+        <span class="badge ${badge[0]}" style="margin-top:3px">${badge[1]}</span>
+      </div>
+      <button class="btn btn-sm" style="flex-shrink:0;margin-left:8px" onclick="recOpenModal('${item.id}')">✏️ Receta</button>
+    </div>`
+  }).join('')
+}
+
+function recTotalCost(rec) {
+  if(!rec?.ingredients?.length) return 0
+  return rec.ingredients.reduce((sum, ing) => {
+    const costPer = ing.cost_override != null ? Number(ing.cost_override) : Number(ing.cost_per_unit || 0)
+    return sum + (costPer * Number(ing.quantity))
+  }, 0)
+}
+
+function recFoodCostPct(item, rec) {
+  if(!rec) return 0
+  const net  = item.price / 1.16
+  const cost = recTotalCost(rec)
+  return net > 0 ? (cost / net) * 100 : 0
+}
+
+function recMarginPct(item, rec) {
+  if(!rec) return 0
+  const net  = item.price / 1.16
+  const cost = recTotalCost(rec)
+  return net > 0 ? ((net - cost) / net) * 100 : 0
+}
+
+function recOpenModal(menuItemId) {
+  const item = _recMenuItems.find(i => i.id === menuItemId)
+  if(!item) return
+  const rec  = _recRecipes.find(r => r.menu_item_id === menuItemId)
+
+  document.getElementById('rec-item-id').value   = menuItemId
+  document.getElementById('rec-recipe-id').value = rec?.id || ''
+  document.getElementById('rec-modal-title').textContent    = item.emoji + ' ' + item.name
+  document.getElementById('rec-modal-subtitle').textContent = fmt(item.price) + ' precio venta · ' + fmt(item.price/1.16) + ' neto sin IVA'
+  document.getElementById('rec-notes').value = rec?.notes || ''
+
+  // P&L strip
+  const net = item.price / 1.16
+  const iva = item.price - net
+  document.getElementById('rec-pl-price').textContent = fmt(item.price)
+  document.getElementById('rec-pl-iva').textContent   = fmt(iva)
+  document.getElementById('rec-pl-net').textContent   = fmt(net)
+
+  // Populate ingredient selector
+  const sel = document.getElementById('rec-add-ing')
+  sel.innerHTML = '<option value="">— Seleccionar —</option>' +
+    _recInventory.map(i => `<option value="${i.id}" data-unit="${i.unit}" data-cost="${i.cost_per_unit||0}">${i.name} (${i.unit} · ${fmt(i.cost_per_unit||0)}/u)</option>`).join('')
+
+  document.getElementById('rec-add-qty').value      = ''
+  document.getElementById('rec-add-override').value = ''
+  document.getElementById('rec-add-hint').textContent = 'Selecciona un ingrediente para ver su costo/unidad actual del inventario'
+
+  // Show delete btn only if recipe exists
+  document.getElementById('rec-delete-btn').style.display = rec ? 'inline-flex' : 'none'
+
+  // Render existing ingredients
+  window._recModalIngredients = rec ? JSON.parse(JSON.stringify(rec.ingredients || [])) : []
+  recRenderModalIngredients(item)
+  recUpdatePL(item)
+
+  openM('recipe-modal')
+}
+
+function recRenderModalIngredients(item) {
+  const el = document.getElementById('rec-ing-list')
+  const ings = window._recModalIngredients || []
+  if(!ings.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--ink60);padding:8px 0">Sin ingredientes. Agrega el primero abajo.</div>'
+    return
+  }
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:4px;padding:6px 0;font-size:10px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--ink10);margin-bottom:6px">
+      <span>Ingrediente</span><span style="text-align:right">Cantidad</span><span style="text-align:right">Costo/u</span><span style="text-align:right">Subtotal</span><span></span>
+    </div>` +
+    ings.map((ing, idx) => {
+      const costPer = ing.cost_override != null ? Number(ing.cost_override) : Number(ing.cost_per_unit || 0)
+      const sub = costPer * Number(ing.quantity)
+      const isOverride = ing.cost_override != null
+      return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:4px;align-items:center;padding:6px 0;border-bottom:1px solid var(--ink10)">
+        <div style="font-size:13px;font-weight:500">${ing.ingredient_name}</div>
+        <div style="text-align:right;font-size:12px">${ing.quantity} <span style="color:var(--ink60)">${ing.unit}</span></div>
+        <div style="text-align:right;font-size:12px">${fmt(costPer)} ${isOverride ? '<span class="badge ba" style="font-size:9px;padding:1px 5px">manual</span>' : ''}</div>
+        <div style="text-align:right;font-size:13px;font-weight:600">${fmt(sub)}</div>
+        <button class="btn btn-sm" style="color:var(--red);border-color:transparent;padding:3px 8px" onclick="recRemoveIngredient(${idx})">✕</button>
+      </div>`
+    }).join('')
+  recUpdatePL(item)
+}
+
+function recUpdatePL(item) {
+  const ings = window._recModalIngredients || []
+  const cost = ings.reduce((sum, ing) => {
+    const cp = ing.cost_override != null ? Number(ing.cost_override) : Number(ing.cost_per_unit || 0)
+    return sum + cp * Number(ing.quantity)
+  }, 0)
+  const net  = item.price / 1.16
+  const margin = net - cost
+  const marginPct = net > 0 ? (margin / net * 100) : 0
+  const fcPct = net > 0 ? (cost / net * 100) : 0
+
+  document.getElementById('rec-pl-cost').textContent   = fmt(cost)
+  const mEl = document.getElementById('rec-pl-margin')
+  mEl.textContent = fmt(margin)
+  mEl.style.color = margin >= 0 ? 'var(--green)' : 'var(--red)'
+  document.getElementById('rec-pl-margin-pct').textContent = fcPct.toFixed(1) + '% food cost'
+}
+
+function recIngChange() {
+  const sel  = document.getElementById('rec-add-ing')
+  const opt  = sel.options[sel.selectedIndex]
+  const cost = opt?.getAttribute('data-cost')
+  const unit = opt?.getAttribute('data-unit')
+  const hint = document.getElementById('rec-add-hint')
+  if(cost && unit) hint.textContent = `Costo actual del inventario: ${fmt(cost)} por ${unit}`
+  else hint.textContent = 'Selecciona un ingrediente para ver su costo/unidad actual del inventario'
+}
+
+function recCalcCost() {
+  // live hint update — no DOM update needed until add
+}
+
+function recAddIngredient() {
+  const sel      = document.getElementById('rec-add-ing')
+  const opt      = sel.options[sel.selectedIndex]
+  const ingId    = sel.value
+  const qty      = Number(document.getElementById('rec-add-qty').value)
+  const override = document.getElementById('rec-add-override').value
+
+  if(!ingId || !qty) { showToast('Selecciona ingrediente y cantidad', false); return }
+
+  const name = opt.textContent.split(' (')[0]
+  const unit = opt.getAttribute('data-unit')
+  const costPer = Number(opt.getAttribute('data-cost') || 0)
+
+  window._recModalIngredients = window._recModalIngredients || []
+  // Replace if same ingredient already added
+  const existing = window._recModalIngredients.findIndex(i => i.ingredient_id === ingId)
+  const entry = {
+    ingredient_id:   ingId,
+    ingredient_name: name,
+    quantity:        qty,
+    unit:            unit,
+    cost_per_unit:   costPer,
+    cost_override:   override !== '' ? Number(override) : null
+  }
+  if(existing >= 0) window._recModalIngredients[existing] = entry
+  else window._recModalIngredients.push(entry)
+
+  // Reset add row
+  sel.value = ''
+  document.getElementById('rec-add-qty').value      = ''
+  document.getElementById('rec-add-override').value = ''
+  document.getElementById('rec-add-hint').textContent = 'Selecciona un ingrediente'
+
+  const item = _recMenuItems.find(i => i.id === document.getElementById('rec-item-id').value)
+  recRenderModalIngredients(item)
+}
+
+function recRemoveIngredient(idx) {
+  window._recModalIngredients.splice(idx, 1)
+  const item = _recMenuItems.find(i => i.id === document.getElementById('rec-item-id').value)
+  recRenderModalIngredients(item)
+}
+
+async function recSaveRecipe() {
+  const menuItemId = document.getElementById('rec-item-id').value
+  const recipeId   = document.getElementById('rec-recipe-id').value
+  const notes      = document.getElementById('rec-notes').value.trim()
+  const ings       = window._recModalIngredients || []
+
+  try {
+    await fetch('/api/recipes', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ menu_item_id: menuItemId, recipe_id: recipeId || null, notes, ingredients: ings })
+    }).then(r => r.json()).then(d => { if(d.error) throw new Error(d.error) })
+
+    showToast('Receta guardada ✓')
+    closeM('recipe-modal')
+    cfgLoadRecetas()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function recDeleteRecipe() {
+  const recipeId = document.getElementById('rec-recipe-id').value
+  if(!recipeId) return
+  if(!confirm('¿Eliminar esta receta? Se borrará el costeo del producto.')) return
+  try {
+    await fetch('/api/recipes', {
+      method: 'DELETE',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ recipe_id: recipeId })
+    })
+    showToast('Receta eliminada')
+    closeM('recipe-modal')
+    cfgLoadRecetas()
+  } catch(e) { showToast('Error', false) }
+}
 
 // ── ID-BASED LOOKUP HELPERS ───────────────────────────────────
 function cfgEditItemById(id) {
