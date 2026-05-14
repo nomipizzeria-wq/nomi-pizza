@@ -2553,7 +2553,7 @@ const _SB_URL  = 'https://vmvrigshxffagblmpvyf.supabase.co'
 const _SB_ANON = 'sb_publishable_2p2n5KWlB0hHx1Y071T18g_C_R7BOza'
 const _sbH = (extra={}) => ({ apikey:_SB_ANON, Authorization:`Bearer ${_SB_ANON}`, 'Content-Type':'application/json', ...extra })
 async function _sbGet(t,q=''){return fetch(`${_SB_URL}/rest/v1/${t}${q}`,{headers:_sbH()}).then(r=>r.json())}
-async function _sbPost(t,b,ret=true){return fetch(`${_SB_URL}/rest/v1/${t}`,{method:'POST',headers:_sbH(ret?{Prefer:'return=representation'}:{}),body:JSON.stringify(b)}).then(r=>r.json())}
+async function _sbPost(t,b,ret=true){const r=await fetch(`${_SB_URL}/rest/v1/${t}`,{method:'POST',headers:_sbH(ret?{Prefer:'return=representation'}:{}),body:JSON.stringify(b)});if(!ret)return r.ok;return r.json()}
 async function _sbPatch(t,q,b){return fetch(`${_SB_URL}/rest/v1/${t}${q}`,{method:'PATCH',headers:_sbH({Prefer:'return=representation'}),body:JSON.stringify(b)}).then(r=>r.json())}
 async function _sbDel(t,q){return fetch(`${_SB_URL}/rest/v1/${t}${q}`,{method:'DELETE',headers:_sbH()}).then(r=>r.ok)}
 let _recMenuItems = []
