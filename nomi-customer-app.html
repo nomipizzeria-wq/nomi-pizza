@@ -387,8 +387,8 @@ function renderCartPage(){
   const el=document.getElementById('cart-items-disp');let sub=0
   if(!cart.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--ink60)">Tu carrito está vacío</div>';document.getElementById('sum-box').innerHTML='';return}
   el.innerHTML=cart.map((c,i)=>{sub+=c.price*c.qty;return`<div class="cicard"><span style="font-size:28px">${c.emoji}</span><div class="ci-n">${c.name}<div style="font-size:11px;color:var(--ink60)">${fmt(c.price)} c/u</div></div><div class="qbc"><button class="qb" onclick="chQ(${i},-1)">−</button><span style="font-size:13px;font-weight:600;min-width:16px;text-align:center">${c.qty}</span><button class="qb" onclick="chQ(${i},1)">+</button></div><span class="ci-p">${fmt(c.price*c.qty)}</span></div>`}).join('')
-  const df=delivType==='delivery'?45:0,tax=sub*0.16,tot=sub+df+tax,pts=Math.floor(tot)
-  document.getElementById('sum-box').innerHTML=`<div class="sr"><span class="sl">Subtotal</span><span class="sv">${fmt(sub)}</span></div>${delivType==='delivery'?`<div class="sr"><span class="sl">Envío</span><span class="sv">${fmt(df)}</span></div>`:''}<div class="sr"><span class="sl">IVA (16%)</span><span class="sv">${fmt(tax)}</span></div><div class="sr"><span class="sl">Puntos a ganar</span><span class="sv" style="color:var(--red)">+${pts} pts</span></div><div class="sr"><span class="sl">Total</span><span class="sv sv-tot">${fmt(tot)}</span></div><button class="cobrar" onclick="placeOrder()">💳 Pagar con Mercado Pago</button>`
+  const df=delivType==='delivery'?45:0,tot=sub+df,ivaBase=Math.round(sub/1.16*100)/100,ivaAmt=Math.round((sub-ivaBase)*100)/100,pts=Math.floor(tot)
+  document.getElementById('sum-box').innerHTML=`<div class="sr"><span class="sl">Subtotal sin IVA</span><span class="sv">${fmt(ivaBase)}</span></div><div class="sr"><span class="sl">IVA (16%)</span><span class="sv">${fmt(ivaAmt)}</span></div>${delivType==='delivery'?`<div class="sr"><span class="sl">Envío</span><span class="sv">${fmt(df)}</span></div>`:''}<div class="sr"><span class="sl">Puntos a ganar</span><span class="sv" style="color:var(--red)">+${pts} pts</span></div><div class="sr"><span class="sl">Total</span><span class="sv sv-tot">${fmt(tot)}</span></div><button class="cobrar" onclick="placeOrder()">💳 Pagar con Mercado Pago</button>`
 }
 
 function chQ(i,d){cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);renderCartPage();updBar()}
@@ -399,10 +399,10 @@ async function placeOrder(){
   const name=document.getElementById('cname').value.trim(),phone=document.getElementById('cphone').value.trim(),email=document.getElementById('cemail').value.trim(),addr=document.getElementById('addr').value.trim()
   if(delivType==='delivery'&&(!name||!addr)){showToast('Por favor completa nombre y dirección');return}
   const btn=document.querySelector('.cobrar');btn.disabled=true;btn.textContent='Procesando...'
-  const sub=cart.reduce((s,c)=>s+c.price*c.qty,0),df=delivType==='delivery'?45:0,tax=sub*0.16,tot=sub+df+tax
+  const sub=cart.reduce((s,c)=>s+c.price*c.qty,0),df=delivType==='delivery'?45:0,tot=sub+df
   try{
     if(phone||email){try{const cr=await api('customers',{method:'POST',body:{name,phone,email}});localStorage.setItem('nomi_c',JSON.stringify(cr))}catch(e){}}
-    const order=await api('orders',{method:'POST',body:{type:delivType,status:'pending',customer_name:name,customer_phone:phone,customer_email:email,delivery_address:addr?{street:addr}:null,subtotal:Math.round(sub*100)/100,delivery_fee:df,tax:Math.round(tax*100)/100,total:Math.round(tot*100)/100,loyalty_points_earned:Math.floor(tot),items:cart.map(c=>({item_id:c.id,item_name:c.name,unit_price:c.price,quantity:c.qty,subtotal:c.price*c.qty}))}})
+    const order=await api('orders',{method:'POST',body:{type:delivType,status:'pending',customer_name:name,customer_phone:phone,customer_email:email,delivery_address:addr?{street:addr}:null,subtotal:Math.round(sub*100)/100,delivery_fee:df,total:Math.round(tot*100)/100,loyalty_points_earned:Math.floor(tot),items:cart.map(c=>({item_id:c.id,item_name:c.name,unit_price:c.price,quantity:c.qty,subtotal:c.price*c.qty}))}})
     const pr=await api('payments?action=create_preference',{method:'POST',body:{order_id:order.id,items:cart.map(c=>({item_name:c.name,unit_price:c.price,quantity:c.qty})),customer:{name,email,phone},type:delivType}})
     curOrder=order;cart=[];updBar()
     if(pr.init_point)window.location.href=pr.init_point
