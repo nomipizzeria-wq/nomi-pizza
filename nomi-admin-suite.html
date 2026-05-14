@@ -2549,6 +2549,13 @@ async function cfgSaveSupplier() {
 
 
 // ── RECETAS TAB ───────────────────────────────────────────────
+const _SB_URL  = 'https://vmvrigshxffagblmpvyf.supabase.co'
+const _SB_ANON = 'sb_publishable_2p2n5KWlB0hHx1Y071T18g_C_R7BOza'
+const _sbH = (extra={}) => ({ apikey:_SB_ANON, Authorization:`Bearer ${_SB_ANON}`, 'Content-Type':'application/json', ...extra })
+async function _sbGet(t,q=''){return fetch(`${_SB_URL}/rest/v1/${t}${q}`,{headers:_sbH()}).then(r=>r.json())}
+async function _sbPost(t,b,ret=true){return fetch(`${_SB_URL}/rest/v1/${t}`,{method:'POST',headers:_sbH(ret?{Prefer:'return=representation'}:{}),body:JSON.stringify(b)}).then(r=>r.json())}
+async function _sbPatch(t,q,b){return fetch(`${_SB_URL}/rest/v1/${t}${q}`,{method:'PATCH',headers:_sbH({Prefer:'return=representation'}),body:JSON.stringify(b)}).then(r=>r.json())}
+async function _sbDel(t,q){return fetch(`${_SB_URL}/rest/v1/${t}${q}`,{method:'DELETE',headers:_sbH()}).then(r=>r.ok)}
 let _recMenuItems = []
 let _recInventory = []
 let _recRecipes   = []   // [{id, menu_item_id, notes, ingredients:[{id,ingredient_id,ingredient_name,quantity,unit,cost_per_unit,cost_override}]}]
@@ -2558,11 +2565,15 @@ async function cfgLoadRecetas() {
   const el = document.getElementById('cfg-rec-list')
   el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>'
   try {
-    const [menuData, inventory, recipes] = await Promise.all([
+    const [menuData, inventory, recipeRows, ingRows] = await Promise.all([
       api('menu'),
       api('inventory'),
-      api('recipes')
+      _sbGet('recipes','?select=id,menu_item_id,notes'),
+      _sbGet('recipe_ingredients','?select=id,recipe_id,ingredient_id,ingredient_name,quantity,unit,cost_per_unit,cost_override')
     ])
+    const _ingByRecipe = {}
+    ;(Array.isArray(ingRows)?ingRows:[]).forEach(i=>{ if(!_ingByRecipe[i.recipe_id]) _ingByRecipe[i.recipe_id]=[]; _ingByRecipe[i.recipe_id].push(i) })
+    const recipes = (Array.isArray(recipeRows)?recipeRows:[]).map(r=>({...r, ingredients: _ingByRecipe[r.id]||[]}))
     _recMenuItems = (menuData?.items || []).filter(i => i.available !== false)
     _recInventory = inventory || []
     _recRecipes   = recipes || []
@@ -2806,12 +2817,21 @@ async function recSaveRecipe() {
   const ings       = window._recModalIngredients || []
 
   try {
-    await fetch('/api/recipes', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ menu_item_id: menuItemId, recipe_id: recipeId || null, notes, ingredients: ings })
-    }).then(r => r.json()).then(d => { if(d.error) throw new Error(d.error) })
-
+    let finalId = recipeId
+    if(recipeId) {
+      await _sbPatch('recipes','?id=eq.'+recipeId, {notes, updated_at: new Date().toISOString()})
+    } else {
+      const created = await _sbPost('recipes', {menu_item_id: menuItemId, notes})
+      finalId = Array.isArray(created) ? created[0]?.id : created?.id
+      if(!finalId) throw new Error('No se pudo crear la receta')
+      document.getElementById('rec-recipe-id').value = finalId
+    }
+    // Replace all ingredients: delete then re-insert
+    await _sbDel('recipe_ingredients','?recipe_id=eq.'+finalId)
+    if(ings.length > 0) {
+      const rows = ings.map(i=>({ recipe_id:finalId, ingredient_id:i.ingredient_id||null, ingredient_name:i.ingredient_name, quantity:Number(i.quantity), unit:i.unit||'', cost_per_unit:Number(i.cost_per_unit||0), cost_override:i.cost_override!=null?Number(i.cost_override):null }))
+      await _sbPost('recipe_ingredients', rows, false)
+    }
     showToast('Receta guardada ✓')
     closeM('recipe-modal')
     cfgLoadRecetas()
@@ -2823,11 +2843,8 @@ async function recDeleteRecipe() {
   if(!recipeId) return
   if(!confirm('¿Eliminar esta receta? Se borrará el costeo del producto.')) return
   try {
-    await fetch('/api/recipes', {
-      method: 'DELETE',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ recipe_id: recipeId })
-    })
+    await _sbDel('recipe_ingredients','?recipe_id=eq.'+recipeId)
+    await _sbDel('recipes','?id=eq.'+recipeId)
     showToast('Receta eliminada')
     closeM('recipe-modal')
     cfgLoadRecetas()
