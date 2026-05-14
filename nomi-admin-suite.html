@@ -1408,4 +1408,1063 @@ function openPaymentModal() {
   if (!posCart.length) { showToast('Agrega al menos un producto', false); return }
   const discount = Number(document.getElementById('pos-discount')?.value || 0)
   const subtotal = posCart.reduce((s,c) => s + c.price*c.qty, 0)
-  const d
+  const discAmt = Math.min(discount, subtotal)
+  const total = subtotal - discAmt
+
+  document.getElementById('pm-items-count').textContent = posCart.reduce((s,c)=>s+c.qty,0) + ' productos'
+  document.getElementById('pm-disc').textContent = '-' + fmt(discAmt)
+  document.getElementById('pm-disc-row').style.display = discAmt > 0 ? 'flex' : 'none'
+  document.getElementById('pm-total').textContent = fmt(total)
+  document.getElementById('pm-customer').value = ''
+  document.getElementById('pm-cash-received').value = ''
+  document.getElementById('pm-change-box').style.display = 'none'
+
+  // Quick cash amounts
+  const amounts = [Math.ceil(total/50)*50, Math.ceil(total/100)*100, Math.ceil(total/200)*200, 500, 1000]
+  const unique = [...new Set(amounts)].filter(a => a >= total).slice(0,4)
+  document.getElementById('pm-quick-amounts').innerHTML = unique.map(a =>
+    `<button class="btn btn-sm" onclick="document.getElementById('pm-cash-received').value='${a}';calcChange()">${fmt(a)}</button>`
+  ).join('')
+
+  selectPM('cash', document.getElementById('pmo-cash'))
+  openM('payment-modal')
+}
+
+
+function selectPM(method, el) {
+  selectedPayMethod = method
+  document.querySelectorAll('.pm-opt').forEach(function(o) {
+    o.style.borderColor = 'var(--ink10)'
+    o.style.background = 'var(--wh)'
+  })
+  if(el) {
+    el.style.borderColor = 'var(--red)'
+    el.style.background = 'var(--red-l)'
+  }
+  document.getElementById('pm-cash-section').style.display = method === 'cash' ? 'block' : 'none'
+  document.getElementById('pm-card-section').style.display = method !== 'cash' ? 'block' : 'none'
+  if (method === 'mercadopago') {
+    document.getElementById('pm-card-icon').textContent = 'QR'
+    document.getElementById('pm-card-msg').textContent = 'Muestra el QR de Mercado Pago al cliente'
+  } else {
+    document.getElementById('pm-card-icon').textContent = 'CARD'
+    document.getElementById('pm-card-msg').textContent = 'Pasa la tarjeta en la terminal'
+  }
+}
+
+
+function calcChange() {
+  const total = parseFloat(document.getElementById('pm-total').textContent.replace(/[^0-9.]/g,'')) || 0
+  const received = parseFloat(document.getElementById('pm-cash-received').value) || 0
+  const changeBox = document.getElementById('pm-change-box')
+  if (received >= total) {
+    const change = received - total
+    document.getElementById('pm-change').textContent = fmt(change)
+    changeBox.style.display = 'block'
+    changeBox.style.background = change > 0 ? 'var(--green-l)' : 'var(--blue-l)'
+    document.getElementById('pm-change').style.color = change > 0 ? 'var(--green)' : 'var(--blue)'
+    document.getElementById('pm-change-box').querySelector('.change-lbl').textContent = change > 0 ? 'Cambio a entregar' : '✓ Exacto'
+  } else {
+    changeBox.style.display = 'none'
+  }
+}
+
+// ── PIN CONFIRM ───────────────────────────────────────────────
+function openPINConfirm() {
+  if (selectedPayMethod === 'cash') {
+    const total = parseFloat(document.getElementById('pm-total').textContent.replace(/[^0-9.]/g,'')) || 0
+    const received = parseFloat(document.getElementById('pm-cash-received').value) || 0
+    if (received < total) { showToast('El efectivo recibido debe ser ≥ al total', false); return }
+  }
+  pcPIN = ''
+  updatePCDots()
+  document.getElementById('pin-confirm-error').textContent = ''
+  const worker = JSON.parse(sessionStorage.getItem('nomi_worker') || 'null')
+  document.getElementById('pin-confirm-sub').textContent = worker
+    ? `La venta quedará registrada a: ${worker.name}`
+    : 'Ingresa tu PIN para autorizar la venta'
+  openM('pin-confirm-modal')
+}
+
+function pcKey(n) {
+  if(pcPIN.length >= 4) return
+  pcPIN += n
+  updatePCDots()
+  if(pcPIN.length === 4) confirmSale()
+}
+function pcDel() { pcPIN = pcPIN.slice(0,-1); updatePCDots(); document.getElementById('pin-confirm-error').textContent = '' }
+function updatePCDots() { for(var i=0;i<4;i++) document.getElementById('pcd'+i).classList.toggle('filled', i<pcPIN.length) }
+
+async function confirmSale() {
+  document.getElementById('pin-confirm-error').textContent = ''
+  try {
+    // Verify PIN
+    const workerRes = await fetch('/api/workers', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'login_pin', pin:pcPIN})
+    })
+    const worker = await workerRes.json()
+    if (!workerRes.ok || worker.error) {
+      document.getElementById('pin-confirm-error').textContent = 'PIN incorrecto'
+      pcPIN = ''; updatePCDots()
+      return
+    }
+
+    // Process the sale
+    await processSale(worker)
+    closeM('pin-confirm-modal')
+    closeM('payment-modal')
+    showToast(`✓ Venta registrada por ${worker.name}`)
+    clrPOS()
+    loadRecentSales()
+      } catch(e) {
+    document.getElementById('pin-confirm-error').textContent = 'Error: ' + e.message
+    pcPIN = ''; updatePCDots()
+  }
+}
+
+async function processSale(worker) {
+  const discount = Number(document.getElementById('pos-discount')?.value || 0)
+  const subtotal = posCart.reduce((s,c) => s + c.price*c.qty, 0)
+  const discAmt = Math.min(discount, subtotal)
+  const total = subtotal - discAmt
+  const tableId = posOrderType === 'dine_in' ? document.getElementById('pos-tbl').value : null
+  const customerName = document.getElementById('pm-customer').value.trim()
+  const received = parseFloat(document.getElementById('pm-cash-received').value) || 0
+
+  const orderData = {
+    type: posOrderType === 'counter' ? 'pickup' : posOrderType,
+    status: 'delivered',
+    payment_method: selectedPayMethod,
+    payment_status: 'paid',
+    table_id: tableId || null,
+    customer_name: customerName || null,
+    subtotal: Math.round(subtotal*100)/100,
+    discount: Math.round(discAmt*100)/100,
+    total: Math.round(total*100)/100,
+    notes: `Vendido por: ${worker.name} | Método: ${selectedPayMethod}${received?` | Recibido: ${fmt(received)}`:''}`,
+    items: posCart.map(c => ({
+      item_id: c.id, item_name: c.name, unit_price: c.price,
+      quantity: c.qty, subtotal: c.price*c.qty
+    }))
+  }
+
+  await api('orders', {method:'POST', body: orderData})
+}
+
+// ── RECENT SALES ──────────────────────────────────────────────
+async function loadRecentSales() {
+  const el = document.getElementById('recent-sales')
+  try {
+    const orders = await api('orders') || []
+    const recent = orders.filter(o => ['delivered','cancelled'].includes(o.status)).slice(0, 8)
+    if (!recent.length) { el.innerHTML = '<div class="empty" style="padding:12px">Sin ventas hoy aún</div>'; return }
+    const pmIcons = {cash:'💵', card:'💳', mercadopago:'📱', mercado_pago:'📱'}
+    el.innerHTML = recent.map(o => `
+      <div class="sale-row ${o.status==='cancelled'?'sale-cancelled':''}">
+        <span style="font-size:16px">${pmIcons[o.payment_method]||'💰'}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:500;font-size:12px">${o.customer_name||o.restaurant_tables?.number?'Mesa '+o.restaurant_tables?.number:'Mostrador'} <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink60)">#${String(o.order_number||'').padStart(4,'0')}</span></div>
+          <div style="font-size:10px;color:var(--ink60)">${(o.order_items||[]).map(i=>i.quantity+'× '+i.item_name).join(', ').substring(0,40)}</div>
+          ${o.notes?`<div style="font-size:10px;color:var(--green)">${o.notes.split('|')[0]?.replace('Vendido por:','').trim()}</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-weight:700;font-size:12px">${fmt(o.total)}</div>
+          ${o.status==='cancelled'?'<div style="font-size:10px;color:var(--red)">Anulado</div>':
+            `<button class="btn btn-sm" style="font-size:10px;padding:3px 7px;margin-top:3px;color:#EF4444;border-color:#EF4444" onclick="openVoid('${o.id}','${o.order_number||''}','${fmt(o.total)}')">Anular</button>`}
+        </div>
+      </div>`).join('')
+  } catch(e) { el.innerHTML = '<div class="empty" style="padding:12px">Error cargando ventas</div>' }
+}
+
+// ── VOID ─────────────────────────────────────────────────────
+function openVoid(orderId, orderNum, total) {
+  voidingOrderId = orderId
+  vPIN = ''; updateVDots()
+  document.getElementById('void-order-info').innerHTML =
+    `<strong>Pedido #${String(orderNum).padStart(4,'0')}</strong> · Total: <strong>${total}</strong><br>Esta acción marcará el pedido como cancelado.`
+  document.getElementById('void-pin-error').textContent = ''
+  document.getElementById('void-reason').value = 'error_producto'
+  document.getElementById('void-notes').value = ''
+  openM('void-modal')
+}
+
+function vKey(n) {
+  if(vPIN.length >= 4) return
+  vPIN += n; updateVDots()
+  if(vPIN.length === 4) processVoid()
+}
+function vDel() { vPIN = vPIN.slice(0,-1); updateVDots(); document.getElementById('void-pin-error').textContent = '' }
+function updateVDots() { for(var i=0;i<4;i++) document.getElementById('vd'+i).classList.toggle('filled', i<vPIN.length) }
+
+async function processVoid() {
+  try {
+    const workerRes = await fetch('/api/workers', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({action:'login_pin', pin:vPIN})
+    })
+    const worker = await workerRes.json()
+    if (!workerRes.ok || worker.error || !['admin','manager','cashier'].includes(worker.role)) {
+      document.getElementById('void-pin-error').textContent =
+        (!workerRes.ok || worker.error) ? 'PIN incorrecto' : 'Solo un gerente o cajero puede anular ventas'
+      vPIN = ''; updateVDots(); return
+    }
+    const reason = document.getElementById('void-reason').value
+    const notes = document.getElementById('void-notes').value
+    await api('orders', {
+      method:'PATCH',
+      body: { id: voidingOrderId, status:'cancelled',
+        notes: `ANULADO por ${worker.name} · Motivo: ${reason}${notes?' · '+notes:''}` }
+    })
+    showToast('Venta anulada por ' + worker.name)
+    closeM('void-modal')
+    loadRecentSales()
+      } catch(e) {
+    document.getElementById('void-pin-error').textContent = 'Error: ' + e.message
+    vPIN = ''; updateVDots()
+  }
+}
+
+
+// Apply logo on load
+// ── INVENTORY STATE ───────────────────────────────────────────
+var allIngredients = []
+var invFilter = 'all'
+
+// ── LOAD INVENTORY ────────────────────────────────────────────
+async function loadInventory() {
+  try {
+    allIngredients = await api('inventory') || []
+    renderInventory()
+  } catch(e) { showToast('Error cargando inventario', false) }
+}
+
+function filterInv(cat, el) {
+  document.querySelectorAll('#inv-cats .tab').forEach(t => t.classList.remove('active'))
+  if(el) el.classList.add('active')
+  invFilter = cat
+  renderInventory()
+}
+
+function renderInventory() {
+  const items = invFilter === 'all'
+    ? allIngredients
+    : allIngredients.filter(i => i.category === invFilter)
+
+  const crit = allIngredients.filter(i => Number(i.quantity) === 0).length
+  const low  = allIngredients.filter(i => Number(i.quantity) > 0 && Number(i.quantity) <= Number(i.min_level)).length
+  const ok   = allIngredients.filter(i => Number(i.quantity) > Number(i.min_level)).length
+  const totalVal = allIngredients.reduce((s,i) => s + (Number(i.quantity) * Number(i.cost_per_unit||0)), 0)
+
+  document.getElementById('inv-sum').innerHTML =
+    '<span class="badge br">' + crit + ' criticos</span>' +
+    '<span class="badge ba">' + low + ' bajos</span>' +
+    '<span class="badge bg">' + ok + ' OK</span>'
+  document.getElementById('inv-total-value').textContent = fmt(totalVal)
+
+  // Populate usage and restock selects
+  const sel = document.getElementById('usage-ingredient')
+  if(sel) sel.innerHTML = allIngredients.map(i =>
+    '<option value="' + i.id + '" data-unit="' + i.unit + '" data-qty="' + i.quantity + '">' +
+    i.name + ' (' + i.quantity + ' ' + i.unit + ')</option>'
+  ).join('')
+  const rsSel = document.getElementById('rs-ing')
+  if(rsSel) rsSel.innerHTML = allIngredients.map(i =>
+    '<option value="' + i.id + '">' + i.name + ' (actual: ' + i.quantity + ' ' + i.unit + ')</option>'
+  ).join('')
+
+  const el = document.getElementById('inv-list')
+  if (!items.length) { el.innerHTML = '<div class="empty">No hay ingredientes en esta categoria</div>'; return }
+
+  el.innerHTML =
+    '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:0;padding:8px 18px;font-size:10px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--ink10)">' +
+    '<span>Ingrediente</span><span style="text-align:right">Stock</span><span style="text-align:right">Minimo</span><span style="text-align:right">Costo/u</span><span style="text-align:right">Valor</span></div>' +
+    items.map(function(i) {
+      var pct = Number(i.min_level) > 0 ? Math.min(100, Math.round(Number(i.quantity)/Number(i.min_level)*50)) : 50
+      var state = Number(i.quantity) === 0 ? ['br','Critico','#EF4444'] : Number(i.quantity) <= Number(i.min_level) ? ['ba','Bajo','#B45309'] : ['bg','OK','var(--green)']
+      var val = Number(i.quantity) * Number(i.cost_per_unit||0)
+      return '<div class="row" style="cursor:default">' +
+        '<div class="rm">' +
+          '<div class="rt">' + i.name + '</div>' +
+          '<div style="height:4px;background:var(--ink10);border-radius:2px;overflow:hidden;margin-top:5px;width:120px">' +
+            '<div style="height:100%;border-radius:2px;width:' + pct + '%;background:' + state[2] + '"></div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="text-align:right;font-size:13px;font-weight:500">' + i.quantity + ' <span style="font-size:10px;color:var(--ink60)">' + i.unit + '</span></div>' +
+        '<div style="text-align:right;font-size:11px;color:var(--ink60)">' + i.min_level + ' ' + i.unit + '</div>' +
+        '<div style="text-align:right;font-size:12px;color:var(--ink60)">' + fmt(i.cost_per_unit||0) + '</div>' +
+        '<div style="text-align:right;font-size:12px;font-weight:500;min-width:70px">' + fmt(val) + '</div>' +
+      '</div>'
+    }).join('')
+}
+
+// Usage modal setup
+function openUsageModal() {
+  const sel = document.getElementById('usage-ingredient')
+  if(sel) {
+    sel.onchange = function() {
+      var opt = sel.options[sel.selectedIndex]
+      document.getElementById('usage-unit').textContent = opt.getAttribute('data-unit') || ''
+      var qty = opt.getAttribute('data-qty') || 0
+      document.getElementById('usage-stock-preview').textContent = 'Stock actual: ' + qty + ' ' + (opt.getAttribute('data-unit')||'')
+    }
+  }
+  openM('usage-modal')
+}
+
+async function saveUsage() {
+  var id = document.getElementById('usage-ingredient').value
+  var qty = Number(document.getElementById('usage-qty').value)
+  var reason = document.getElementById('usage-reason').value
+  var notes = document.getElementById('usage-notes').value
+  if (!id || !qty) { showToast('Selecciona ingrediente y cantidad', false); return }
+  try {
+    await api('inventory', { method:'PATCH', body:{ id, quantity:qty, type:'waste', notes: reason + (notes ? ': ' + notes : '') }})
+    showToast('Uso registrado correctamente')
+    closeM('usage-modal')
+    document.getElementById('usage-qty').value = ''
+    document.getElementById('usage-notes').value = ''
+    loadInventory()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function saveNewIngredient() {
+  var name = document.getElementById('ni-name').value.trim()
+  var unit = document.getElementById('ni-unit').value
+  var qty = Number(document.getElementById('ni-qty').value)
+  var min = Number(document.getElementById('ni-min').value)
+  var cost = Number(document.getElementById('ni-cost').value)
+  var cat = document.getElementById('ni-cat').value
+  if (!name) { showToast('Ingresa el nombre del ingrediente', false); return }
+  try {
+    // Insert directly via Supabase through inventory endpoint workaround
+    const r = await fetch('/api/inventory', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name, unit, quantity: qty, min_level: min, cost_per_unit: cost, category: cat })
+    })
+    const data = await r.json()
+    if (data.error) throw new Error(data.error)
+    showToast(name + ' agregado al inventario')
+    closeM('new-ingredient-modal')
+    ;['ni-name','ni-qty','ni-min','ni-cost'].forEach(id => { var el = document.getElementById(id); if(el) el.value = '' })
+    loadInventory()
+  } catch(e) {
+    // If POST not supported, show message
+    showToast('Agrega el ingrediente desde Supabase o contacta soporte', false)
+  }
+}
+
+// ── PURCHASES ─────────────────────────────────────────────────
+var purchaseItems = []
+var allSuppliers = []
+
+async function loadPurchases() {
+  try {
+    // Load suppliers for filter and forms
+    const suppRes = await fetch('/api/purchases?resource=suppliers')
+    allSuppliers = await suppRes.json() || []
+
+    // Populate supplier filter
+    const filterSel = document.getElementById('purch-filter-supplier')
+    if(filterSel) filterSel.innerHTML = '<option value="">Todos los proveedores</option>' +
+      allSuppliers.map(s => '<option value="' + s.id + '">' + s.name + '</option>').join('')
+
+    const suppSel = document.getElementById('np-supplier')
+    if(suppSel) suppSel.innerHTML = '<option value="">Seleccionar proveedor...</option>' +
+      allSuppliers.map(s => '<option value="' + s.id + '">' + s.name + '</option>').join('')
+
+    // Load purchases
+    var month = document.getElementById('purch-filter-month')?.value
+    var supplier = document.getElementById('purch-filter-supplier')?.value
+    var url = '/api/purchases'
+    var params = []
+    if(month) { params.push('from_date=' + month + '-01'); params.push('to_date=' + month + '-31') }
+    if(supplier) params.push('supplier_id=' + supplier)
+    if(params.length) url += '?' + params.join('&')
+
+    const res = await fetch(url)
+    const purchases = await res.json() || []
+
+    // Summary
+    var monthTotal = purchases.reduce(function(s,p) { return s + Number(p.total) }, 0)
+    document.getElementById('p-month-total').textContent = fmt(monthTotal)
+    document.getElementById('p-month-count').textContent = purchases.length + ' compras'
+
+    // Top supplier
+    var bySupplier = {}
+    purchases.forEach(function(p) {
+      var n = p.suppliers?.name || 'Sin proveedor'
+      bySupplier[n] = (bySupplier[n]||0) + Number(p.total)
+    })
+    var top = Object.entries(bySupplier).sort(function(a,b){return b[1]-a[1]})[0]
+    document.getElementById('p-top-supplier').textContent = top ? top[0] : '—'
+
+    // Margin: get today's revenue
+    try {
+      var analytics = await api('analytics')
+      var salesMonth = analytics.today?.revenue || 0
+      var margin = salesMonth - monthTotal
+      document.getElementById('p-margin').textContent = fmt(margin)
+      document.getElementById('p-margin').style.color = margin >= 0 ? 'var(--green)' : 'var(--red)'
+    } catch(e) {}
+
+    // Render list
+    var el = document.getElementById('purchases-list')
+    if (!purchases.length) { el.innerHTML = '<div class="empty">No hay compras registradas aun. Agrega tu primera compra.</div>'; return }
+
+    el.innerHTML = purchases.map(function(p) {
+      var items = p.purchase_items || []
+      return '<div style="border-bottom:1px solid var(--ink10);padding:14px 18px">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">' +
+          '<div style="flex:1">' +
+            '<div style="font-size:13px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px">' +
+              (p.suppliers?.name || 'Sin proveedor') +
+              '<span style="font-size:10px;color:var(--ink60);font-weight:400">' + p.date + '</span>' +
+            '</div>' +
+            '<div style="font-size:11px;color:var(--ink60);margin-top:4px">' +
+              items.map(function(i){ return i.quantity + ' ' + i.unit + ' de ' + i.ingredient_name }).join(' · ').substring(0,80) +
+            '</div>' +
+            (p.notes ? '<div style="font-size:11px;color:var(--ink60);margin-top:2px">' + p.notes + '</div>' : '') +
+          '</div>' +
+          '<div style="text-align:right;flex-shrink:0">' +
+            '<div style="font-size:16px;font-weight:700;color:var(--ink)">' + fmt(p.total) + '</div>' +
+            '<div style="font-size:10px;color:var(--ink60);margin-top:2px">' + items.length + ' productos</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">' +
+          items.map(function(i) {
+            return '<span style="font-size:10px;background:var(--cream);border:1px solid var(--ink10);border-radius:20px;padding:2px 8px;color:var(--ink60)">' +
+              i.ingredient_name + ': ' + fmt(i.unit_price) + '/' + i.unit + '</span>'
+          }).join('') +
+        '</div>' +
+      '</div>'
+    }).join('')
+  } catch(e) { showToast('Error cargando compras: ' + e.message, false) }
+}
+
+function openNewPurchase() {
+  purchaseItems = []
+  // Set today's date
+  var today = new Date().toISOString().split('T')[0]
+  document.getElementById('np-date').value = today
+  document.getElementById('np-notes').value = ''
+  renderPurchaseItems()
+  openM('new-purchase-modal')
+}
+
+function addPurchaseItem() {
+  purchaseItems.push({ ingredient_id:'', ingredient_name:'', quantity:1, unit:'kg', unit_price:0 })
+  renderPurchaseItems()
+}
+
+function renderPurchaseItems() {
+  var el = document.getElementById('np-items-list')
+  if (!purchaseItems.length) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--ink60);font-size:13px">Agrega los productos que compraste</div>'
+    document.getElementById('np-total').textContent = '$0.00'
+    return
+  }
+  var total = 0
+  el.innerHTML = purchaseItems.map(function(item, idx) {
+    var lineTotal = item.quantity * item.unit_price
+    total += lineTotal
+    return '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px;align-items:center;margin-bottom:8px;padding:8px;background:var(--cream);border-radius:var(--rsm)">' +
+      '<div>' +
+        '<select onchange="setPurchaseIngredient(' + idx + ',this)" style="width:100%;padding:6px 8px;border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px;font-family:"DM Sans",sans-serif;background:var(--wh)">' +
+          '<option value="">Seleccionar ingrediente...</option>' +
+          allIngredients.map(function(i) {
+            return '<option value="' + i.id + '|' + i.unit + '" ' + (item.ingredient_id===i.id?'selected':'') + '>' + i.name + '</option>'
+          }).join('') +
+          '<option value="custom">+ Otro (escribir nombre)</option>' +
+        '</select>' +
+        (item.ingredient_id === 'custom' ? '<input placeholder="Nombre del producto" value="' + item.ingredient_name + '" oninput="purchaseItems[' + idx + '].ingredient_name=this.value;calcPurchaseTotal()" style="width:100%;margin-top:4px;padding:5px 8px;border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px">' : '') +
+      '</div>' +
+      '<input type="number" step="0.1" value="' + item.quantity + '" onchange="purchaseItems[' + idx + '].quantity=Number(this.value);calcPurchaseTotal();renderPurchaseItems()" style="padding:6px 8px;border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px;text-align:right">' +
+      '<select onchange="purchaseItems[' + idx + '].unit=this.value" style="padding:6px 8px;border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px">' +
+        ['kg','g','L','ml','pzas','cajas','bolsas'].map(function(u){ return '<option value="' + u + '" ' + (item.unit===u?'selected':'') + '>' + u + '</option>' }).join('') +
+      '</select>' +
+      '<input type="number" step="0.01" value="' + item.unit_price + '" placeholder="Precio" onchange="purchaseItems[' + idx + '].unit_price=Number(this.value);calcPurchaseTotal();renderPurchaseItems()" style="padding:6px 8px;border:1px solid var(--ink10);border-radius:var(--rsm);font-size:12px;text-align:right">' +
+      '<div style="display:flex;align-items:center;gap:6px">' +
+        '<span style="font-size:12px;font-weight:600;min-width:60px;text-align:right">' + fmt(lineTotal) + '</span>' +
+        '<button onclick="purchaseItems.splice(' + idx + ',1);renderPurchaseItems()" style="border:none;background:none;cursor:pointer;color:#EF4444;font-size:16px;padding:2px">x</button>' +
+      '</div>' +
+    '</div>'
+  }).join('')
+  document.getElementById('np-total').textContent = fmt(total)
+}
+
+function setPurchaseIngredient(idx, sel) {
+  var val = sel.value
+  if (val === 'custom') {
+    purchaseItems[idx].ingredient_id = 'custom'
+    purchaseItems[idx].ingredient_name = ''
+  } else if (val) {
+    var parts = val.split('|')
+    purchaseItems[idx].ingredient_id = parts[0]
+    purchaseItems[idx].unit = parts[1] || 'kg'
+    var ing = allIngredients.find(function(i){ return i.id === parts[0] })
+    if(ing) purchaseItems[idx].ingredient_name = ing.name
+  }
+  renderPurchaseItems()
+}
+
+function calcPurchaseTotal() {
+  var total = purchaseItems.reduce(function(s,i){ return s + (i.quantity * i.unit_price) }, 0)
+  var el = document.getElementById('np-total')
+  if(el) el.textContent = fmt(total)
+}
+
+async function savePurchase() {
+  var supplierId = document.getElementById('np-supplier').value
+  var date = document.getElementById('np-date').value
+  var notes = document.getElementById('np-notes').value
+  if (!date) { showToast('Selecciona la fecha de la compra', false); return }
+  if (!purchaseItems.length) { showToast('Agrega al menos un producto', false); return }
+  var validItems = purchaseItems.filter(function(i){ return i.ingredient_name && i.quantity > 0 && i.unit_price > 0 })
+  if (!validItems.length) { showToast('Completa los datos de los productos', false); return }
+  // Fix custom ingredients
+  validItems.forEach(function(i){ if(i.ingredient_id==='custom') i.ingredient_id = null })
+  try {
+    await fetch('/api/purchases', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ supplier_id: supplierId||null, date, notes, items: validItems })
+    })
+    showToast('Compra registrada correctamente')
+    closeM('new-purchase-modal')
+    loadPurchases()
+    loadInventory() // refresh stock levels
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function saveSupplier() {
+  var name = document.getElementById('sup-name').value.trim()
+  if (!name) { showToast('Ingresa el nombre del proveedor', false); return }
+  try {
+    await fetch('/api/purchases?resource=suppliers', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, phone: document.getElementById('sup-phone').value, email: document.getElementById('sup-email').value, notes: document.getElementById('sup-notes').value })
+    })
+    showToast('Proveedor agregado')
+    closeM('supplier-modal')
+    ;['sup-name','sup-phone','sup-email','sup-notes'].forEach(function(id){ var el=document.getElementById(id);if(el)el.value='' })
+    loadPurchases()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+
+
+// ── CONFIGURATION TAB SYSTEM ──────────────────────────────────
+var cfgTabData = {}
+
+function switchCfgTab(tab, el) {
+  document.querySelectorAll('.cfg-tab').forEach(t => t.classList.remove('active'))
+  document.querySelectorAll('.cfg-panel').forEach(p => p.classList.remove('active'))
+  if(el) el.classList.add('active')
+  document.getElementById('cfgp-' + tab).classList.add('active')
+  if(tab === 'menu') cfgLoadMenu()
+  if(tab === 'inventario') cfgLoadInventory()
+  if(tab === 'equipo') cfgLoadTeam()
+  if(tab === 'proveedores') cfgLoadSuppliers()
+  if(tab === 'restaurante') loadConfig()
+}
+
+// ── RESTAURANT TAB ────────────────────────────────────────────
+function loadConfig() {
+  const cfg = JSON.parse(localStorage.getItem('nomi_config') || '{}')
+  if(cfg.name) document.getElementById('cfg-name').value = cfg.name
+  if(cfg.phone) document.getElementById('cfg-phone').value = cfg.phone
+  if(cfg.address) document.getElementById('cfg-address').value = cfg.address
+  if(cfg.rfc) document.getElementById('cfg-rfc').value = cfg.rfc
+  if(cfg.email) document.getElementById('cfg-email').value = cfg.email
+  if(cfg.open) document.getElementById('cfg-open').value = cfg.open
+  if(cfg.close) document.getElementById('cfg-close').value = cfg.close
+  if(cfg.delivery_fee) document.getElementById('cfg-delivery-fee').value = cfg.delivery_fee
+  if(cfg.delivery_time) document.getElementById('cfg-delivery-time').value = cfg.delivery_time
+  if(cfg.status) document.getElementById('cfg-status').value = cfg.status
+  loadLogoPreview()
+}
+
+function saveConfig() {
+  const cfg = {
+    name: document.getElementById('cfg-name').value,
+    phone: document.getElementById('cfg-phone').value,
+    address: document.getElementById('cfg-address').value,
+    rfc: document.getElementById('cfg-rfc').value,
+    email: document.getElementById('cfg-email').value,
+    open: document.getElementById('cfg-open').value,
+    close: document.getElementById('cfg-close').value,
+    delivery_fee: document.getElementById('cfg-delivery-fee').value,
+    delivery_time: document.getElementById('cfg-delivery-time').value,
+    status: document.getElementById('cfg-status').value
+  }
+  localStorage.setItem('nomi_config', JSON.stringify(cfg))
+  showToast('Configuración guardada ✓')
+}
+
+// ── MENU TAB ──────────────────────────────────────────────────
+
+function cfgOpenEditItemById(id) {
+  const item = (cfgTabData.menu?.items||[]).find(i => i.id === id)
+  if(item) cfgOpenEditItem(item)
+}
+
+async function cfgLoadMenu() {
+  const el = document.getElementById('cfg-menu-list')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  try {
+    const d = await api('menu') || {}
+    cfgTabData.menu = d
+    const { categories = [], items = [] } = d
+
+    // Populate category select in item modal
+    const catSel = document.getElementById('cfg-item-cat')
+    catSel.innerHTML = '<option value="">Sin categoría</option>' +
+      categories.map(c => `<option value="${c.id}">${c.emoji||''} ${c.name}</option>`).join('')
+
+    if(!categories.length && !items.length) {
+      el.innerHTML = '<div class="empty">No hay productos. Agrega tu primera categoría y producto.</div>'
+      return
+    }
+
+    el.innerHTML = categories.map(cat => {
+      const catItems = items.filter(i => i.category_id === cat.id)
+      return `
+        <div class="card" style="margin-bottom:12px">
+          <div class="ch">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:20px">${cat.emoji||'🍽'}</span>
+              <span class="ct">${cat.name}</span>
+              <span class="badge bk">${catItems.length} items</span>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-sm" onclick="cfgOpenAddItem('${cat.id}')">+ Item</button>
+              <button class="btn btn-sm" style="color:#EF4444;border-color:#EF4444" onclick="cfgDeleteCategory('${cat.id}','${cat.name}')">🗑</button>
+            </div>
+          </div>
+          ${catItems.map(item => `
+            <div style="display:flex;align-items:center;padding:10px 18px;border-bottom:1px solid var(--ink10);gap:10px">
+              <span style="font-size:20px;flex-shrink:0">${item.emoji||'🍽'}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:500">${item.name}</div>
+                <div style="font-size:11px;color:var(--ink60)">${item.description||''}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-size:14px;font-weight:700;color:var(--red)">${fmt(item.price)}</div>
+                <span class="badge ${item.available?'bg':'bk'}" style="margin-top:3px">${item.available?'Activo':'Inactivo'}</span>
+              </div>
+              <button class="btn btn-sm" onclick="cfgEditItemById('${item.id}')">✏️</button>
+            </div>`).join('')}
+          ${catItems.length === 0 ? '<div style="padding:14px 18px;font-size:12px;color:var(--ink60)">Sin productos en esta categoría</div>' : ''}
+        </div>`
+    }).join('')
+
+    // Items without category
+    const noCat = items.filter(i => !i.category_id)
+    if(noCat.length) {
+      el.innerHTML += `<div class="card"><div class="ch"><span class="ct" style="color:var(--ink60)">Sin categoría</span></div>
+        ${noCat.map(item => `<div style="display:flex;align-items:center;padding:10px 18px;border-bottom:1px solid var(--ink10);gap:10px">
+          <span style="font-size:20px">${item.emoji||'🍽'}</span>
+          <div style="flex:1"><div style="font-size:13px;font-weight:500">${item.name}</div></div>
+          <div style="font-size:14px;font-weight:700;color:var(--red)">${fmt(item.price)}</div>
+          <button class="btn btn-sm" onclick="cfgEditItemById('${item.id}')">✏️</button>
+        </div>`).join('')}
+      </div>`
+    }
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando menú</div>'; showToast('Error', false) }
+}
+
+function cfgOpenAddItem(catId) {
+  document.getElementById('cfg-item-id').value = ''
+  document.getElementById('cfg-item-name').value = ''
+  document.getElementById('cfg-item-desc').value = ''
+  document.getElementById('cfg-item-price').value = ''
+  document.getElementById('cfg-item-emoji').value = '🍕'
+  document.getElementById('cfg-item-available').value = 'true'
+  document.getElementById('cfg-item-cat').value = catId || ''
+  document.getElementById('cfg-item-modal-title').textContent = 'Nuevo producto'
+  document.getElementById('cfg-item-delete-btn').style.display = 'none'
+  openM('cfg-add-item-modal')
+}
+
+function cfgOpenEditItem(item) {
+  document.getElementById('cfg-item-id').value = item.id
+  document.getElementById('cfg-item-name').value = item.name || ''
+  document.getElementById('cfg-item-desc').value = item.description || ''
+  document.getElementById('cfg-item-price').value = item.price || ''
+  document.getElementById('cfg-item-emoji').value = item.emoji || '🍕'
+  document.getElementById('cfg-item-available').value = item.available ? 'true' : 'false'
+  document.getElementById('cfg-item-cat').value = item.category_id || ''
+  document.getElementById('cfg-item-modal-title').textContent = 'Editar: ' + item.name
+  document.getElementById('cfg-item-delete-btn').style.display = 'inline-flex'
+  openM('cfg-add-item-modal')
+}
+
+async function cfgSaveItem() {
+  const id = document.getElementById('cfg-item-id').value
+  const name = document.getElementById('cfg-item-name').value.trim()
+  const price = Number(document.getElementById('cfg-item-price').value)
+  if(!name || !price) { showToast('Nombre y precio son obligatorios', false); return }
+  const body = {
+    name,
+    description: document.getElementById('cfg-item-desc').value,
+    price,
+    emoji: document.getElementById('cfg-item-emoji').value || '🍕',
+    category_id: document.getElementById('cfg-item-cat').value || null,
+    available: document.getElementById('cfg-item-available').value === 'true'
+  }
+  try {
+    if(id) { await api('menu', { method:'PATCH', body: { id, ...body } }); showToast(name + ' actualizado ✓') }
+    else { await api('menu', { method:'POST', body }); showToast(name + ' agregado ✓') }
+    closeM('cfg-add-item-modal')
+    cfgLoadMenu()
+    // Also refresh operational menu view if active
+    if(document.getElementById('page-menu')?.classList.contains('active')) loadMenu()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function cfgDeleteItem() {
+  const id = document.getElementById('cfg-item-id').value
+  const name = document.getElementById('cfg-item-name').value
+  if(!confirm('Eliminar "' + name + '"? Esta acción no se puede deshacer.')) return
+  try {
+    await api('menu', { method:'PATCH', body: { id, available: false } })
+    showToast(name + ' eliminado del menú')
+    closeM('cfg-add-item-modal')
+    cfgLoadMenu()
+  } catch(e) { showToast('Error', false) }
+}
+
+async function cfgSaveCategory() {
+  const name = document.getElementById('cfg-cat-name').value.trim()
+  if(!name) { showToast('Ingresa el nombre de la categoría', false); return }
+  try {
+    await fetch('/api/menu', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        type: 'category',
+        name,
+        emoji: document.getElementById('cfg-cat-emoji').value || '🍽',
+        sort_order: Number(document.getElementById('cfg-cat-order').value) || 1
+      })
+    })
+    showToast('Categoría "' + name + '" agregada ✓')
+    closeM('cfg-add-category-modal')
+    document.getElementById('cfg-cat-name').value = ''
+    document.getElementById('cfg-cat-emoji').value = ''
+    cfgLoadMenu()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function cfgDeleteCategory(id, name) {
+  if(!confirm('Eliminar categoría "' + name + '"? Los productos quedarán sin categoría.')) return
+  try {
+    // Move items to no category
+    const items = (cfgTabData.menu?.items||[]).filter(i => i.category_id === id)
+    await Promise.all(items.map(i => api('menu', { method:'PATCH', body:{ id:i.id, category_id: null } })))
+    // Delete category - we'll just mark items uncategorized for now
+    showToast('Categoría eliminada')
+    cfgLoadMenu()
+  } catch(e) { showToast('Error', false) }
+}
+
+// ── INVENTORY TAB ─────────────────────────────────────────────
+async function cfgLoadInventory() {
+  const el = document.getElementById('cfg-inv-list')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  try {
+    const items = await api('inventory') || []
+    cfgTabData.inventory = items
+    window._invCache = items
+    const totalVal = items.reduce((s,i) => s + Number(i.quantity) * Number(i.cost_per_unit||0), 0)
+    const crit = items.filter(i => Number(i.quantity) <= 0).length
+    const low = items.filter(i => Number(i.quantity) > 0 && Number(i.quantity) <= Number(i.min_level)).length
+    document.getElementById('cfg-inv-summary').innerHTML =
+      `${items.length} ingredientes &nbsp;·&nbsp; <span style="color:var(--red)">${crit} críticos</span> &nbsp;·&nbsp; <span style="color:var(--amber)">${low} bajos</span> &nbsp;·&nbsp; Valor total: <strong>${fmt(totalVal)}</strong>`
+
+    if(!items.length) { el.innerHTML = '<div class="empty">No hay ingredientes. Agrega tu primer ingrediente.</div>'; return }
+
+    // Group by category
+    const cats = [...new Set(items.map(i => i.category || 'general'))]
+    el.innerHTML = cats.map(cat => {
+      const catItems = items.filter(i => (i.category||'general') === cat)
+      const catLabel = {masa:'Masa',quesos:'Quesos',embutidos:'Embutidos',verduras:'Verduras',salsas:'Salsas',hierbas:'Hierbas',aceites:'Aceites',dairy:'Lácteos',conservas:'Conservas',general:'General'}[cat] || cat
+      return catItems.map((ing, idx) => {
+        const stColor = Number(ing.quantity) <= 0 ? '#EF4444' : Number(ing.quantity) <= Number(ing.min_level) ? 'var(--amber)' : 'var(--green)'
+        const val = Number(ing.quantity) * Number(ing.cost_per_unit||0)
+        return `<div class="ing-row">
+          <div>
+            ${idx === 0 ? `<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink60);margin-bottom:4px">${catLabel}</div>` : ''}
+            <div style="font-size:13px;font-weight:500">${ing.name}</div>
+          </div>
+          <div style="text-align:right;font-weight:600;color:${stColor}">${ing.quantity} <span style="font-size:10px;color:var(--ink60);font-weight:400">${ing.unit}</span></div>
+          <div style="text-align:right;font-size:11px;color:var(--ink60)">${ing.min_level} ${ing.unit}</div>
+          <div style="text-align:right;font-size:12px;color:var(--ink60)">${fmt(ing.cost_per_unit||0)}</div>
+          <div style="text-align:right;font-size:12px;font-weight:500">${fmt(val)}</div>
+          <button class="btn btn-sm" style="margin-left:8px" onclick='cfgOpenEditIngredientById('${ing.id}')">✏️</button>
+        </div>`
+      }).join('')
+    }).join('<div style="height:1px;background:var(--ink10);margin:4px 0"></div>')
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando inventario</div>' }
+}
+
+function cfgOpenEditIngredient(ing) {
+  document.getElementById('cfg-ing-id').value = ing.id
+  document.getElementById('cfg-ing-name').value = ing.name || ''
+  document.getElementById('cfg-ing-unit').value = ing.unit || 'kg'
+  document.getElementById('cfg-ing-cat').value = ing.category || 'general'
+  document.getElementById('cfg-ing-qty').value = ing.quantity || 0
+  document.getElementById('cfg-ing-min').value = ing.min_level || 0
+  document.getElementById('cfg-ing-cost').value = ing.cost_per_unit || 0
+  document.getElementById('cfg-ing-modal-title').textContent = 'Editar: ' + ing.name
+  document.getElementById('cfg-ing-delete-btn').style.display = 'inline-flex'
+  openM('cfg-add-ingredient-modal')
+}
+
+function cfgOpenAddIngredient() {
+  document.getElementById('cfg-ing-id').value = ''
+  document.getElementById('cfg-ing-name').value = ''
+  document.getElementById('cfg-ing-qty').value = '0'
+  document.getElementById('cfg-ing-min').value = '0'
+  document.getElementById('cfg-ing-cost').value = '0'
+  document.getElementById('cfg-ing-modal-title').textContent = 'Nuevo ingrediente'
+  document.getElementById('cfg-ing-delete-btn').style.display = 'none'
+  openM('cfg-add-ingredient-modal')
+}
+
+async function cfgSaveIngredient() {
+  const id = document.getElementById('cfg-ing-id').value
+  const name = document.getElementById('cfg-ing-name').value.trim()
+  if(!name) { showToast('Ingresa el nombre', false); return }
+  const body = {
+    name,
+    unit: document.getElementById('cfg-ing-unit').value,
+    category: document.getElementById('cfg-ing-cat').value,
+    quantity: Number(document.getElementById('cfg-ing-qty').value),
+    min_level: Number(document.getElementById('cfg-ing-min').value),
+    cost_per_unit: Number(document.getElementById('cfg-ing-cost').value)
+  }
+  try {
+    if(id) { await api('inventory', { method:'PATCH', body:{ id, ...body } }); showToast(name + ' actualizado ✓') }
+    else {
+      const r = await fetch('/api/inventory', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+      const d = await r.json()
+      if(d.error) throw new Error(d.error)
+      showToast(name + ' agregado ✓')
+    }
+    closeM('cfg-add-ingredient-modal')
+    cfgLoadInventory()
+    if(document.getElementById('page-inventory')?.classList.contains('active')) loadInventory()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function cfgDeleteIngredient() {
+  const id = document.getElementById('cfg-ing-id').value
+  const name = document.getElementById('cfg-ing-name').value
+  if(!confirm('Eliminar "' + name + '"?')) return
+  try {
+    // Mark as inactive via patch (no delete endpoint but set min to -1 as flag, or just remove)
+    await fetch('/api/inventory', { method:'DELETE', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ id }) })
+    showToast(name + ' eliminado')
+    closeM('cfg-add-ingredient-modal')
+    cfgLoadInventory()
+  } catch(e) {
+    showToast('No se puede eliminar si tiene movimientos registrados', false)
+  }
+}
+
+// ── TEAM TAB ──────────────────────────────────────────────────
+const roleLabels = {admin:'👑 Admin',manager:'👨‍💼 Gerente',waiter:'🍽 Mesero',kitchen:'👨‍🍳 Cocina',cashier:'💰 Cajero',delivery:'🛵 Repartidor'}
+
+
+function cfgOpenEditWorkerById(id) {
+  fetch('/api/workers').then(r=>r.json()).then(workers => {
+    const w = (workers||[]).find(x => x.id === id)
+    if(w) cfgOpenEditWorker(w)
+  })
+}
+
+async function cfgLoadTeam() {
+  const el = document.getElementById('cfg-team-list')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  try {
+    const workers = await api('workers') || []
+    document.getElementById('cfg-team-summary').textContent = workers.length + ' trabajadores registrados'
+    if(!workers.length) { el.innerHTML = '<div class="empty">No hay trabajadores. Agrega tu equipo.</div>'; return }
+    el.innerHTML = workers.map((w,i) => `
+      <div style="display:flex;align-items:center;padding:12px 18px;border-bottom:1px solid var(--ink10);gap:12px">
+        <div class="av ${avCls(i)}" style="width:36px;height:36px;font-size:13px">${initials(w.name)}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">${w.name}</div>
+          <div style="font-size:11px;color:var(--ink60)">${roleLabels[w.role]||w.role} · ${w.email}</div>
+        </div>
+        <span class="badge ${w.active?'bg':'bk'}">${w.active?'Activo':'Inactivo'}</span>
+        <button class="btn btn-sm" onclick='cfgEditWorkerById('${w.id}')">✏️ Editar</button>
+      </div>`).join('')
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando equipo</div>' }
+}
+
+function cfgOpenEditWorker(w) {
+  document.getElementById('cfg-w-id').value = w.id
+  document.getElementById('cfg-w-name').value = w.name || ''
+  document.getElementById('cfg-w-email').value = w.email || ''
+  document.getElementById('cfg-w-pin').value = ''
+  document.getElementById('cfg-w-role').value = w.role || 'waiter'
+  document.getElementById('cfg-worker-modal-title').textContent = 'Editar: ' + w.name
+  document.getElementById('cfg-w-deactivate-btn').style.display = 'inline-flex'
+  openM('cfg-add-worker-modal')
+}
+
+function cfgOpenAddWorker() {
+  document.getElementById('cfg-w-id').value = ''
+  document.getElementById('cfg-w-name').value = ''
+  document.getElementById('cfg-w-email').value = ''
+  document.getElementById('cfg-w-pin').value = ''
+  document.getElementById('cfg-w-role').value = 'waiter'
+  document.getElementById('cfg-worker-modal-title').textContent = 'Nuevo trabajador'
+  document.getElementById('cfg-w-deactivate-btn').style.display = 'none'
+  openM('cfg-add-worker-modal')
+}
+
+async function cfgSaveWorker() {
+  const id = document.getElementById('cfg-w-id').value
+  const name = document.getElementById('cfg-w-name').value.trim()
+  const email = document.getElementById('cfg-w-email').value.trim()
+  const pin = document.getElementById('cfg-w-pin').value
+  const role = document.getElementById('cfg-w-role').value
+  if(!name || !email) { showToast('Nombre y correo son obligatorios', false); return }
+  if(!id && !pin) { showToast('El PIN es obligatorio para nuevos trabajadores', false); return }
+  const rp = {admin:{pos:true,tables:true,orders:true,menu:true,inventory:true,analytics:true,team:true},manager:{pos:true,tables:true,orders:true,inventory:true},waiter:{tables:true,orders:true},kitchen:{orders:true},cashier:{pos:true,orders:true},delivery:{delivery:true}}
+  try {
+    if(id) {
+      const body = { action:'update', id, name, email, role }
+      if(pin) body.pin = pin
+      await api('workers', { method:'PATCH', body })
+      showToast(name + ' actualizado ✓')
+    } else {
+      await api('workers', { method:'POST', body:{ action:'create', name, email, pin, role, permissions: rp[role]||{} } })
+      showToast(name + ' agregado al equipo ✓')
+    }
+    closeM('cfg-add-worker-modal')
+    cfgLoadTeam()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+async function cfgDeactivateWorker() {
+  const id = document.getElementById('cfg-w-id').value
+  const name = document.getElementById('cfg-w-name').value
+  if(!confirm('Desactivar a ' + name + '? No podrá iniciar sesión.')) return
+  try {
+    await api('workers', { method:'PATCH', body:{ id, active: false } })
+    showToast(name + ' desactivado')
+    closeM('cfg-add-worker-modal')
+    cfgLoadTeam()
+  } catch(e) { showToast('Error', false) }
+}
+
+// ── SUPPLIERS TAB ─────────────────────────────────────────────
+async function cfgLoadSuppliers() {
+  const el = document.getElementById('cfg-sup-list')
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  try {
+    const res = await fetch('/api/purchases?resource=suppliers')
+    const suppliers = await res.json() || []
+    document.getElementById('cfg-sup-summary').textContent = suppliers.length + ' proveedores registrados'
+    if(!suppliers.length) { el.innerHTML = '<div class="empty">No hay proveedores. Agrega tu primer proveedor.</div>'; return }
+    el.innerHTML = suppliers.map(s => `
+      <div style="display:flex;align-items:center;padding:12px 18px;border-bottom:1px solid var(--ink10);gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--blue-l);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏪</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">${s.name}</div>
+          <div style="font-size:11px;color:var(--ink60)">${[s.phone,s.email].filter(Boolean).join(' · ')}</div>
+          ${s.notes ? `<div style="font-size:11px;color:var(--ink60)">${s.notes}</div>` : ''}
+        </div>
+        <button class="btn btn-sm" onclick='cfgEditSupplierById('${s.id}')">✏️ Editar</button>
+      </div>`).join('')
+  } catch(e) { el.innerHTML = '<div class="empty">Error cargando proveedores</div>' }
+}
+
+function cfgOpenEditSupplier(s) {
+  document.getElementById('cfg-sup-id').value = s.id
+  document.getElementById('cfg-sup-name').value = s.name || ''
+  document.getElementById('cfg-sup-phone').value = s.phone || ''
+  document.getElementById('cfg-sup-email').value = s.email || ''
+  document.getElementById('cfg-sup-notes').value = s.notes || ''
+  document.getElementById('cfg-sup-modal-title').textContent = 'Editar: ' + s.name
+  openM('cfg-add-supplier-modal')
+}
+
+async function cfgSaveSupplier() {
+  const id = document.getElementById('cfg-sup-id').value
+  const name = document.getElementById('cfg-sup-name').value.trim()
+  if(!name) { showToast('Ingresa el nombre del proveedor', false); return }
+  const body = { name, phone: document.getElementById('cfg-sup-phone').value, email: document.getElementById('cfg-sup-email').value, notes: document.getElementById('cfg-sup-notes').value }
+  try {
+    if(id) {
+      await fetch('/api/purchases?resource=suppliers', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id, ...body}) })
+      showToast(name + ' actualizado ✓')
+    } else {
+      await fetch('/api/purchases?resource=suppliers', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
+      showToast(name + ' agregado ✓')
+    }
+    closeM('cfg-add-supplier-modal')
+    cfgLoadSuppliers()
+    // refresh purchase supplier dropdowns
+    if(document.getElementById('page-purchases')?.classList.contains('active')) loadPurchases()
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
+
+// ── ID-BASED LOOKUP HELPERS ───────────────────────────────────
+function cfgEditItemById(id) {
+  const item = (cfgTabData.menu?.items||[]).find(i => i.id === id)
+  if(item) cfgOpenEditItem(item)
+}
+function cfgOpenEditIngredientById(id) {
+  const ing = (cfgTabData.inventory||[]).find(i => i.id === id)
+  if(ing) cfgOpenEditIngredient(ing)
+}
+function cfgEditWorkerById(id) {
+  // fetch fresh from cache or re-fetch
+  fetch('/api/workers').then(r=>r.json()).then(workers => {
+    const w = (workers||[]).find(x => x.id === id)
+    if(w) cfgOpenEditWorker(w)
+  })
+}
+function cfgEditSupplierById(id) {
+  fetch('/api/purchases?resource=suppliers').then(r=>r.json()).then(suppliers => {
+    const s = (suppliers||[]).find(x => x.id === id)
+    if(s) cfgOpenEditSupplier(s)
+  })
+}
+
+// Load config on startup
+
+// ── INITIALIZATION ──────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  // Auto-login check
+  try {
+    var saved = sessionStorage.getItem('nomi_worker')
+    if (saved) {
+      currentWorker = JSON.parse(saved)
+      var pinScr = document.getElementById('pin-screen')
+      if (pinScr) pinScr.style.display = 'none'
+      if (typeof onWorkerLoggedIn === 'function') onWorkerLoggedIn(currentWorker)
+    }
+  } catch(e) {
+    sessionStorage.removeItem('nomi_worker')
+  }
+  // App init
+  applyLogoToApp()
+  loadDash()
+  setInterval(function() {
+    var ap = document.querySelector('.page.active')
+    if(ap && ap.id === 'page-dashboard') loadDash()
+    if(ap && ap.id === 'page-orders') loadOrders()
+  }, 30000)
+})
+
+</script>
+</body>
+</html>
