@@ -1907,9 +1907,13 @@ function syncMobCart() {
   const count = posCart.reduce((s,c)=>s+c.qty,0)
 
   if(mobBtn) {
-    mobCount.textContent = count + (count===1?' item':' items')
-    mobTotal.textContent = fmt(total)
-    mobBtn.style.display = count > 0 ? 'flex' : 'none'
+    if(window.innerWidth <= 768) {
+      mobCount.textContent = count + (count===1?' item':' items')
+      mobTotal.textContent = fmt(total)
+      mobBtn.style.display = count > 0 ? 'flex' : 'none'
+    } else {
+      mobBtn.style.display = 'none'
+    }
   }
 
   if(body) {
