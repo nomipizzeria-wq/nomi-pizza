@@ -8,8 +8,8 @@
 <style>
 :root{--red:#C8392B;--red-d:#9B2A1E;--red-l:#FAECE7;--ink:#1A1714;--ink60:#6B6460;--ink30:#C4BFB9;--ink10:#EDE9E4;--wh:#fff;--cream:#FAF8F5;--green:#2D7A4F;--green-l:#E8F5EE;--amber:#B45309;--amber-l:#FEF3C7;--blue:#1D4ED8;--blue-l:#EFF6FF;--sw:220px;--th:58px;--r:12px;--rsm:8px;--ssh:0 1px 2px rgba(26,23,20,.06);--tr:.18s cubic-bezier(.4,0,.2,1)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);font-size:14px;line-height:1.5;height:100vh;overflow:hidden}
-.shell{display:flex;height:100vh;width:100vw;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);font-size:14px;line-height:1.5;height:100dvh;overflow:hidden}
+.shell{display:flex;height:100dvh;width:100vw;overflow:hidden}
 .sb{width:var(--sw);background:var(--ink);display:flex;flex-direction:column;flex-shrink:0}
 .sb-brand{padding:18px 16px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:10px}
 .sb-logo{width:34px;height:34px;background:var(--red);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px}
@@ -64,7 +64,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 .tc-n{font-family:'Playfair Display',serif;font-size:22px;font-weight:700}.tc-c{font-size:10px;color:var(--ink60);margin-top:2px}
 .tc-s{font-size:10px;font-weight:600;margin-top:8px;text-transform:uppercase;letter-spacing:.05em}
 .tc.occupied .tc-s{color:var(--red-d)}.tc.ready .tc-s{color:var(--amber)}.tc.available .tc-s{color:var(--green)}
-.pos-layout{display:grid;grid-template-columns:1fr 320px;height:calc(100vh - var(--th));overflow:hidden}.pos-cart{background:var(--wh);border-left:1px solid var(--ink10);display:flex;flex-direction:column;min-height:0}
+.pos-layout{display:grid;grid-template-columns:1fr 320px;height:calc(100dvh - var(--th));overflow:hidden}.pos-cart{background:var(--wh);border-left:1px solid var(--ink10);display:flex;flex-direction:column;min-height:0}
 .pos-menu{overflow-y:auto;padding:16px;background:var(--cream)}
 .pos-cart{background:var(--wh);border-left:1px solid var(--ink10);display:flex;flex-direction:column}
 .pcats{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
@@ -81,7 +81,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 .qbc{display:flex;align-items:center;gap:4px}
 .qb{width:22px;height:22px;border-radius:50%;border:1px solid var(--ink10);background:var(--wh);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;line-height:1}
 .qb:hover{background:var(--red);color:#fff;border-color:var(--red)}
-.cart-foot{padding:14px 18px;border-top:1px solid var(--ink10);flex-shrink:0}
+.cart-foot{padding:14px 18px;border-top:1px solid var(--ink10);flex-shrink:0;position:sticky;bottom:0;background:var(--wh);z-index:2}
 .inv-bar{flex:1;height:4px;background:var(--ink10);border-radius:2px;overflow:hidden}
 .inv-fill{height:100%;border-radius:2px}.ifc{background:#EF4444}.ifl{background:var(--amber)}.ifo{background:var(--red)}
 .wcard{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--ink10)}
@@ -161,10 +161,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 @media(max-width:900px){
   :root{--sw:200px}
 }
+@media(min-width:769px) and (max-width:1100px){
+  :root{--sw:180px}
+  .pos-layout{grid-template-columns:1fr 280px}
+  .pc{padding:14px 16px}
+}
 @media(max-width:768px){
   :root{--sw:240px}
   .hamburger{display:flex}
-  .sb{position:fixed;top:0;left:0;height:100vh;z-index:300;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+  .sb{position:fixed;top:0;left:0;height:100dvh;z-index:300;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
   .sb.open{transform:translateX(0)}
   .main{width:100vw}
   .pc{padding:14px 12px}
@@ -269,7 +274,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 @media(max-width:768px){
   :root{--sw:240px}
   .hamburger{display:flex}
-  .sb{position:fixed;top:0;left:0;height:100vh;z-index:300;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+  .sb{position:fixed;top:0;left:0;height:100dvh;z-index:300;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
   .sb.open{transform:translateX(0)}
   .main{width:100vw}
   .pc{padding:14px 12px}
