@@ -153,10 +153,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 .sb-overlay.open{display:block;opacity:1;pointer-events:all}
 
 /* Mobile cart bottom sheet */
-.mob-cart-btn{display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:150;background:var(--red);color:#fff;border:none;border-radius:24px;padding:12px 24px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(200,57,43,.4);gap:8px;align-items:center;white-space:nowrap}
-.mob-cart-sheet{display:none;position:fixed;bottom:0;left:0;right:0;z-index:250;background:var(--wh);border-radius:18px 18px 0 0;box-shadow:0 -8px 40px rgba(26,23,20,.18);transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.2,.64,1);max-height:85vh;overflow:hidden;flex-direction:column}
-.mob-cart-sheet.open{transform:translateY(0)}
-.mob-sheet-handle{width:36px;height:4px;background:var(--ink10);border-radius:2px;margin:10px auto 8px}
+.mob-pos-tabs{display:none;border-bottom:2px solid var(--ink10);background:var(--wh);flex-shrink:0}
+.mob-tab{flex:1;padding:11px 8px;border:none;background:none;font-family:"DM Sans",sans-serif;font-size:13px;font-weight:500;color:var(--ink60);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:var(--tr)}
+.mob-tab.active{color:var(--red);border-bottom-color:var(--red);font-weight:600}
 
 @media(max-width:900px){
   :root{--sw:200px}
@@ -180,8 +179,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
   .tgrid{grid-template-columns:repeat(3,1fr)!important}
   .pos-layout{grid-template-columns:1fr!important}
   .pos-cart{display:none!important}
-  .mob-cart-btn{display:flex}
-  .mob-cart-sheet{display:flex}
+
   #rec-kpi-row{grid-template-columns:repeat(2,1fr)!important}
   .ing-row{grid-template-columns:2fr 1fr 1fr auto!important}
   .modal{width:95vw!important;max-width:95vw!important}
@@ -263,10 +261,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 .sb-overlay.open{display:block;opacity:1;pointer-events:all}
 
 /* Mobile cart bottom sheet */
-.mob-cart-btn{display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:150;background:var(--red);color:#fff;border:none;border-radius:24px;padding:12px 24px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(200,57,43,.4);gap:8px;align-items:center;white-space:nowrap}
-.mob-cart-sheet{display:none;position:fixed;bottom:0;left:0;right:0;z-index:250;background:var(--wh);border-radius:18px 18px 0 0;box-shadow:0 -8px 40px rgba(26,23,20,.18);transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.2,.64,1);max-height:85vh;overflow:hidden;flex-direction:column}
-.mob-cart-sheet.open{transform:translateY(0)}
-.mob-sheet-handle{width:36px;height:4px;background:var(--ink10);border-radius:2px;margin:10px auto 8px}
+.mob-pos-tabs{display:none;border-bottom:2px solid var(--ink10);background:var(--wh);flex-shrink:0}
+.mob-tab{flex:1;padding:11px 8px;border:none;background:none;font-family:"DM Sans",sans-serif;font-size:13px;font-weight:500;color:var(--ink60);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:var(--tr)}
+.mob-tab.active{color:var(--red);border-bottom-color:var(--red);font-weight:600}
 
 @media(max-width:900px){
   :root{--sw:200px}
@@ -285,8 +282,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
   .tgrid{grid-template-columns:repeat(3,1fr)!important}
   .pos-layout{grid-template-columns:1fr!important}
   .pos-cart{display:none!important}
-  .mob-cart-btn{display:flex}
-  .mob-cart-sheet{display:flex}
+
   #rec-kpi-row{grid-template-columns:repeat(2,1fr)!important}
   .ing-row{grid-template-columns:2fr 1fr 1fr auto!important}
   .modal{width:95vw!important;max-width:95vw!important}
@@ -418,20 +414,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 
     <!-- POS -->
     <div class="page" id="page-pos">
-      <!-- MOBILE CART BOTTOM SHEET -->
-<button class="mob-cart-btn" id="mob-cart-btn" onclick="openMobCart()">
-  🛒 <span id="mob-cart-count">0 items</span> · <span id="mob-cart-total">$0.00</span>
-</button>
-<div class="mob-cart-sheet" id="mob-cart-sheet">
-  <div class="mob-sheet-handle" onclick="closeMobCart()"></div>
-  <div style="padding:0 18px 10px;display:flex;justify-content:space-between;align-items:center">
-    <span style="font-size:14px;font-weight:600">Orden actual</span>
-    <button class="btn btn-sm" onclick="closeMobCart()">↓ Cerrar</button>
-  </div>
-  <div id="mob-cart-body" style="flex:1;overflow-y:auto;padding:0 18px"></div>
-  <div style="padding:14px 18px;border-top:1px solid var(--ink10);flex-shrink:0" id="mob-cart-foot"></div>
+      <!-- MOBILE POS TABS -->
+<div class="mob-pos-tabs" id="mob-pos-tabs">
+  <button class="mob-tab active" id="mob-tab-menu" onclick="mobSwitchTab('menu')">🍕 Menú</button>
+  <button class="mob-tab" id="mob-tab-cart" onclick="mobSwitchTab('cart')">🛒 Orden <span id="mob-tab-count" style="background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:3px;display:none">0</span></button>
 </div>
-<div class="pos-layout">
+<div class="pos-layout mob-show-menu" id="pos-layout">
         <!-- LEFT: Menu -->
         <div class="pos-menu">
           <!-- Order type + table selector -->
@@ -1886,65 +1874,28 @@ document.querySelectorAll('.ni').forEach(ni => {
   ni.addEventListener('click', () => { if(window.innerWidth <= 768) closeSidebar() })
 })
 
-// Mobile cart sheet
-function openMobCart() {
-  syncMobCart()
-  document.getElementById('mob-cart-sheet').classList.add('open')
-}
-function closeMobCart() {
-  document.getElementById('mob-cart-sheet').classList.remove('open')
+// ── MOBILE POS TABS ───────────────────────────────────────────
+function mobSwitchTab(tab) {
+  const layout = document.querySelector('.pos-layout')
+  const menuTab = document.getElementById('mob-tab-menu')
+  const cartTab = document.getElementById('mob-tab-cart')
+  if(!layout) return
+  if(tab === 'menu') {
+    layout.classList.add('mob-show-menu')
+    if(menuTab) { menuTab.classList.add('active'); menuTab.style.color='var(--red)' }
+    if(cartTab) { cartTab.classList.remove('active'); cartTab.style.color='' }
+  } else {
+    layout.classList.remove('mob-show-menu')
+    if(cartTab) { cartTab.classList.add('active'); cartTab.style.color='var(--red)' }
+    if(menuTab) { menuTab.classList.remove('active'); menuTab.style.color='' }
+  }
 }
 
 function syncMobCart() {
-  // Mirror cart items into the mobile sheet
-  const body = document.getElementById('mob-cart-body')
-  const foot = document.getElementById('mob-cart-foot')
-  const mobBtn = document.getElementById('mob-cart-btn')
-  const mobCount = document.getElementById('mob-cart-count')
-  const mobTotal = document.getElementById('mob-cart-total')
-
-  const total = posCart.reduce((s,c)=>s+c.price*c.qty,0)
   const count = posCart.reduce((s,c)=>s+c.qty,0)
-
-  if(mobBtn) {
-    if(window.innerWidth <= 768) {
-      mobCount.textContent = count + (count===1?' item':' items')
-      mobTotal.textContent = fmt(total)
-      mobBtn.style.display = count > 0 ? 'flex' : 'none'
-    } else {
-      mobBtn.style.display = 'none'
-    }
-  }
-
-  if(body) {
-    if(!posCart.length) {
-      body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--ink60);font-size:13px">Carrito vacío</div>'
-    } else {
-      body.innerHTML = posCart.map((c,i) => `
-        <div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--ink10)">
-          <span style="font-size:20px">${c.emoji||'🍕'}</span>
-          <div style="flex:1"><div style="font-size:13px;font-weight:500">${c.name}</div><div style="font-size:12px;color:var(--red)">${fmt(c.price)}</div></div>
-          <div style="display:flex;align-items:center;gap:6px">
-            <button class="qb" onclick="posCart[${i}].qty=Math.max(1,posCart[${i}].qty-1);renderCart();syncMobCart()">−</button>
-            <span style="font-size:14px;font-weight:600;min-width:20px;text-align:center">${c.qty}</span>
-            <button class="qb" onclick="posCart[${i}].qty++;renderCart();syncMobCart()">+</button>
-          </div>
-          <div style="font-size:13px;font-weight:600;min-width:60px;text-align:right">${fmt(c.price*c.qty)}</div>
-          <button class="qb" style="color:var(--red)" onclick="posCart.splice(${i},1);renderCart();syncMobCart()">✕</button>
-        </div>`).join('')
-    }
-  }
-
-  if(foot) {
-    const discount = Number(document.getElementById('pos-discount')?.value||0)
-    const discAmt  = Math.min(discount, total)
-    const grandTotal = total - discAmt
-    foot.innerHTML = `
-      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink60);margin-bottom:6px"><span>Subtotal</span><span>${fmt(total)}</span></div>
-      ${discAmt>0?`<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--green);margin-bottom:6px"><span>Descuento</span><span>−${fmt(discAmt)}</span></div>`:''}
-      <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;margin-bottom:14px;border-top:1px solid var(--ink10);padding-top:10px"><span>Total</span><span>${fmt(grandTotal)}</span></div>
-      <button class="btn btn-p" style="width:100%;justify-content:center;font-size:15px;padding:12px" onclick="closeMobCart();openPaymentModal()">Cobrar ${fmt(grandTotal)}</button>`
-  }
+  const badge = document.getElementById('mob-tab-count')
+  if(badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline' : 'none' }
+  if(count === 0 && window.innerWidth <= 768) mobSwitchTab('menu')
 }
 
 // Hook into renderCart to keep mobile in sync
