@@ -1028,6 +1028,29 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
         <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--green);margin-bottom:4px;display:none" id="pm-tip-row"><span>Propina</span><span id="pm-tip-amt">$0.00</span></div>
         <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;color:var(--ink);margin-top:8px;padding-top:8px;border-top:1px solid var(--ink10)"><span>Total a cobrar</span><span id="pm-total">$0.00</span></div>
       </div>
+      <!-- DISCOUNT SECTION -->
+      <div style="margin-bottom:16px;padding:12px;background:var(--cream);border-radius:var(--rsm)">
+        <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Descuento</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="disc-btns">
+          <button class="btn btn-sm disc-pct" id="discb-0" onclick="selDisc(0,this)" style="border-color:var(--ink30)">Sin descuento</button>
+          <button class="btn btn-sm disc-pct" id="discb-5"  onclick="selDisc(5,this)">5%</button>
+          <button class="btn btn-sm disc-pct" id="discb-10" onclick="selDisc(10,this)">10%</button>
+          <button class="btn btn-sm disc-pct" id="discb-15" onclick="selDisc(15,this)">15%</button>
+          <button class="btn btn-sm disc-pct" id="discb-20" onclick="selDisc(20,this)">20%</button>
+          <button class="btn btn-sm disc-pct" id="discb-c"  onclick="selDisc(-1,this)">✏️ Monto</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;display:none" id="pm-disc-custom-row">
+          <div style="position:relative;flex:1">
+            <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--ink60)">$</span>
+            <input class="fi" type="number" id="pm-disc-custom" placeholder="Monto fijo..." min="0" step="1" oninput="updateDiscCustom()" style="padding-left:18px">
+          </div>
+          <div style="position:relative;flex:1">
+            <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--ink60)">%</span>
+            <input class="fi" type="number" id="pm-disc-custom-pct" placeholder="Porcentaje..." min="0" max="100" step="1" oninput="updateDiscCustomPct()" style="padding-left:18px">
+          </div>
+        </div>
+      </div>
+
       <!-- TIP SECTION -->
       <div style="margin-bottom:16px;padding:12px;background:var(--cream);border-radius:var(--rsm)">
         <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Propina</div>
@@ -1812,6 +1835,18 @@ function openPaymentModal() {
   selectPM('cash', document.getElementById('pmo-cash'))
   // Reset tip
   _tipAmount = 0; _tipPct = 0
+  // Reset discount
+  _discountAmount = 0
+  document.querySelectorAll('.disc-pct').forEach(b => { b.style.borderColor='var(--ink10)'; b.style.background='var(--wh)' })
+  const db0 = document.getElementById('discb-0')
+  if(db0){ db0.style.borderColor='var(--ink30)' }
+  document.getElementById('pm-disc-custom-row').style.display = 'none'
+  document.getElementById('pm-disc-custom').value    = ''
+  document.getElementById('pm-disc-custom-pct').value = ''
+  // Pre-fill from cart discount if already set
+  const cartDisc = Number(document.getElementById('pos-discount')?.value || 0)
+  if(cartDisc > 0) { _discountAmount = Math.min(cartDisc, subtotal); applyDisc() }
+  else document.getElementById('pm-disc-row').style.display = 'none'
   document.querySelectorAll('.tip-pct').forEach(b=>{ b.style.borderColor='var(--ink10)'; b.style.background='var(--wh)' })
   const tb0 = document.getElementById('tipb-0')
   if(tb0){ tb0.style.borderColor='var(--red)'; tb0.style.background='var(--red-l)' }
@@ -1956,7 +1991,7 @@ async function confirmSale() {
 }
 
 async function processSale(worker) {
-  const discount = Number(document.getElementById('pos-discount')?.value || 0)
+  const discount = (_discountAmount > 0) ? _discountAmount : Number(document.getElementById('pos-discount')?.value || 0)
   const subtotal = posCart.reduce((s,c) => s + c.price*c.qty, 0)
   const discAmt = Math.min(discount, subtotal)
   const total = subtotal - discAmt
@@ -2032,6 +2067,7 @@ const _origRenderCart = typeof renderCart === 'function' ? renderCart : null
 
 // ── TIPS ─────────────────────────────────────────────────────
 let _tipAmount = 0, _tipPct = 0
+let _discountAmount = 0
 
 function selTip(pct, btn) {
   _tipPct = pct
@@ -2053,9 +2089,9 @@ function updateTipCustom() {
 }
 
 function applyTip() {
-  const base = _pmBaseTotal || 0
+  const base = (_pmBaseTotal || 0) - _discountAmount
   const grand = base + _tipAmount
-  document.getElementById('pm-total').textContent = fmt(grand)
+  document.getElementById('pm-total').textContent = fmt(Math.max(0, grand))
   const tipRow = document.getElementById('pm-tip-row')
   if(_tipAmount > 0) {
     tipRow.style.display = 'flex'
@@ -2064,6 +2100,43 @@ function applyTip() {
     tipRow.style.display = 'none'
   }
   calcChange()
+}
+
+function selDisc(pct, btn) {
+  document.querySelectorAll('.disc-pct').forEach(b => { b.style.borderColor='var(--ink10)'; b.style.background='var(--wh)' })
+  btn.style.borderColor = 'var(--green)'; btn.style.background = 'var(--green-l)'
+  const customRow = document.getElementById('pm-disc-custom-row')
+  if(pct === -1) { customRow.style.display = 'flex'; return }
+  customRow.style.display = 'none'
+  document.getElementById('pm-disc-custom').value    = ''
+  document.getElementById('pm-disc-custom-pct').value = ''
+  _discountAmount = pct > 0 ? Math.round((_pmBaseTotal || 0) * pct) / 100 : 0
+  applyDisc()
+}
+
+function updateDiscCustom() {
+  _discountAmount = Math.min(parseFloat(document.getElementById('pm-disc-custom').value) || 0, _pmBaseTotal || 0)
+  document.getElementById('pm-disc-custom-pct').value = ''
+  applyDisc()
+}
+
+function updateDiscCustomPct() {
+  const pct = Math.min(parseFloat(document.getElementById('pm-disc-custom-pct').value) || 0, 100)
+  _discountAmount = Math.round((_pmBaseTotal || 0) * pct) / 100
+  document.getElementById('pm-disc-custom').value = ''
+  applyDisc()
+}
+
+function applyDisc() {
+  const discRow = document.getElementById('pm-disc-row')
+  const discEl  = document.getElementById('pm-disc')
+  if(_discountAmount > 0) {
+    discRow.style.display = 'flex'
+    discEl.textContent = '-' + fmt(_discountAmount)
+  } else {
+    discRow.style.display = 'none'
+  }
+  applyTip()
 }
 
 // ── WHATSAPP ──────────────────────────────────────────────────
