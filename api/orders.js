@@ -36,8 +36,13 @@ export default async function handler(req, res) {
       const { items, ...orderData } = body
       const subtotal = items.reduce((s, i) => s + (i.unit_price * i.quantity), 0)
       const delivery_fee = orderData.type === 'delivery' ? 45 : 0
-      const tax = (subtotal) * 0.16
-      const total = subtotal + delivery_fee + tax
+      const discount = Number(orderData.discount || 0)
+      const tip_amount = Number(orderData.tip_amount || 0)
+      // Prices are IVA-inclusive — total = subtotal - discount + tip + delivery
+      const total = Math.round((subtotal - discount + tip_amount + delivery_fee) * 100) / 100
+      // Break out IVA from the final total
+      const net = Math.round(total / 1.16 * 100) / 100
+      const tax = Math.round((total - net) * 100) / 100
       const loyalty_points_earned = Math.floor(total)
 
       const { data: order, error: oErr } = await supabase
