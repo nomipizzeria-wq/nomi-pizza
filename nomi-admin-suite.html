@@ -583,9 +583,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 
     <!-- ANALYTICS -->
     <div class="page" id="page-analytics">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-        <button class="btn btn-sm" onclick="openManualSaleModal()">📝 Registrar venta manual</button>
-        <button class="btn btn-sm" onclick="printZReport()">🖨 Corte Z</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="openManualSaleModal()">📝 Registrar venta manual</button>
+          <button class="btn btn-sm" onclick="printZReport()">🖨 Corte Z</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:4px">
+            <input type="date" id="an-date-from" class="fi" style="padding:5px 8px;font-size:12px;width:130px">
+            <span style="font-size:11px;color:var(--ink60)">a</span>
+            <input type="date" id="an-date-to" class="fi" style="padding:5px 8px;font-size:12px;width:130px">
+          </div>
+          <button class="btn btn-sm" onclick="loadAnalyticsRange()">🔍 Filtrar</button>
+          <button class="btn btn-p btn-sm" onclick="downloadAnalyticsCSV()">📥 Descargar CSV</button>
+        </div>
       </div>
       <div class="mg4">
         <div class="mc"><div class="mc-l">Ingresos hoy</div><div class="mc-v" id="a-rev">$0</div></div>
@@ -1426,7 +1437,7 @@ function showPage(id,el){
   if(id==='menu')loadMenu()
   if(id==='inventory')loadInventory()
   if(id==='loyalty')loadLoyalty()
-  if(id==='analytics')loadAnalytics()
+  if(id==='analytics'){ initAnalyticsDates(); loadAnalytics() }
   if(id==='workers')loadWorkers()
   if(id==='purchases')loadPurchases()
   if(id==='inventory')loadInventory()
@@ -3236,6 +3247,134 @@ function clearSyncedSales() {
 
 // ── Hook: save to offline queue if POS sale fails due to network ──
 const _origProcessSale = typeof processSale === 'function' ? processSale : null
+
+// ── ANALYTICS EXPORT ──────────────────────────────────────────
+let _analyticsOrders = []  // cached for CSV export
+
+function initAnalyticsDates() {
+  const today = new Date().toISOString().slice(0,10)
+  const from  = document.getElementById('an-date-from')
+  const to    = document.getElementById('an-date-to')
+  if(from && !from.value) from.value = today
+  if(to   && !to.value)   to.value   = today
+}
+
+async function loadAnalyticsRange() {
+  const from = document.getElementById('an-date-from')?.value
+  const to   = document.getElementById('an-date-to')?.value
+  if(!from || !to) { showToast('Selecciona un rango de fechas', false); return }
+
+  // Fetch all orders in range
+  let url = `/api/orders?date=${from}`
+  if(from !== to) url = `/api/orders?date_from=${from}&date_to=${to}`
+
+  try {
+    const orders = await fetch(url).then(r=>r.json())
+    _analyticsOrders = Array.isArray(orders) ? orders : []
+    renderAnalyticsFromOrders(_analyticsOrders, from, to)
+  } catch(e) { showToast('Error cargando datos', false) }
+}
+
+function renderAnalyticsFromOrders(orders, from, to) {
+  const total   = orders.reduce((s,o) => s + Number(o.total||0), 0)
+  const count   = orders.length
+  const avg     = count > 0 ? total/count : 0
+  const label   = from === to ? from : `${from} — ${to}`
+
+  document.getElementById('a-rev').textContent = fmt(total)
+  document.getElementById('a-ord').textContent = count
+  document.getElementById('a-avg').textContent = fmt(avg)
+
+  // Top items
+  const itemCounts = {}
+  orders.forEach(o => {
+    (o.order_items||[]).forEach(i => {
+      const name = i.item_name||i.name||'Producto'
+      itemCounts[name] = (itemCounts[name]||0) + Number(i.quantity||1)
+    })
+  })
+  const sorted = Object.entries(itemCounts).sort((a,b)=>b[1]-a[1]).slice(0,8)
+  document.getElementById('top-items').innerHTML = sorted.length
+    ? sorted.map(([name,qty]) => `<div class="row"><span>${name}</span><span style="font-weight:600">${qty} uds</span></div>`).join('')
+    : '<div class="empty">Sin datos</div>'
+
+  // By payment method
+  const byPM = {}
+  orders.forEach(o => { const m=o.payment_method||'otro'; byPM[m]=(byPM[m]||0)+Number(o.total||0) })
+  const pmLabel = {cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',mercado_pago:'Mercado Pago'}
+  document.getElementById('by-type').innerHTML = Object.entries(byPM)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([m,t]) => `<div class="row"><span>${pmLabel[m]||m}</span><span style="font-weight:600">${fmt(t)}</span></div>`).join('') || '<div class="empty">Sin datos</div>'
+}
+
+async function downloadAnalyticsCSV() {
+  const from = document.getElementById('an-date-from')?.value
+  const to   = document.getElementById('an-date-to')?.value
+  if(!from || !to) { showToast('Selecciona un rango de fechas primero', false); return }
+
+  showToast('Generando CSV...')
+
+  // Fetch if not cached for this range
+  let orders = _analyticsOrders
+  if(!orders.length) {
+    try {
+      const url = from === to ? `/api/orders?date=${from}` : `/api/orders?date_from=${from}&date_to=${to}`
+      orders = await fetch(url).then(r=>r.json())
+      if(!Array.isArray(orders)) orders = []
+    } catch(e) { showToast('Error al descargar datos', false); return }
+  }
+
+  const TYPE = {pickup:'Mostrador',dine_in:'Mesa',takeout:'Para llevar',delivery:'Domicilio'}
+  const PM   = {cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',mercado_pago:'Mercado Pago'}
+
+  const rows = [
+    ['Fecha','Hora','# Orden','Tipo','Mesa','Cliente','Productos','Subtotal','Descuento','Propina','IVA','Total','Pago','Notas']
+  ]
+
+  orders.forEach(o => {
+    const d   = new Date(o.created_at)
+    const items = (o.order_items||[]).map(i=>`${i.quantity}× ${i.item_name||i.name}`).join(' | ')
+    const mesa  = o.restaurant_tables?.number ? 'Mesa '+o.restaurant_tables.number : ''
+    rows.push([
+      d.toLocaleDateString('es-MX'),
+      d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),
+      '#' + String(o.order_number||o.id||'').padStart(4,'0'),
+      TYPE[o.type]||o.type||'',
+      mesa,
+      o.customer_name||'',
+      items,
+      Number(o.subtotal||0).toFixed(2),
+      Number(o.discount||0).toFixed(2),
+      Number(o.tip_amount||0).toFixed(2),
+      Number(o.tax||0).toFixed(2),
+      Number(o.total||0).toFixed(2),
+      PM[o.payment_method]||o.payment_method||'',
+      (o.notes||'').replace(/,/g,' ')
+    ])
+  })
+
+  // Totals row
+  const totals = orders.reduce((acc,o) => ({
+    subtotal: acc.subtotal + Number(o.subtotal||0),
+    discount: acc.discount + Number(o.discount||0),
+    tip:      acc.tip      + Number(o.tip_amount||0),
+    tax:      acc.tax      + Number(o.tax||0),
+    total:    acc.total    + Number(o.total||0)
+  }), {subtotal:0,discount:0,tip:0,tax:0,total:0})
+
+  rows.push([])
+  rows.push(['TOTALES','','','','','',`${orders.length} órdenes`,
+    totals.subtotal.toFixed(2), totals.discount.toFixed(2), totals.tip.toFixed(2),
+    totals.tax.toFixed(2), totals.total.toFixed(2),'',''])
+
+  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n')
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'})
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `nomi-ventas-${from}${from!==to?'-a-'+to:''}.csv`
+  a.click()
+  showToast(`✓ CSV descargado (${orders.length} órdenes)`)
+}
 
 // ── RECETAS TAB ───────────────────────────────────────────────
 const _SB_URL  = 'https://vmvrigshxffagblmpvyf.supabase.co'
