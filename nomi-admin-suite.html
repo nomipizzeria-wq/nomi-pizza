@@ -153,6 +153,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 .sb-overlay.open{display:block;opacity:1;pointer-events:all}
 
 /* Mobile cart bottom sheet */
+.offline-banner{display:none;background:#c8391b;color:#fff;font-size:12px;font-weight:600;text-align:center;padding:7px 16px;letter-spacing:.03em;flex-shrink:0}
+.offline-banner.show{display:block}
+.pending-dot{width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block;margin-right:5px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .mob-pos-tabs{display:none;border-bottom:2px solid var(--ink10);background:var(--wh);flex-shrink:0}
 .mob-tab{flex:1;padding:11px 8px;border:none;background:none;font-family:"DM Sans",sans-serif;font-size:13px;font-weight:500;color:var(--ink60);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:var(--tr)}
 .mob-tab.active{color:var(--red);border-bottom-color:var(--red);font-weight:600}
@@ -261,6 +265,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 .sb-overlay.open{display:block;opacity:1;pointer-events:all}
 
 /* Mobile cart bottom sheet */
+.offline-banner{display:none;background:#c8391b;color:#fff;font-size:12px;font-weight:600;text-align:center;padding:7px 16px;letter-spacing:.03em;flex-shrink:0}
+.offline-banner.show{display:block}
+.pending-dot{width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block;margin-right:5px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .mob-pos-tabs{display:none;border-bottom:2px solid var(--ink10);background:var(--wh);flex-shrink:0}
 .mob-tab{flex:1;padding:11px 8px;border:none;background:none;font-family:"DM Sans",sans-serif;font-size:13px;font-weight:500;color:var(--ink60);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:var(--tr)}
 .mob-tab.active{color:var(--red);border-bottom-color:var(--red);font-weight:600}
@@ -362,6 +370,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 <div class="main">
   <!-- Sidebar overlay for mobile -->
   <div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+  <!-- OFFLINE BANNER -->
+  <div class="offline-banner" id="offline-banner">⚠️ Sin conexión — Las ventas se guardarán localmente y sincronizarán automáticamente al reconectarse</div>
   <header class="topbar">
     <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menú">
       <span></span><span></span><span></span>
@@ -377,6 +387,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
+      <!-- Pending offline sales alert -->
+      <div id="pending-sales-card" style="display:none;background:#fff8f7;border:1px solid var(--red);border-radius:var(--r);padding:14px 18px;margin-bottom:16px;display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div><span class="pending-dot"></span><strong id="pending-count">0</strong> ventas pendientes de sincronizar</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="showPendingSales()">Ver detalle</button>
+            <button class="btn btn-p btn-sm" onclick="syncOfflineSales()">☁️ Sincronizar ahora</button>
+          </div>
+        </div>
+      </div>
       <div class="mg4">
         <div class="mc"><div class="mc-l">Ventas hoy</div><div class="mc-v" id="d-rev">$0</div><div class="mc-s">Cargando...</div></div>
         <div class="mc"><div class="mc-l">Pedidos hoy</div><div class="mc-v" id="d-ord">0</div><div class="mc-s" id="d-act">0 activos</div></div>
@@ -473,6 +493,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
           <!-- Action buttons -->
           <div style="padding:12px 18px;border-top:1px solid var(--ink10);display:flex;gap:8px;flex-shrink:0">
             <button class="btn btn-sm" onclick="clrPOS()" style="flex:1;justify-content:center">🗑 Limpiar</button>
+            <button class="btn btn-sm" onclick="openM('manual-sale-modal')" style="justify-content:center" title="Agregar venta manual / sin conexión">📝</button>
             <button class="btn btn-p" onclick="openPaymentModal()" style="flex:2;justify-content:center;padding:9px" id="cobrar-btn">💳 Cobrar</button>
           </div>
         </div>
@@ -805,7 +826,90 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 
 <div class="modal-bg" id="restock-modal"><div class="modal"><div class="mh"><span class="mt">Reabastecer</span><button class="mc-btn" onclick="closeM('restock-modal')">×</button></div><div class="mb"><div class="fl"><label>Ingrediente</label><select class="fs" id="rs-ing"></select></div><div class="fl"><label>Cantidad</label><input class="fi" id="rs-qty" type="number" step="0.1" placeholder="0.0"></div><div class="fl"><label>Notas</label><input class="fi" id="rs-notes" placeholder="Proveedor, lote..."></div></div><div class="mf"><button class="btn" onclick="closeM('restock-modal')">Cancelar</button><button class="btn btn-p" onclick="saveRestock()">✓ Registrar</button></div></div></div>
 
-<!-- RECIPE EDITOR MODAL -->
+<!-- MANUAL SALE MODAL -->
+<div class="modal-bg" id="manual-sale-modal">
+  <div class="modal" style="width:500px;max-width:96vw">
+    <div class="mh">
+      <div>
+        <div class="mt">📝 Registrar venta</div>
+        <div style="font-size:11px;color:var(--ink60);margin-top:2px">Sin conexión o entrada manual — se sincronizará automáticamente</div>
+      </div>
+      <button class="mc-btn" onclick="closeM('manual-sale-modal')">×</button>
+    </div>
+    <div class="mb">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fl" style="margin-bottom:0">
+          <label>Fecha y hora</label>
+          <input class="fi" type="datetime-local" id="ms-datetime">
+        </div>
+        <div class="fl" style="margin-bottom:0">
+          <label>Método de pago</label>
+          <select class="fs" id="ms-method">
+            <option value="cash">💵 Efectivo</option>
+            <option value="card">💳 Tarjeta</option>
+            <option value="transfer">📲 Transferencia</option>
+          </select>
+        </div>
+      </div>
+      <div class="fl" style="margin-top:10px">
+        <label>Productos / descripción</label>
+        <textarea class="fi" id="ms-items" rows="3" placeholder="Ej: 1× Margherita, 2× Pepperoni, 1× Burrata extra..." style="resize:vertical;font-family:inherit"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fl" style="margin-bottom:0">
+          <label>Total cobrado</label>
+          <div style="position:relative">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink60);font-size:12px">$</span>
+            <input class="fi" type="number" id="ms-total" min="0" step="0.01" placeholder="0.00" style="padding-left:20px">
+          </div>
+        </div>
+        <div class="fl" style="margin-bottom:0">
+          <label>Propina (opcional)</label>
+          <div style="position:relative">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink60);font-size:12px">$</span>
+            <input class="fi" type="number" id="ms-tip" min="0" step="0.01" placeholder="0.00" style="padding-left:20px">
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div class="fl" style="margin-bottom:0">
+          <label>Mesero / cajero</label>
+          <input class="fi" id="ms-waiter" placeholder="Nombre...">
+        </div>
+        <div class="fl" style="margin-bottom:0">
+          <label>Cliente (opcional)</label>
+          <input class="fi" id="ms-customer" placeholder="Nombre del cliente...">
+        </div>
+      </div>
+      <div class="fl" style="margin-top:10px">
+        <label>Notas</label>
+        <input class="fi" id="ms-notes" placeholder="Mesa, número de orden, observaciones...">
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeM('manual-sale-modal')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveManualSale()">💾 Guardar venta</button>
+    </div>
+  </div>
+</div>
+
+<!-- PENDING SALES DETAIL MODAL -->
+<div class="modal-bg" id="pending-modal">
+  <div class="modal" style="width:580px;max-width:96vw">
+    <div class="mh">
+      <div class="mt">☁️ Ventas pendientes de sincronizar</div>
+      <button class="mc-btn" onclick="closeM('pending-modal')">×</button>
+    </div>
+    <div class="mb" style="padding:0;max-height:60vh;overflow-y:auto">
+      <div id="pending-list" style="padding:8px 0"></div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeM('pending-modal')">Cerrar</button>
+      <button class="btn" style="color:var(--red)" onclick="clearSyncedSales()">🗑 Limpiar sincronizadas</button>
+      <button class="btn btn-p" onclick="syncOfflineSales()">☁️ Sincronizar todas</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg" id="recipe-modal">
   <div class="modal" style="width:640px;max-width:96vw">
     <div class="mh">
@@ -1821,6 +1925,31 @@ async function confirmSale() {
     clrPOS()
     loadRecentSales()
       } catch(e) {
+    // If network error, offer to save offline
+    if(!navigator.onLine || e.message?.includes('fetch') || e.message?.includes('network')) {
+      const discount = Number(document.getElementById('pos-discount')?.value||0)
+      const subtotal = posCart.reduce((s,c)=>s+c.price*c.qty,0)
+      const discAmt  = Math.min(discount, subtotal)
+      const total    = subtotal - discAmt + (_tipAmount||0)
+      const sale = {
+        id:             genOfflineId(),
+        created_at:     new Date().toISOString(),
+        items_text:     posCart.map(c=>c.qty+'× '+c.name).join(', '),
+        total:          Math.round(total*100)/100,
+        tip_amount:     Math.round((_tipAmount||0)*100)/100,
+        payment_method: selectedPayMethod,
+        customer_name:  document.getElementById('pm-customer')?.value?.trim()||null,
+        waiter_name:    null,
+        notes:          'Guardada offline desde POS',
+        source:         'pos_offline',
+        synced:         false
+      }
+      const q = getOfflineQueue(); q.push(sale); saveOfflineQueue(q)
+      updatePendingBadge()
+      closeM('pin-confirm-modal'); closeM('payment-modal')
+      showToast('Sin conexión — venta guardada localmente 💾')
+      clrPOS(); return
+    }
     document.getElementById('pin-confirm-error').textContent = 'Error: ' + e.message
     pcPIN = ''; updatePCDots()
   }
@@ -2868,6 +2997,161 @@ async function cfgSaveSupplier() {
   } catch(e) { showToast('Error: ' + e.message, false) }
 }
 
+
+// ── OFFLINE SALES QUEUE ──────────────────────────────────────
+const OFFLINE_KEY = 'nomi_offline_sales'
+
+function getOfflineQueue() {
+  try { return JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]') } catch { return [] }
+}
+function saveOfflineQueue(q) {
+  localStorage.setItem(OFFLINE_KEY, JSON.stringify(q))
+}
+function genOfflineId() {
+  return 'off_' + Date.now() + '_' + Math.random().toString(36).slice(2,7)
+}
+
+// ── Online/offline detection ──────────────────────────────────
+function updateOnlineStatus() {
+  const banner = document.getElementById('offline-banner')
+  if(banner) banner.classList.toggle('show', !navigator.onLine)
+  updatePendingBadge()
+  if(navigator.onLine) syncOfflineSales()
+}
+window.addEventListener('online',  updateOnlineStatus)
+window.addEventListener('offline', updateOnlineStatus)
+setTimeout(updateOnlineStatus, 500) // run after DOM ready
+
+// ── Pending badge ─────────────────────────────────────────────
+function updatePendingBadge() {
+  const q = getOfflineQueue().filter(s => !s.synced)
+  const card = document.getElementById('pending-sales-card')
+  const cnt  = document.getElementById('pending-count')
+  if(card) { card.style.display = q.length > 0 ? 'block' : 'none' }
+  if(cnt)  cnt.textContent = q.length
+}
+
+// ── Manual sale entry ─────────────────────────────────────────
+function openManualSaleModal() {
+  // Default to current datetime
+  const now = new Date()
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+  const el = document.getElementById('ms-datetime')
+  if(el) el.value = now.toISOString().slice(0,16)
+  // Pre-fill waiter from current login
+  const w = document.getElementById('ms-waiter')
+  if(w && window._currentWorker) w.value = window._currentWorker.name || ''
+  openM('manual-sale-modal')
+}
+
+function saveManualSale() {
+  const total = parseFloat(document.getElementById('ms-total').value)
+  if(!total || total <= 0) { showToast('Ingresa un total válido', false); return }
+  const items = document.getElementById('ms-items').value.trim()
+  if(!items) { showToast('Describe los productos', false); return }
+
+  const sale = {
+    id:             genOfflineId(),
+    created_at:     document.getElementById('ms-datetime').value || new Date().toISOString(),
+    items_text:     items,
+    total:          total,
+    tip_amount:     parseFloat(document.getElementById('ms-tip').value) || 0,
+    payment_method: document.getElementById('ms-method').value,
+    customer_name:  document.getElementById('ms-customer').value.trim() || null,
+    waiter_name:    document.getElementById('ms-waiter').value.trim() || null,
+    notes:          document.getElementById('ms-notes').value.trim() || null,
+    source:         'manual',
+    synced:         false
+  }
+
+  const q = getOfflineQueue()
+  q.push(sale)
+  saveOfflineQueue(q)
+  updatePendingBadge()
+
+  // Reset form
+  document.getElementById('ms-items').value    = ''
+  document.getElementById('ms-total').value    = ''
+  document.getElementById('ms-tip').value      = ''
+  document.getElementById('ms-customer').value = ''
+  document.getElementById('ms-notes').value    = ''
+
+  closeM('manual-sale-modal')
+  showToast('Venta guardada localmente 💾')
+  if(navigator.onLine) syncOfflineSales()
+}
+
+// ── Sync to Supabase ──────────────────────────────────────────
+async function syncOfflineSales() {
+  const q = getOfflineQueue()
+  const pending = q.filter(s => !s.synced)
+  if(!pending.length) return
+  if(!navigator.onLine) return
+
+  let synced = 0
+  for(const sale of pending) {
+    try {
+      // Build a minimal order row that matches the orders table
+      const row = {
+        created_at:     sale.created_at,
+        status:         'delivered',
+        payment_method: sale.payment_method,
+        payment_status: 'paid',
+        customer_name:  sale.customer_name,
+        subtotal:       Math.round((sale.total / 1.16) * 100) / 100,
+        discount:       0,
+        tip_amount:     sale.tip_amount || 0,
+        total:          sale.total,
+        notes:          [sale.notes, sale.waiter_name ? 'Mesero: '+sale.waiter_name : null, 'Origen: manual', sale.items_text].filter(Boolean).join(' | '),
+        items:          [{name: sale.items_text, qty: 1, price: sale.total}]
+      }
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(row)
+      })
+      if(res.ok) {
+        sale.synced = true
+        sale.synced_at = new Date().toISOString()
+        synced++
+      }
+    } catch(e) { console.warn('Sync failed for', sale.id, e) }
+  }
+
+  saveOfflineQueue(q)
+  updatePendingBadge()
+  if(synced > 0) showToast(`✓ ${synced} venta${synced>1?'s':''} sincronizada${synced>1?'s':''}`)
+}
+
+// ── View pending sales detail ─────────────────────────────────
+function showPendingSales() {
+  const q = getOfflineQueue()
+  const el = document.getElementById('pending-list')
+  if(!el) return
+  if(!q.length) { el.innerHTML = '<div class="empty">No hay ventas pendientes</div>'; openM('pending-modal'); return }
+  el.innerHTML = q.map(s => `
+    <div style="padding:12px 20px;border-bottom:1px solid var(--ink10);display:flex;align-items:start;gap:10px">
+      <span style="font-size:18px;flex-shrink:0">${s.synced ? '✅' : '🕐'}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;margin-bottom:2px">${fmt(s.total)} · ${s.payment_method==='cash'?'Efectivo':s.payment_method==='card'?'Tarjeta':'Transferencia'}</div>
+        <div style="font-size:12px;color:var(--ink60);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.items_text}</div>
+        <div style="font-size:11px;color:var(--ink60)">${new Date(s.created_at).toLocaleString('es-MX')} ${s.waiter_name?'· '+s.waiter_name:''}</div>
+      </div>
+      <span class="badge ${s.synced?'bg':'ba'}" style="flex-shrink:0">${s.synced?'Sincronizada':'Pendiente'}</span>
+    </div>`).join('')
+  openM('pending-modal')
+}
+
+function clearSyncedSales() {
+  const q = getOfflineQueue().filter(s => !s.synced)
+  saveOfflineQueue(q)
+  updatePendingBadge()
+  showPendingSales()
+  showToast('Ventas sincronizadas eliminadas del historial local')
+}
+
+// ── Hook: save to offline queue if POS sale fails due to network ──
+const _origProcessSale = typeof processSale === 'function' ? processSale : null
 
 // ── RECETAS TAB ───────────────────────────────────────────────
 const _SB_URL  = 'https://vmvrigshxffagblmpvyf.supabase.co'
