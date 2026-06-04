@@ -397,6 +397,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
           </div>
         </div>
       </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:13px;color:var(--ink60)" id="dash-date-label"></div>
+        <button class="btn btn-sm" onclick="openManualSaleModal()">📝 Registrar venta manual</button>
+      </div>
       <div class="mg4">
         <div class="mc"><div class="mc-l">Ventas hoy</div><div class="mc-v" id="d-rev">$0</div><div class="mc-s">Cargando...</div></div>
         <div class="mc"><div class="mc-l">Pedidos hoy</div><div class="mc-v" id="d-ord">0</div><div class="mc-s" id="d-act">0 activos</div></div>
@@ -579,7 +583,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 
     <!-- ANALYTICS -->
     <div class="page" id="page-analytics">
-            <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-sm" onclick="printZReport()">&#128424; Corte Z</button></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <button class="btn btn-sm" onclick="openManualSaleModal()">📝 Registrar venta manual</button>
+        <button class="btn btn-sm" onclick="printZReport()">🖨 Corte Z</button>
+      </div>
       <div class="mg4">
         <div class="mc"><div class="mc-l">Ingresos hoy</div><div class="mc-v" id="a-rev">$0</div></div>
         <div class="mc"><div class="mc-l">Pedidos hoy</div><div class="mc-v" id="a-ord">0</div></div>
@@ -832,11 +839,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
     <div class="mh">
       <div>
         <div class="mt">📝 Registrar venta</div>
-        <div style="font-size:11px;color:var(--ink60);margin-top:2px">Sin conexión o entrada manual — se sincronizará automáticamente</div>
+        <div style="font-size:11px;color:var(--ink60);margin-top:2px">Ventas pasadas, sin conexión o correcciones — se sincronizan automáticamente</div>
       </div>
       <button class="mc-btn" onclick="closeM('manual-sale-modal')">×</button>
     </div>
     <div class="mb">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+        <span style="font-size:11px;color:var(--ink60)">Fecha rápida:</span>
+        <button class="btn btn-sm" onclick="setManualDate(0)">Hoy</button>
+        <button class="btn btn-sm" onclick="setManualDate(-1)">Ayer</button>
+        <button class="btn btn-sm" onclick="setManualDate(-2)">Hace 2 días</button>
+        <button class="btn btn-sm" onclick="setManualDate(-7)">Hace 1 semana</button>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="fl" style="margin-bottom:0">
           <label>Fecha y hora</label>
@@ -1433,6 +1447,8 @@ document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e
 
 // DASHBOARD
 async function loadDash(){
+  const dateEl = document.getElementById('dash-date-label')
+  if(dateEl) dateEl.textContent = new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
   try{
     const [an,ord,tbl,inv]=await Promise.all([api('analytics'),api('orders'),api('tables'),api('inventory')])
     document.getElementById('d-rev').textContent=fmt(an.today?.revenue)
@@ -1953,6 +1969,7 @@ async function confirmSale() {
     setTimeout(()=>{fetch('/api/orders').then(r=>r.json()).then(ords=>{if(ords&&ords[0])printReceipt(ords[0],{paymentMethod:_pm2,cashReceived:_cr})}).catch(()=>{})},600)
     clrPOS()
     loadRecentSales()
+    loadDash()
   } catch(e) {
     document.getElementById('pin-confirm-error').textContent = 'Error: ' + (e.message||'Intenta de nuevo')
     pcPIN = ''; updatePCDots()
@@ -2000,7 +2017,12 @@ async function processSale(worker) {
     }))
   }
 
-  await api('orders', {method:'POST', body: orderData})
+  const result = await api('orders', {method:'POST', body: orderData})
+  if(result?.error) throw new Error(result.error)
+  if(!result?.id && !result?.[0]?.id) {
+    // Some API setups return the created row, some return nothing — only throw if explicit error
+    console.warn('processSale response:', result)
+  }
 }
 
 // ── RESPONSIVE / MOBILE ───────────────────────────────────────
@@ -3089,12 +3111,17 @@ function updatePendingBadge() {
 }
 
 // ── Manual sale entry ─────────────────────────────────────────
+function setManualDate(daysOffset) {
+  const d = new Date()
+  d.setDate(d.getDate() + daysOffset)
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+  const el = document.getElementById('ms-datetime')
+  if(el) el.value = d.toISOString().slice(0,16)
+}
+
 function openManualSaleModal() {
   // Default to current datetime
-  const now = new Date()
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
-  const el = document.getElementById('ms-datetime')
-  if(el) el.value = now.toISOString().slice(0,16)
+  setManualDate(0)
   // Pre-fill waiter from current login
   const w = document.getElementById('ms-waiter')
   if(w && window._currentWorker) w.value = window._currentWorker.name || ''
