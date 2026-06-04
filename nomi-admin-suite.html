@@ -3659,9 +3659,11 @@ ${item.notes ? `<div class="note">* ${item.notes}</div>` : ''}`).join('')}
 
 <div class="dash"></div>
 
-${order.subtotal ? `<div class="row md"><span>Subtotal sin IVA</span><span>${fmt$(Math.round(Number(order.subtotal)/1.16*100)/100)}</span></div>` : ''}
+${order.subtotal ? `<div class="row md"><span>Subtotal</span><span>${fmt$(Number(order.subtotal))}</span></div>` : ''}
 ${discount > 0 ? `<div class="row md"><span>Descuento</span><span>-${fmt$(discount)}</span></div>` : ''}
-<div class="row md"><span>IVA (16%)</span><span>${fmt$(Math.round((Number(order.subtotal||total)/1.16*0.16)*100)/100)}</span></div>
+${order.tip_amount > 0 ? `<div class="row md"><span>Propina</span><span>+${fmt$(Number(order.tip_amount))}</span></div>` : ''}
+<div class="row md"><span>Subtotal sin IVA</span><span>${fmt$(Math.round(total/1.16*100)/100)}</span></div>
+<div class="row md"><span>IVA (16%)</span><span>${fmt$(Math.round((total - total/1.16)*100)/100)}</span></div>
 <div class="solid"></div>
 <div class="total-row"><span>TOTAL</span><span>${fmt$(total)}</span></div>
 <div class="dash"></div>
