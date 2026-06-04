@@ -1817,20 +1817,15 @@ function openPaymentModal() {
   const total = subtotal - discAmt
 
   document.getElementById('pm-items-count').textContent = posCart.reduce((s,c)=>s+c.qty,0) + ' productos'
-  document.getElementById('pm-disc').textContent = '-' + fmt(discAmt)
-  document.getElementById('pm-disc-row').style.display = discAmt > 0 ? 'flex' : 'none'
-  document.getElementById('pm-total').textContent = fmt(total)
-  window._pmBaseTotal = total
+  document.getElementById('pm-disc-row').style.display = 'none'
+  document.getElementById('pm-total').textContent = fmt(subtotal)
+  window._pmBaseTotal = subtotal  // always the raw subtotal; discount + tip applied on top
   document.getElementById('pm-customer').value = ''
   document.getElementById('pm-cash-received').value = ''
   document.getElementById('pm-change-box').style.display = 'none'
 
-  // Quick cash amounts
-  const amounts = [Math.ceil(total/50)*50, Math.ceil(total/100)*100, Math.ceil(total/200)*200, 500, 1000]
-  const unique = [...new Set(amounts)].filter(a => a >= total).slice(0,4)
-  document.getElementById('pm-quick-amounts').innerHTML = unique.map(a =>
-    `<button class="btn btn-sm" onclick="document.getElementById('pm-cash-received').value='${a}';calcChange()">${fmt(a)}</button>`
-  ).join('')
+  // Quick cash amounts — refreshed by applyDisc/applyTip, seed with raw subtotal for now
+  updateQuickAmounts()
 
   selectPM('cash', document.getElementById('pmo-cash'))
   // Reset tip
@@ -1843,10 +1838,9 @@ function openPaymentModal() {
   document.getElementById('pm-disc-custom-row').style.display = 'none'
   document.getElementById('pm-disc-custom').value    = ''
   document.getElementById('pm-disc-custom-pct').value = ''
-  // Pre-fill from cart discount if already set
+  // Pre-fill discount from cart if set
   const cartDisc = Number(document.getElementById('pos-discount')?.value || 0)
-  if(cartDisc > 0) { _discountAmount = Math.min(cartDisc, subtotal); applyDisc() }
-  else document.getElementById('pm-disc-row').style.display = 'none'
+  if(cartDisc > 0) { _discountAmount = cartDisc; applyDisc() }
   document.querySelectorAll('.tip-pct').forEach(b=>{ b.style.borderColor='var(--ink10)'; b.style.background='var(--wh)' })
   const tb0 = document.getElementById('tipb-0')
   if(tb0){ tb0.style.borderColor='var(--red)'; tb0.style.background='var(--red-l)' }
@@ -1959,34 +1953,23 @@ async function confirmSale() {
     setTimeout(()=>{fetch('/api/orders').then(r=>r.json()).then(ords=>{if(ords&&ords[0])printReceipt(ords[0],{paymentMethod:_pm2,cashReceived:_cr})}).catch(()=>{})},600)
     clrPOS()
     loadRecentSales()
-      } catch(e) {
-    // If network error, offer to save offline
-    if(!navigator.onLine || e.message?.includes('fetch') || e.message?.includes('network')) {
-      const discount = Number(document.getElementById('pos-discount')?.value||0)
-      const subtotal = posCart.reduce((s,c)=>s+c.price*c.qty,0)
-      const discAmt  = Math.min(discount, subtotal)
-      const total    = subtotal - discAmt + (_tipAmount||0)
-      const sale = {
-        id:             genOfflineId(),
-        created_at:     new Date().toISOString(),
-        items_text:     posCart.map(c=>c.qty+'× '+c.name).join(', '),
-        total:          Math.round(total*100)/100,
-        tip_amount:     Math.round((_tipAmount||0)*100)/100,
-        payment_method: selectedPayMethod,
-        customer_name:  document.getElementById('pm-customer')?.value?.trim()||null,
-        waiter_name:    null,
-        notes:          'Guardada offline desde POS',
-        source:         'pos_offline',
-        synced:         false
-      }
-      const q = getOfflineQueue(); q.push(sale); saveOfflineQueue(q)
+  } catch(e) {
+    document.getElementById('pin-confirm-error').textContent = 'Error: ' + (e.message||'Intenta de nuevo')
+    pcPIN = ''; updatePCDots()
+    if(!navigator.onLine) {
+      const s2 = posCart.reduce((s,c)=>s+c.price*c.qty,0)
+      const t2 = Math.max(0, s2 - (_discountAmount||0) + (_tipAmount||0))
+      const sale = { id:genOfflineId(), created_at:new Date().toISOString(),
+        items_text:posCart.map(c=>c.qty+'× '+c.name).join(', '),
+        total:Math.round(t2*100)/100, tip_amount:Math.round((_tipAmount||0)*100)/100,
+        payment_method:selectedPayMethod,
+        customer_name:document.getElementById('pm-customer')?.value?.trim()||null,
+        waiter_name:null, notes:'Guardada offline desde POS', source:'pos_offline', synced:false }
+      const q=getOfflineQueue(); q.push(sale); saveOfflineQueue(q)
       updatePendingBadge()
       closeM('pin-confirm-modal'); closeM('payment-modal')
-      showToast('Sin conexión — venta guardada localmente 💾')
-      clrPOS(); return
+      showToast('Sin conexión — venta guardada localmente 💾'); clrPOS()
     }
-    document.getElementById('pin-confirm-error').textContent = 'Error: ' + e.message
-    pcPIN = ''; updatePCDots()
   }
 }
 
@@ -2076,10 +2059,8 @@ function selTip(pct, btn) {
   const customRow = document.getElementById('pm-tip-custom')
   if(pct === -1) { customRow.style.display = 'block'; customRow.focus(); return }
   customRow.style.display = 'none'
-  const base = parseFloat(document.getElementById('pm-total').textContent.replace(/[^0-9.]/g,'')) || 0
-  // base at this point already includes old tip; get clean subtotal
-  const subtotal = _pmBaseTotal || base
-  _tipAmount = pct > 0 ? Math.round(subtotal * pct) / 100 : 0
+  const base = Math.max(0, (_pmBaseTotal||0) - (_discountAmount||0))
+  _tipAmount = pct > 0 ? Math.round(base * pct) / 100 : 0
   applyTip()
 }
 
@@ -2088,17 +2069,24 @@ function updateTipCustom() {
   applyTip()
 }
 
+function updateQuickAmounts() {
+  const grand = parseFloat((document.getElementById('pm-total')||{}).textContent?.replace(/[^0-9.]/g,'')||0)
+  if(!grand) return
+  const amounts = [Math.ceil(grand/50)*50, Math.ceil(grand/100)*100, Math.ceil(grand/200)*200, 500, 1000]
+  const unique = [...new Set(amounts)].filter(a => a >= grand).slice(0,4)
+  const el = document.getElementById('pm-quick-amounts')
+  if(el) el.innerHTML = unique.map(a =>
+    `<button class="btn btn-sm" onclick="document.getElementById('pm-cash-received').value='${a}';calcChange()">${fmt(a)}</button>`
+  ).join('')
+}
+
 function applyTip() {
-  const base = (_pmBaseTotal || 0) - _discountAmount
-  const grand = base + _tipAmount
-  document.getElementById('pm-total').textContent = fmt(Math.max(0, grand))
+  const grand = Math.max(0, (_pmBaseTotal||0) - (_discountAmount||0) + (_tipAmount||0))
+  document.getElementById('pm-total').textContent = fmt(grand)
   const tipRow = document.getElementById('pm-tip-row')
-  if(_tipAmount > 0) {
-    tipRow.style.display = 'flex'
-    document.getElementById('pm-tip-amt').textContent = '+' + fmt(_tipAmount)
-  } else {
-    tipRow.style.display = 'none'
-  }
+  if(_tipAmount > 0) { tipRow.style.display='flex'; document.getElementById('pm-tip-amt').textContent='+'+fmt(_tipAmount) }
+  else tipRow.style.display = 'none'
+  updateQuickAmounts()
   calcChange()
 }
 
@@ -2110,19 +2098,19 @@ function selDisc(pct, btn) {
   customRow.style.display = 'none'
   document.getElementById('pm-disc-custom').value    = ''
   document.getElementById('pm-disc-custom-pct').value = ''
-  _discountAmount = pct > 0 ? Math.round((_pmBaseTotal || 0) * pct) / 100 : 0
+  _discountAmount = pct > 0 ? Math.round((_pmBaseTotal||0) * pct) / 100 : 0
   applyDisc()
 }
 
 function updateDiscCustom() {
-  _discountAmount = Math.min(parseFloat(document.getElementById('pm-disc-custom').value) || 0, _pmBaseTotal || 0)
+  _discountAmount = Math.min(parseFloat(document.getElementById('pm-disc-custom').value)||0, _pmBaseTotal||0)
   document.getElementById('pm-disc-custom-pct').value = ''
   applyDisc()
 }
 
 function updateDiscCustomPct() {
-  const pct = Math.min(parseFloat(document.getElementById('pm-disc-custom-pct').value) || 0, 100)
-  _discountAmount = Math.round((_pmBaseTotal || 0) * pct) / 100
+  const pct = Math.min(parseFloat(document.getElementById('pm-disc-custom-pct').value)||0, 100)
+  _discountAmount = Math.round((_pmBaseTotal||0) * pct) / 100
   document.getElementById('pm-disc-custom').value = ''
   applyDisc()
 }
@@ -2130,12 +2118,8 @@ function updateDiscCustomPct() {
 function applyDisc() {
   const discRow = document.getElementById('pm-disc-row')
   const discEl  = document.getElementById('pm-disc')
-  if(_discountAmount > 0) {
-    discRow.style.display = 'flex'
-    discEl.textContent = '-' + fmt(_discountAmount)
-  } else {
-    discRow.style.display = 'none'
-  }
+  if(_discountAmount > 0) { discRow.style.display='flex'; discEl.textContent='-'+fmt(_discountAmount) }
+  else discRow.style.display = 'none'
   applyTip()
 }
 
