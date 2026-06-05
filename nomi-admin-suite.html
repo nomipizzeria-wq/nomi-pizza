@@ -3280,27 +3280,12 @@ async function loadAnalyticsRange() {
   try {
     let orders = []
 
-    if(dates.length === 1) {
-      // Single day — use existing API
-      const res = await fetch(`/api/orders?date=${dates[0]}`).then(r=>r.json())
-      if(Array.isArray(res)) orders = res
-    } else {
-      // Multi-day — try range endpoint first, fall back to parallel day fetches
-      try {
-        const res = await fetch(`/api/orders?date_from=${from}&date_to=${to}`).then(r=>r.json())
-        if(Array.isArray(res) && res.length >= 0) {
-          orders = res
-        } else throw new Error('range not supported')
-      } catch {
-        // Parallel day-by-day fetch (works with existing API)
-        const results = await Promise.all(
-          dates.map(date =>
-            fetch(`/api/orders?date=${date}`).then(r=>r.json()).catch(()=>[])
-          )
-        )
-        orders = results.flat().filter(o => o?.id)
-      }
-    }
+    // Use local browser timezone for correct UTC conversion
+    // e.g. 'new Date("2026-06-03T00:00:00")' converts Mexico midnight → UTC
+    const startISO = new Date(from + 'T00:00:00').toISOString()
+    const endISO   = new Date(to   + 'T23:59:59').toISOString()
+    const res = await fetch(`/api/orders?date_from=${encodeURIComponent(startISO)}&date_to=${encodeURIComponent(endISO)}`).then(r=>r.json())
+    if(Array.isArray(res)) orders = res
 
     _analyticsOrders = orders
     renderAnalyticsFromOrders(orders, from, to)
