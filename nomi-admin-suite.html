@@ -1606,22 +1606,343 @@ async function loadLoyalty(){
 }
 
 // ANALYTICS
-async function loadAnalytics(){
-  try{
-    const d=await api('analytics')||{}
-    const t=d.today||{}
-    document.getElementById('a-rev').textContent=fmt(t.revenue)
-    document.getElementById('a-ord').textContent=t.orders||0
-    document.getElementById('a-avg').textContent=fmt(t.avg_ticket)
-    const top=document.getElementById('top-items')
-    if(!d.top_items?.length){top.innerHTML='<div class="empty">Sin datos de hoy</div>'}
-    else{const max=d.top_items[0][1];top.innerHTML=d.top_items.map(([n,q])=>`<div class="row"><div class="rm"><div class="rt">${n}</div></div><div style="display:flex;align-items:center;gap:6px;margin-left:auto"><div class="inv-bar" style="width:80px"><div class="inv-fill ifo" style="width:${Math.round(q/max*100)}%"></div></div><span style="font-size:12px;font-weight:600">${q}</span></div></div>`).join('')}
-    const bt=t.by_type||{}
-    document.getElementById('by-type').innerHTML=`<div class="zrow"><span class="zl">Comer aquí</span><span class="zv">${bt.dine_in||0}</span></div><div class="zrow"><span class="zl">Domicilio</span><span class="zv">${bt.delivery||0}</span></div><div class="zrow"><span class="zl">Para llevar</span><span class="zv">${bt.pickup||0}</span></div><div class="zrow"><span class="zl">Activos</span><span class="zv">${t.active_orders||0}</span></div>`
-  }catch(e){showToast('Error',false)}
+// ── ANALYTICS (FULL REBUILD) ─────────────────────────────────
+let _anDate  = new Date().toISOString().slice(0,10)  // YYYY-MM-DD local
+let _anOrders = []
+let _anMode   = 'day'   // 'day' | 'week' | 'month'
+let _anFrom   = ''
+let _anTo     = ''
+
+function anTodayStr() { return new Date().toISOString().slice(0,10) }
+
+function initAnalytics() {
+  _anDate = anTodayStr()
+  _anMode = 'day'
+  anSetNav()
+  anLoad()
 }
 
-// WORKERS
+function anNav(dir) {
+  if(_anMode !== 'day') { _anMode='day'; anGoToday(); return }
+  const d = new Date(_anDate + 'T12:00:00')
+  d.setDate(d.getDate() + dir)
+  _anDate = d.toISOString().slice(0,10)
+  anSetNav()
+  anLoad()
+}
+
+function anPickDate(val) {
+  if(!val) return
+  _anDate = val; _anMode = 'day'
+  anSetNav(); anLoad()
+}
+
+function anGoToday() {
+  _anDate = anTodayStr(); _anMode = 'day'
+  anSetNav(); anLoad()
+}
+
+function anGoWeek() {
+  _anMode = 'week'
+  const today = new Date()
+  const day = today.getDay() || 7
+  const mon = new Date(today); mon.setDate(today.getDate() - day + 1)
+  _anFrom = mon.toISOString().slice(0,10)
+  _anTo   = anTodayStr()
+  anSetNav(); anLoad()
+}
+
+function anGoMonth() {
+  _anMode = 'month'
+  const today = new Date()
+  _anFrom = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-01`
+  _anTo   = anTodayStr()
+  anSetNav(); anLoad()
+}
+
+function anSetNav() {
+  const nextBtn = document.getElementById('an-next-btn')
+  if(nextBtn) nextBtn.disabled = (_anMode==='day' && _anDate >= anTodayStr())
+
+  const dayName = document.getElementById('an-day-name')
+  const dayLabel = document.getElementById('an-day-label')
+  const pick = document.getElementById('an-date-pick')
+
+  if(_anMode === 'day') {
+    const d = new Date(_anDate + 'T12:00:00')
+    const opts = {weekday:'long'}
+    const isToday = _anDate === anTodayStr()
+    const isYest  = _anDate === new Date(Date.now()-86400000).toISOString().slice(0,10)
+    if(dayName) dayName.textContent = isToday ? '— HOY —' : isYest ? '— AYER —' : d.toLocaleDateString('es-MX', opts)
+    if(dayLabel) dayLabel.textContent = d.toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})
+    if(pick) pick.value = _anDate
+  } else if(_anMode === 'week') {
+    if(dayName) dayName.textContent = '— ESTA SEMANA —'
+    if(dayLabel) dayLabel.textContent = `${_anFrom} — ${_anTo}`
+  } else {
+    if(dayName) dayName.textContent = '— ESTE MES —'
+    if(dayLabel) dayLabel.textContent = new Date(_anFrom+'T12:00:00').toLocaleDateString('es-MX',{month:'long',year:'numeric'})
+  }
+}
+
+async function anLoad() {
+  // Show loading state
+  ['an-hourly','an-payments','an-products','an-types','an-orders-table'].forEach(id => {
+    const el = document.getElementById(id)
+    if(el) el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>'
+  })
+
+  let from, to
+  if(_anMode === 'day') {
+    from = _anDate; to = _anDate
+  } else {
+    from = _anFrom; to = _anTo
+  }
+
+  // Use browser timezone for correct UTC conversion
+  const startISO = new Date(from + 'T00:00:00').toISOString()
+  const endISO   = new Date(to   + 'T23:59:59').toISOString()
+
+  try {
+    const res = await fetch(`/api/orders?date_from=${encodeURIComponent(startISO)}&date_to=${encodeURIComponent(endISO)}`).then(r=>r.json())
+    _anOrders = Array.isArray(res) ? res : []
+    anRender(_anOrders)
+  } catch(e) {
+    showToast('Error cargando datos: ' + e.message, false)
+  }
+}
+
+function anRender(orders) {
+  const total   = orders.reduce((s,o) => s+Number(o.total||0), 0)
+  const count   = orders.length
+  const avg     = count ? total/count : 0
+  const tax     = orders.reduce((s,o) => s+Number(o.tax||0), 0)
+  const disc    = orders.reduce((s,o) => s+Number(o.discount||0), 0)
+  const tips    = orders.reduce((s,o) => s+Number(o.tip_amount||0), 0)
+
+  // KPIs
+  document.getElementById('an-revenue').textContent = fmt(total)
+  document.getElementById('an-revenue-s').textContent = `sin IVA: ${fmt(total - tax)}`
+  document.getElementById('an-orders').textContent = count
+  document.getElementById('an-orders-s').textContent = count ? `último: ${new Date(orders[0].created_at).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}` : '—'
+  document.getElementById('an-avg').textContent = fmt(avg)
+  document.getElementById('an-tax').textContent = fmt(tax)
+  document.getElementById('an-disc').textContent = disc > 0 ? '-'+fmt(disc) : '$0'
+  document.getElementById('an-tips-s').textContent = `Propinas: ${fmt(tips)}`
+
+  anRenderHourly(orders)
+  anRenderPayments(orders)
+  anRenderProducts(orders)
+  anRenderTypes(orders)
+  anRenderTable(orders)
+}
+
+function anRenderHourly(orders) {
+  const el = document.getElementById('an-hourly')
+  if(!el) return
+  if(!orders.length) { el.innerHTML = '<div class="empty">Sin órdenes</div>'; return }
+
+  const byHour = {}
+  orders.forEach(o => {
+    const h = new Date(o.created_at).getHours()  // local hour
+    byHour[h] = (byHour[h]||0) + Number(o.total||0)
+  })
+
+  // Show hours 10am–11pm (restaurant hours)
+  const hours = Array.from({length:14}, (_,i)=>i+10)
+  const vals  = hours.map(h => byHour[h]||0)
+  const maxV  = Math.max(...vals, 1)
+  const peakH = hours[vals.indexOf(Math.max(...vals))]
+
+  document.getElementById('an-peak-lbl').textContent =
+    Math.max(...vals) > 0 ? `Pico: ${peakH}:00 (${fmt(Math.max(...vals))})` : ''
+
+  el.innerHTML = `
+    <div class="an-bar-wrap">
+      ${hours.map((h,i) => `
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+          <div class="an-bar" style="height:${Math.round(vals[i]/maxV*76)+4}px;width:100%" title="${h}:00 — ${fmt(vals[i])}"></div>
+          <div class="an-bar-lbl">${h%2===0?h+'h':''}</div>
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--ink60);margin-top:4px;padding:0 2px">
+      <span>10:00</span><span>17:00</span><span>23:00</span>
+    </div>`
+}
+
+function anRenderPayments(orders) {
+  const el = document.getElementById('an-payments')
+  if(!el) return
+  if(!orders.length) { el.innerHTML = '<div class="empty">Sin órdenes</div>'; return }
+
+  const byPM = {}
+  orders.forEach(o => {
+    const m = o.payment_method||'otro'
+    byPM[m] = (byPM[m]||{count:0,total:0})
+    byPM[m].count++; byPM[m].total += Number(o.total||0)
+  })
+
+  const grand = Object.values(byPM).reduce((s,v) => s+v.total, 0) || 1
+  const label = {cash:'💵 Efectivo',card:'💳 Tarjeta',transfer:'📲 Transferencia',mercado_pago:'📱 Mercado Pago'}
+  const colors= {cash:'var(--green)',card:'var(--blue)',transfer:'#7c5cbc',mercado_pago:'var(--red)'}
+
+  el.innerHTML = Object.entries(byPM)
+    .sort((a,b)=>b[1].total-a[1].total)
+    .map(([m,v]) => {
+      const pct = Math.round(v.total/grand*100)
+      return `<div class="an-pm-row">
+        <div style="width:110px;font-size:12px;font-weight:500;flex-shrink:0">${label[m]||m}</div>
+        <div style="flex:1;background:var(--ink10);border-radius:5px;height:10px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${colors[m]||'var(--red)'};border-radius:5px;transition:.4s"></div>
+        </div>
+        <div style="width:45px;text-align:right;font-size:11px;color:var(--ink60);flex-shrink:0">${pct}%</div>
+        <div style="width:70px;text-align:right;font-size:12px;font-weight:600;flex-shrink:0">${fmt(v.total)}</div>
+        <div style="width:28px;text-align:right;font-size:10px;color:var(--ink60);flex-shrink:0">${v.count}×</div>
+      </div>`
+    }).join('')
+}
+
+function anRenderProducts(orders) {
+  const el = document.getElementById('an-products')
+  if(!el) return
+  const items = {}
+  orders.forEach(o => {
+    (o.order_items||[]).forEach(i => {
+      const n = i.item_name||i.name||'?'
+      if(!items[n]) items[n] = {qty:0,rev:0}
+      items[n].qty += Number(i.quantity||1)
+      items[n].rev += Number(i.unit_price||0) * Number(i.quantity||1)
+    })
+  })
+
+  const sorted = Object.entries(items).sort((a,b)=>b[1].qty-a[1].qty).slice(0,10)
+  if(!sorted.length) { el.innerHTML = '<div class="empty">Sin datos de productos</div>'; return }
+
+  const maxQty = sorted[0][1].qty
+  el.innerHTML = sorted.map(([name,v], i) => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <div style="width:16px;font-size:11px;color:var(--ink60);text-align:right;flex-shrink:0">${i+1}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px">${name}</div>
+        <div style="background:var(--ink10);border-radius:4px;height:7px;overflow:hidden">
+          <div style="height:100%;width:${Math.round(v.qty/maxQty*100)}%;background:var(--red);border-radius:4px"></div>
+        </div>
+      </div>
+      <div style="flex-shrink:0;text-align:right">
+        <div style="font-size:12px;font-weight:700">${v.qty} uds</div>
+        <div style="font-size:10px;color:var(--ink60)">${fmt(v.rev)}</div>
+      </div>
+    </div>`).join('')
+}
+
+function anRenderTypes(orders) {
+  const el = document.getElementById('an-types')
+  if(!el) return
+  if(!orders.length) { el.innerHTML = '<div class="empty">Sin órdenes</div>'; return }
+
+  const TYPE = {pickup:'🏪 Mostrador',dine_in:'🍽 Mesa',takeout:'🏃 Para llevar',delivery:'🛵 Domicilio'}
+  const byType = {}
+  orders.forEach(o => {
+    const t = o.type||'pickup'
+    byType[t] = (byType[t]||{count:0,total:0})
+    byType[t].count++; byType[t].total += Number(o.total||0)
+  })
+
+  const lines = Object.entries(byType).sort((a,b)=>b[1].count-a[1].count)
+    .map(([t,v]) => `<div class="row"><span>${TYPE[t]||t}</span><div style="text-align:right"><div style="font-weight:600">${v.count} órdenes</div><div style="font-size:11px;color:var(--ink60)">${fmt(v.total)}</div></div></div>`)
+    .join('')
+
+  const STATUS = {delivered:'✅ Entregada',cancelled:'❌ Anulada',preparing:'🍳 Preparando',ready:'✓ Lista',pending:'⏳ Pendiente'}
+  const byStatus = {}
+  orders.forEach(o => { const s=o.status||'delivered'; byStatus[s]=(byStatus[s]||0)+1 })
+  const statusLines = Object.entries(byStatus)
+    .map(([s,n]) => `<div class="row"><span>${STATUS[s]||s}</span><span style="font-weight:600">${n}</span></div>`).join('')
+
+  el.innerHTML = lines + `<div style="height:1px;background:var(--ink10);margin:10px 0"></div>` + statusLines
+}
+
+function anRenderTable(orders) {
+  const el = document.getElementById('an-orders-table')
+  if(!el) return
+  document.getElementById('an-tbl-sub').textContent = `${orders.length} órdenes`
+
+  if(!orders.length) { el.innerHTML = '<div class="empty" style="padding:20px">Sin órdenes en este período</div>'; return }
+
+  const PM    = {cash:'💵 Efectivo',card:'💳 Tarjeta',transfer:'📲 Transf.',mercado_pago:'📱 MP'}
+  const TYPE  = {pickup:'Mostrador',dine_in:'Mesa',takeout:'Llevar',delivery:'Domicilio'}
+
+  el.innerHTML = `<table class="an-ord-tbl">
+    <thead><tr>
+      <th>Hora</th><th>Orden</th><th>Tipo</th><th>Cliente</th>
+      <th>Productos</th><th>Descuento</th><th>Propina</th><th>Total</th><th>Pago</th><th>Estado</th>
+    </tr></thead>
+    <tbody>
+    ${orders.map(o => {
+      const d    = new Date(o.created_at)
+      const hora = d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})
+      const items = (o.order_items||[]).map(i=>`${i.quantity}× ${i.item_name||i.name}`).join(', ')
+      const disc = Number(o.discount||0)
+      const tip  = Number(o.tip_amount||0)
+      const mesa = o.restaurant_tables?.number ? ` (${o.restaurant_tables.number})` : ''
+      const status = o.status === 'cancelled' ? '<span class="badge br">Anulada</span>' : o.status === 'delivered' ? '<span class="badge bg">✓</span>' : '<span class="badge ba">'+o.status+'</span>'
+      return `<tr>
+        <td style="font-size:11px;color:var(--ink60)">${hora}</td>
+        <td><span style="font-weight:600;color:var(--red)">#${String(o.order_number||'').padStart(4,'0')}</span></td>
+        <td style="font-size:11px">${TYPE[o.type]||o.type||''}${mesa}</td>
+        <td style="font-size:11px">${o.customer_name||'—'}</td>
+        <td style="font-size:11px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${items}">${items||'—'}</td>
+        <td style="color:var(--red);font-size:11px">${disc>0?'-'+fmt(disc):'—'}</td>
+        <td style="color:var(--green);font-size:11px">${tip>0?'+'+fmt(tip):'—'}</td>
+        <td style="font-weight:700">${fmt(Number(o.total||0))}</td>
+        <td style="font-size:11px">${PM[o.payment_method]||o.payment_method||'—'}</td>
+        <td>${status}</td>
+      </tr>`
+    }).join('')}
+    </tbody>
+    <tfoot>
+      <tr style="background:var(--cream);font-weight:700">
+        <td colspan="5" style="padding:10px 12px;font-size:12px">TOTALES</td>
+        <td style="padding:10px 12px;color:var(--red)">-${fmt(orders.reduce((s,o)=>s+Number(o.discount||0),0))}</td>
+        <td style="padding:10px 12px;color:var(--green)">+${fmt(orders.reduce((s,o)=>s+Number(o.tip_amount||0),0))}</td>
+        <td style="padding:10px 12px">${fmt(orders.reduce((s,o)=>s+Number(o.total||0),0))}</td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>`
+}
+
+async function anDownloadCSV() {
+  if(!_anOrders.length) { showToast('Filtra primero un período', false); return }
+  const orders = _anOrders
+  const PM   = {cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',mercado_pago:'Mercado Pago'}
+  const TYPE = {pickup:'Mostrador',dine_in:'Mesa',takeout:'Para llevar',delivery:'Domicilio'}
+  const rows = [['Fecha','Hora','# Orden','Tipo','Mesa','Cliente','Productos','Subtotal','Descuento','Propina','IVA','Total','Pago','Estado']]
+  orders.forEach(o => {
+    const d = new Date(o.created_at)
+    const items = (o.order_items||[]).map(i=>`${i.quantity}x ${i.item_name||i.name}`).join(' | ')
+    rows.push([
+      d.toLocaleDateString('es-MX'), d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),
+      '#'+String(o.order_number||'').padStart(4,'0'),
+      TYPE[o.type]||o.type||'', o.restaurant_tables?.number||'',
+      o.customer_name||'', items,
+      Number(o.subtotal||0).toFixed(2), Number(o.discount||0).toFixed(2),
+      Number(o.tip_amount||0).toFixed(2), Number(o.tax||0).toFixed(2),
+      Number(o.total||0).toFixed(2), PM[o.payment_method]||o.payment_method||'',
+      o.status||''
+    ])
+  })
+  const tot = orders.reduce((a,o)=>({sub:a.sub+Number(o.subtotal||0),disc:a.disc+Number(o.discount||0),tip:a.tip+Number(o.tip_amount||0),tax:a.tax+Number(o.tax||0),total:a.total+Number(o.total||0)}),{sub:0,disc:0,tip:0,tax:0,total:0})
+  rows.push([])
+  rows.push(['TOTALES','','','','','',orders.length+' órdenes',tot.sub.toFixed(2),tot.disc.toFixed(2),tot.tip.toFixed(2),tot.tax.toFixed(2),tot.total.toFixed(2),'',''])
+  const csv = rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n')
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}))
+  a.download = `nomi-ventas-${_anMode==='day'?_anDate:_anFrom+'-a-'+_anTo}.csv`
+  a.click()
+  showToast(`✓ CSV descargado (${orders.length} órdenes)`)
+}
+
+
 async function loadWorkers(){
   try{
     const w=await api('workers')||[]
@@ -3296,649 +3617,6 @@ function clearSyncedSales() {
 
 // ── Hook: save to offline queue if POS sale fails due to network ──
 const _origProcessSale = typeof processSale === 'function' ? processSale : null
-
-// ── ANALYTICS (FULL REBUILD) ─────────────────────────────────
-let _anDate  = new Date().toISOString().slice(0,10)  // YYYY-MM-DD local
-let _anOrders = []
-let _anMode   = 'day'   // 'day' | 'week' | 'month'
-let _anFrom   = ''
-let _anTo     = ''
-
-function anTodayStr() { return new Date().toISOString().slice(0,10) }
-
-function initAnalytics() {
-  _anDate = anTodayStr()
-  _anMode = 'day'
-  anSetNav()
-  anLoad()
-}
-
-function anNav(dir) {
-  if(_anMode !== 'day') { _anMode='day'; anGoToday(); return }
-  const d = new Date(_anDate + 'T12:00:00')
-  d.setDate(d.getDate() + dir)
-  _anDate = d.toISOString().slice(0,10)
-  anSetNav()
-  anLoad()
-}
-
-function anPickDate(val) {
-  if(!val) return
-  _anDate = val; _anMode = 'day'
-  anSetNav(); anLoad()
-}
-
-function anGoToday() {
-  _anDate = anTodayStr(); _anMode = 'day'
-  anSetNav(); anLoad()
-}
-
-function anGoWeek() {
-  _anMode = 'week'
-  const today = new Date()
-  const day = today.getDay() || 7
-  const mon = new Date(today); mon.setDate(today.getDate() - day + 1)
-  _anFrom = mon.toISOString().slice(0,10)
-  _anTo   = anTodayStr()
-  anSetNav(); anLoad()
-}
-
-function anGoMonth() {
-  _anMode = 'month'
-  const today = new Date()
-  _anFrom = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-01`
-  _anTo   = anTodayStr()
-  anSetNav(); anLoad()
-}
-
-function anSetNav() {
-  const nextBtn = document.getElementById('an-next-btn')
-  if(nextBtn) nextBtn.disabled = (_anMode==='day' && _anDate >= anTodayStr())
-
-  const dayName = document.getElementById('an-day-name')
-  const dayLabel = document.getElementById('an-day-label')
-  const pick = document.getElementById('an-date-pick')
-
-  if(_anMode === 'day') {
-    const d = new Date(_anDate + 'T12:00:00')
-    const opts = {weekday:'long'}
-    const isToday = _anDate === anTodayStr()
-    const isYest  = _anDate === new Date(Date.now()-86400000).toISOString().slice(0,10)
-    if(dayName) dayName.textContent = isToday ? '— HOY —' : isYest ? '— AYER —' : d.toLocaleDateString('es-MX', opts)
-    if(dayLabel) dayLabel.textContent = d.toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})
-    if(pick) pick.value = _anDate
-  } else if(_anMode === 'week') {
-    if(dayName) dayName.textContent = '— ESTA SEMANA —'
-    if(dayLabel) dayLabel.textContent = `${_anFrom} — ${_anTo}`
-  } else {
-    if(dayName) dayName.textContent = '— ESTE MES —'
-    if(dayLabel) dayLabel.textContent = new Date(_anFrom+'T12:00:00').toLocaleDateString('es-MX',{month:'long',year:'numeric'})
-  }
-}
-
-async function anLoad() {
-  // Show loading state
-  ['an-hourly','an-payments','an-products','an-types','an-orders-table'].forEach(id => {
-    const el = document.getElementById(id)
-    if(el) el.innerHTML = '<div class="loading"><div class="spinner"></div>Cargando...</div>'
-  })
-
-  let from, to
-  if(_anMode === 'day') {
-    from = _anDate; to = _anDate
-  } else {
-    from = _anFrom; to = _anTo
-  }
-
-  // Use browser timezone for correct UTC conversion
-  const startISO = new Date(from + 'T00:00:00').toISOString()
-  const endISO   = new Date(to   + 'T23:59:59').toISOString()
-
-  try {
-    const res = await fetch(`/api/orders?date_from=${encodeURIComponent(startISO)}&date_to=${encodeURIComponent(endISO)}`).then(r=>r.json())
-    _anOrders = Array.isArray(res) ? res : []
-    anRender(_anOrders)
-  } catch(e) {
-    showToast('Error cargando datos: ' + e.message, false)
-  }
-}
-
-function anRender(orders) {
-  const total   = orders.reduce((s,o) => s+Number(o.total||0), 0)
-  const count   = orders.length
-  const avg     = count ? total/count : 0
-  const tax     = orders.reduce((s,o) => s+Number(o.tax||0), 0)
-  const disc    = orders.reduce((s,o) => s+Number(o.discount||0), 0)
-  const tips    = orders.reduce((s,o) => s+Number(o.tip_amount||0), 0)
-
-  // KPIs
-  document.getElementById('an-revenue').textContent = fmt(total)
-  document.getElementById('an-revenue-s').textContent = `sin IVA: ${fmt(total - tax)}`
-  document.getElementById('an-orders').textContent = count
-  document.getElementById('an-orders-s').textContent = count ? `último: ${new Date(orders[0].created_at).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}` : '—'
-  document.getElementById('an-avg').textContent = fmt(avg)
-  document.getElementById('an-tax').textContent = fmt(tax)
-  document.getElementById('an-disc').textContent = disc > 0 ? '-'+fmt(disc) : '$0'
-  document.getElementById('an-tips-s').textContent = `Propinas: ${fmt(tips)}`
-
-  anRenderHourly(orders)
-  anRenderPayments(orders)
-  anRenderProducts(orders)
-  anRenderTypes(orders)
-  anRenderTable(orders)
-}
-
-function anRenderHourly(orders) {
-  const el = document.getElementById('an-hourly')
-  if(!el) return
-  if(!orders.length) { el.innerHTML = '<div class="empty">Sin órdenes</div>'; return }
-
-  const byHour = {}
-  orders.forEach(o => {
-    const h = new Date(o.created_at).getHours()  // local hour
-    byHour[h] = (byHour[h]||0) + Number(o.total||0)
-  })
-
-  // Show hours 10am–11pm (restaurant hours)
-  const hours = Array.from({length:14}, (_,i)=>i+10)
-  const vals  = hours.map(h => byHour[h]||0)
-  const maxV  = Math.max(...vals, 1)
-  const peakH = hours[vals.indexOf(Math.max(...vals))]
-
-  document.getElementById('an-peak-lbl').textContent =
-    Math.max(...vals) > 0 ? `Pico: ${peakH}:00 (${fmt(Math.max(...vals))})` : ''
-
-  el.innerHTML = `
-    <div class="an-bar-wrap">
-      ${hours.map((h,i) => `
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center">
-          <div class="an-bar" style="height:${Math.round(vals[i]/maxV*76)+4}px;width:100%" title="${h}:00 — ${fmt(vals[i])}"></div>
-          <div class="an-bar-lbl">${h%2===0?h+'h':''}</div>
-        </div>`).join('')}
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--ink60);margin-top:4px;padding:0 2px">
-      <span>10:00</span><span>17:00</span><span>23:00</span>
-    </div>`
-}
-
-function anRenderPayments(orders) {
-  const el = document.getElementById('an-payments')
-  if(!el) return
-  if(!orders.length) { el.innerHTML = '<div class="empty">Sin órdenes</div>'; return }
-
-  const byPM = {}
-  orders.forEach(o => {
-    const m = o.payment_method||'otro'
-    byPM[m] = (byPM[m]||{count:0,total:0})
-    byPM[m].count++; byPM[m].total += Number(o.total||0)
-  })
-
-  const grand = Object.values(byPM).reduce((s,v) => s+v.total, 0) || 1
-  const label = {cash:'💵 Efectivo',card:'💳 Tarjeta',transfer:'📲 Transferencia',mercado_pago:'📱 Mercado Pago'}
-  const colors= {cash:'var(--green)',card:'var(--blue)',transfer:'#7c5cbc',mercado_pago:'var(--red)'}
-
-  el.innerHTML = Object.entries(byPM)
-    .sort((a,b)=>b[1].total-a[1].total)
-    .map(([m,v]) => {
-      const pct = Math.round(v.total/grand*100)
-      return `<div class="an-pm-row">
-        <div style="width:110px;font-size:12px;font-weight:500;flex-shrink:0">${label[m]||m}</div>
-        <div style="flex:1;background:var(--ink10);border-radius:5px;height:10px;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:${colors[m]||'var(--red)'};border-radius:5px;transition:.4s"></div>
-        </div>
-        <div style="width:45px;text-align:right;font-size:11px;color:var(--ink60);flex-shrink:0">${pct}%</div>
-        <div style="width:70px;text-align:right;font-size:12px;font-weight:600;flex-shrink:0">${fmt(v.total)}</div>
-        <div style="width:28px;text-align:right;font-size:10px;color:var(--ink60);flex-shrink:0">${v.count}×</div>
-      </div>`
-    }).join('')
-}
-
-function anRenderProducts(orders) {
-  const el = document.getElementById('an-products')
-  if(!el) return
-  const items = {}
-  orders.forEach(o => {
-    (o.order_items||[]).forEach(i => {
-      const n = i.item_name||i.name||'?'
-      if(!items[n]) items[n] = {qty:0,rev:0}
-      items[n].qty += Number(i.quantity||1)
-      items[n].rev += Number(i.unit_price||0) * Number(i.quantity||1)
-    })
-  })
-
-  const sorted = Object.entries(items).sort((a,b)=>b[1].qty-a[1].qty).slice(0,10)
-  if(!sorted.length) { el.innerHTML = '<div class="empty">Sin datos de productos</div>'; return }
-
-  const maxQty = sorted[0][1].qty
-  el.innerHTML = sorted.map(([name,v], i) => `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <div style="width:16px;font-size:11px;color:var(--ink60);text-align:right;flex-shrink:0">${i+1}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px">${name}</div>
-        <div style="background:var(--ink10);border-radius:4px;height:7px;overflow:hidden">
-          <div style="height:100%;width:${Math.round(v.qty/maxQty*100)}%;background:var(--red);border-radius:4px"></div>
-        </div>
-      </div>
-      <div style="flex-shrink:0;text-align:right">
-        <div style="font-size:12px;font-weight:700">${v.qty} uds</div>
-        <div style="font-size:10px;color:var(--ink60)">${fmt(v.rev)}</div>
-      </div>
-    </div>`).join('')
-}
-
-function anRenderTypes(orders) {
-  const el = document.getElementById('an-types')
-  if(!el) return
-  if(!orders.length) { el.innerHTML = '<div class="empty">Sin órdenes</div>'; return }
-
-  const TYPE = {pickup:'🏪 Mostrador',dine_in:'🍽 Mesa',takeout:'🏃 Para llevar',delivery:'🛵 Domicilio'}
-  const byType = {}
-  orders.forEach(o => {
-    const t = o.type||'pickup'
-    byType[t] = (byType[t]||{count:0,total:0})
-    byType[t].count++; byType[t].total += Number(o.total||0)
-  })
-
-  const lines = Object.entries(byType).sort((a,b)=>b[1].count-a[1].count)
-    .map(([t,v]) => `<div class="row"><span>${TYPE[t]||t}</span><div style="text-align:right"><div style="font-weight:600">${v.count} órdenes</div><div style="font-size:11px;color:var(--ink60)">${fmt(v.total)}</div></div></div>`)
-    .join('')
-
-  const STATUS = {delivered:'✅ Entregada',cancelled:'❌ Anulada',preparing:'🍳 Preparando',ready:'✓ Lista',pending:'⏳ Pendiente'}
-  const byStatus = {}
-  orders.forEach(o => { const s=o.status||'delivered'; byStatus[s]=(byStatus[s]||0)+1 })
-  const statusLines = Object.entries(byStatus)
-    .map(([s,n]) => `<div class="row"><span>${STATUS[s]||s}</span><span style="font-weight:600">${n}</span></div>`).join('')
-
-  el.innerHTML = lines + `<div style="height:1px;background:var(--ink10);margin:10px 0"></div>` + statusLines
-}
-
-function anRenderTable(orders) {
-  const el = document.getElementById('an-orders-table')
-  if(!el) return
-  document.getElementById('an-tbl-sub').textContent = `${orders.length} órdenes`
-
-  if(!orders.length) { el.innerHTML = '<div class="empty" style="padding:20px">Sin órdenes en este período</div>'; return }
-
-  const PM    = {cash:'💵 Efectivo',card:'💳 Tarjeta',transfer:'📲 Transf.',mercado_pago:'📱 MP'}
-  const TYPE  = {pickup:'Mostrador',dine_in:'Mesa',takeout:'Llevar',delivery:'Domicilio'}
-
-  el.innerHTML = `<table class="an-ord-tbl">
-    <thead><tr>
-      <th>Hora</th><th>Orden</th><th>Tipo</th><th>Cliente</th>
-      <th>Productos</th><th>Descuento</th><th>Propina</th><th>Total</th><th>Pago</th><th>Estado</th>
-    </tr></thead>
-    <tbody>
-    ${orders.map(o => {
-      const d    = new Date(o.created_at)
-      const hora = d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})
-      const items = (o.order_items||[]).map(i=>`${i.quantity}× ${i.item_name||i.name}`).join(', ')
-      const disc = Number(o.discount||0)
-      const tip  = Number(o.tip_amount||0)
-      const mesa = o.restaurant_tables?.number ? ` (${o.restaurant_tables.number})` : ''
-      const status = o.status === 'cancelled' ? '<span class="badge br">Anulada</span>' : o.status === 'delivered' ? '<span class="badge bg">✓</span>' : '<span class="badge ba">'+o.status+'</span>'
-      return `<tr>
-        <td style="font-size:11px;color:var(--ink60)">${hora}</td>
-        <td><span style="font-weight:600;color:var(--red)">#${String(o.order_number||'').padStart(4,'0')}</span></td>
-        <td style="font-size:11px">${TYPE[o.type]||o.type||''}${mesa}</td>
-        <td style="font-size:11px">${o.customer_name||'—'}</td>
-        <td style="font-size:11px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${items}">${items||'—'}</td>
-        <td style="color:var(--red);font-size:11px">${disc>0?'-'+fmt(disc):'—'}</td>
-        <td style="color:var(--green);font-size:11px">${tip>0?'+'+fmt(tip):'—'}</td>
-        <td style="font-weight:700">${fmt(Number(o.total||0))}</td>
-        <td style="font-size:11px">${PM[o.payment_method]||o.payment_method||'—'}</td>
-        <td>${status}</td>
-      </tr>`
-    }).join('')}
-    </tbody>
-    <tfoot>
-      <tr style="background:var(--cream);font-weight:700">
-        <td colspan="5" style="padding:10px 12px;font-size:12px">TOTALES</td>
-        <td style="padding:10px 12px;color:var(--red)">-${fmt(orders.reduce((s,o)=>s+Number(o.discount||0),0))}</td>
-        <td style="padding:10px 12px;color:var(--green)">+${fmt(orders.reduce((s,o)=>s+Number(o.tip_amount||0),0))}</td>
-        <td style="padding:10px 12px">${fmt(orders.reduce((s,o)=>s+Number(o.total||0),0))}</td>
-        <td colspan="2"></td>
-      </tr>
-    </tfoot>
-  </table>`
-}
-
-async function anDownloadCSV() {
-  if(!_anOrders.length) { showToast('Filtra primero un período', false); return }
-  const orders = _anOrders
-  const PM   = {cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',mercado_pago:'Mercado Pago'}
-  const TYPE = {pickup:'Mostrador',dine_in:'Mesa',takeout:'Para llevar',delivery:'Domicilio'}
-  const rows = [['Fecha','Hora','# Orden','Tipo','Mesa','Cliente','Productos','Subtotal','Descuento','Propina','IVA','Total','Pago','Estado']]
-  orders.forEach(o => {
-    const d = new Date(o.created_at)
-    const items = (o.order_items||[]).map(i=>`${i.quantity}x ${i.item_name||i.name}`).join(' | ')
-    rows.push([
-      d.toLocaleDateString('es-MX'), d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),
-      '#'+String(o.order_number||'').padStart(4,'0'),
-      TYPE[o.type]||o.type||'', o.restaurant_tables?.number||'',
-      o.customer_name||'', items,
-      Number(o.subtotal||0).toFixed(2), Number(o.discount||0).toFixed(2),
-      Number(o.tip_amount||0).toFixed(2), Number(o.tax||0).toFixed(2),
-      Number(o.total||0).toFixed(2), PM[o.payment_method]||o.payment_method||'',
-      o.status||''
-    ])
-  })
-  const tot = orders.reduce((a,o)=>({sub:a.sub+Number(o.subtotal||0),disc:a.disc+Number(o.discount||0),tip:a.tip+Number(o.tip_amount||0),tax:a.tax+Number(o.tax||0),total:a.total+Number(o.total||0)}),{sub:0,disc:0,tip:0,tax:0,total:0})
-  rows.push([])
-  rows.push(['TOTALES','','','','','',orders.length+' órdenes',tot.sub.toFixed(2),tot.disc.toFixed(2),tot.tip.toFixed(2),tot.tax.toFixed(2),tot.total.toFixed(2),'',''])
-  const csv = rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n')
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}))
-  a.download = `nomi-ventas-${_anMode==='day'?_anDate:_anFrom+'-a-'+_anTo}.csv`
-  a.click()
-  showToast(`✓ CSV descargado (${orders.length} órdenes)`)
-}
-
-// ── OFFLINE SALES QUEUE ──────────────────────────────────────
-const OFFLINE_KEY = 'nomi_offline_sales'
-
-function getOfflineQueue() {
-  try { return JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]') } catch { return [] }
-}
-function saveOfflineQueue(q) {
-  localStorage.setItem(OFFLINE_KEY, JSON.stringify(q))
-}
-function genOfflineId() {
-  return 'off_' + Date.now() + '_' + Math.random().toString(36).slice(2,7)
-}
-
-// ── Online/offline detection ──────────────────────────────────
-function updateOnlineStatus() {
-  const banner = document.getElementById('offline-banner')
-  if(banner) banner.classList.toggle('show', !navigator.onLine)
-  updatePendingBadge()
-  if(navigator.onLine) syncOfflineSales()
-}
-window.addEventListener('online',  updateOnlineStatus)
-window.addEventListener('offline', updateOnlineStatus)
-setTimeout(updateOnlineStatus, 500) // run after DOM ready
-
-// ── Pending badge ─────────────────────────────────────────────
-function updatePendingBadge() {
-  const q = getOfflineQueue().filter(s => !s.synced)
-  const card = document.getElementById('pending-sales-card')
-  const cnt  = document.getElementById('pending-count')
-  if(card) { card.style.display = q.length > 0 ? 'block' : 'none' }
-  if(cnt)  cnt.textContent = q.length
-}
-
-// ── Manual sale entry ─────────────────────────────────────────
-function setManualDate(daysOffset) {
-  const d = new Date()
-  d.setDate(d.getDate() + daysOffset)
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
-  const el = document.getElementById('ms-datetime')
-  if(el) el.value = d.toISOString().slice(0,16)
-}
-
-function openManualSaleModal() {
-  // Default to current datetime
-  setManualDate(0)
-  // Pre-fill waiter from current login
-  const w = document.getElementById('ms-waiter')
-  if(w && window._currentWorker) w.value = window._currentWorker.name || ''
-  openM('manual-sale-modal')
-}
-
-function saveManualSale() {
-  const total = parseFloat(document.getElementById('ms-total').value)
-  if(!total || total <= 0) { showToast('Ingresa un total válido', false); return }
-  const items = document.getElementById('ms-items').value.trim()
-  if(!items) { showToast('Describe los productos', false); return }
-
-  const sale = {
-    id:             genOfflineId(),
-    created_at:     document.getElementById('ms-datetime').value || new Date().toISOString(),
-    items_text:     items,
-    total:          total,
-    tip_amount:     parseFloat(document.getElementById('ms-tip').value) || 0,
-    payment_method: document.getElementById('ms-method').value,
-    customer_name:  document.getElementById('ms-customer').value.trim() || null,
-    waiter_name:    document.getElementById('ms-waiter').value.trim() || null,
-    notes:          document.getElementById('ms-notes').value.trim() || null,
-    source:         'manual',
-    synced:         false
-  }
-
-  const q = getOfflineQueue()
-  q.push(sale)
-  saveOfflineQueue(q)
-  updatePendingBadge()
-
-  // Reset form
-  document.getElementById('ms-items').value    = ''
-  document.getElementById('ms-total').value    = ''
-  document.getElementById('ms-tip').value      = ''
-  document.getElementById('ms-customer').value = ''
-  document.getElementById('ms-notes').value    = ''
-
-  closeM('manual-sale-modal')
-  showToast('Venta guardada localmente 💾')
-  if(navigator.onLine) syncOfflineSales()
-}
-
-// ── Sync to Supabase ──────────────────────────────────────────
-async function syncOfflineSales() {
-  const q = getOfflineQueue()
-  const pending = q.filter(s => !s.synced)
-  if(!pending.length) return
-  if(!navigator.onLine) return
-
-  let synced = 0
-  for(const sale of pending) {
-    try {
-      // Build a minimal order row that matches the orders table
-      const row = {
-        created_at:     sale.created_at,
-        status:         'delivered',
-        payment_method: sale.payment_method,
-        payment_status: 'paid',
-        customer_name:  sale.customer_name,
-        subtotal:       Math.round((sale.total / 1.16) * 100) / 100,
-        discount:       0,
-        tip_amount:     sale.tip_amount || 0,
-        total:          sale.total,
-        notes:          [sale.notes, sale.waiter_name ? 'Mesero: '+sale.waiter_name : null, 'Origen: manual', sale.items_text].filter(Boolean).join(' | '),
-        items:          [{name: sale.items_text, qty: 1, price: sale.total}]
-      }
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(row)
-      })
-      if(res.ok) {
-        sale.synced = true
-        sale.synced_at = new Date().toISOString()
-        synced++
-      }
-    } catch(e) { console.warn('Sync failed for', sale.id, e) }
-  }
-
-  saveOfflineQueue(q)
-  updatePendingBadge()
-  if(synced > 0) showToast(`✓ ${synced} venta${synced>1?'s':''} sincronizada${synced>1?'s':''}`)
-}
-
-// ── View pending sales detail ─────────────────────────────────
-function showPendingSales() {
-  const q = getOfflineQueue()
-  const el = document.getElementById('pending-list')
-  if(!el) return
-  if(!q.length) { el.innerHTML = '<div class="empty">No hay ventas pendientes</div>'; openM('pending-modal'); return }
-  el.innerHTML = q.map(s => `
-    <div style="padding:12px 20px;border-bottom:1px solid var(--ink10);display:flex;align-items:start;gap:10px">
-      <span style="font-size:18px;flex-shrink:0">${s.synced ? '✅' : '🕐'}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;margin-bottom:2px">${fmt(s.total)} · ${s.payment_method==='cash'?'Efectivo':s.payment_method==='card'?'Tarjeta':'Transferencia'}</div>
-        <div style="font-size:12px;color:var(--ink60);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.items_text}</div>
-        <div style="font-size:11px;color:var(--ink60)">${new Date(s.created_at).toLocaleString('es-MX')} ${s.waiter_name?'· '+s.waiter_name:''}</div>
-      </div>
-      <span class="badge ${s.synced?'bg':'ba'}" style="flex-shrink:0">${s.synced?'Sincronizada':'Pendiente'}</span>
-    </div>`).join('')
-  openM('pending-modal')
-}
-
-function clearSyncedSales() {
-  const q = getOfflineQueue().filter(s => !s.synced)
-  saveOfflineQueue(q)
-  updatePendingBadge()
-  showPendingSales()
-  showToast('Ventas sincronizadas eliminadas del historial local')
-}
-
-// ── Hook: save to offline queue if POS sale fails due to network ──
-const _origProcessSale = typeof processSale === 'function' ? processSale : null
-
-// ── ANALYTICS EXPORT ──────────────────────────────────────────
-let _analyticsOrders = []  // cached for CSV export
-
-function initAnalyticsDates() {
-  const today = new Date().toISOString().slice(0,10)
-  const from  = document.getElementById('an-date-from')
-  const to    = document.getElementById('an-date-to')
-  if(from && !from.value) from.value = today
-  if(to   && !to.value)   to.value   = today
-}
-
-async function loadAnalyticsRange() {
-  const from = document.getElementById('an-date-from')?.value
-  const to   = document.getElementById('an-date-to')?.value
-  if(!from || !to) { showToast('Selecciona un rango de fechas', false); return }
-  if(new Date(from) > new Date(to)) { showToast('La fecha de inicio debe ser antes o igual al fin', false); return }
-
-  // Generate array of dates in range (max 90 days)
-  const dates = []
-  const d = new Date(from + 'T12:00:00')
-  const end = new Date(to + 'T12:00:00')
-  while(d <= end && dates.length < 90) {
-    dates.push(d.toISOString().slice(0,10))
-    d.setDate(d.getDate() + 1)
-  }
-
-  const btn = document.querySelector('[onclick="loadAnalyticsRange()"]')
-  if(btn) btn.textContent = '⏳ Cargando...'
-
-  try {
-    let orders = []
-
-    // Use local browser timezone for correct UTC conversion
-    // e.g. 'new Date("2026-06-03T00:00:00")' converts Mexico midnight → UTC
-    const startISO = new Date(from + 'T00:00:00').toISOString()
-    const endISO   = new Date(to   + 'T23:59:59').toISOString()
-    const res = await fetch(`/api/orders?date_from=${encodeURIComponent(startISO)}&date_to=${encodeURIComponent(endISO)}`).then(r=>r.json())
-    if(Array.isArray(res)) orders = res
-
-    _analyticsOrders = orders
-    renderAnalyticsFromOrders(orders, from, to)
-    showToast(`✓ ${orders.length} orden${orders.length!==1?'es':''} en el período`)
-  } catch(e) {
-    showToast('Error cargando datos: ' + e.message, false)
-  } finally {
-    if(btn) btn.textContent = '🔍 Filtrar'
-  }
-}
-
-function renderAnalyticsFromOrders(orders, from, to) {
-  const total   = orders.reduce((s,o) => s + Number(o.total||0), 0)
-  const count   = orders.length
-  const avg     = count > 0 ? total/count : 0
-  const label   = from === to ? from : `${from} — ${to}`
-
-  document.getElementById('a-rev').textContent = fmt(total)
-  document.getElementById('a-ord').textContent = count
-  document.getElementById('a-avg').textContent = fmt(avg)
-
-  // Top items
-  const itemCounts = {}
-  orders.forEach(o => {
-    (o.order_items||[]).forEach(i => {
-      const name = i.item_name||i.name||'Producto'
-      itemCounts[name] = (itemCounts[name]||0) + Number(i.quantity||1)
-    })
-  })
-  const sorted = Object.entries(itemCounts).sort((a,b)=>b[1]-a[1]).slice(0,8)
-  document.getElementById('top-items').innerHTML = sorted.length
-    ? sorted.map(([name,qty]) => `<div class="row"><span>${name}</span><span style="font-weight:600">${qty} uds</span></div>`).join('')
-    : '<div class="empty">Sin datos</div>'
-
-  // By payment method
-  const byPM = {}
-  orders.forEach(o => { const m=o.payment_method||'otro'; byPM[m]=(byPM[m]||0)+Number(o.total||0) })
-  const pmLabel = {cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',mercado_pago:'Mercado Pago'}
-  document.getElementById('by-type').innerHTML = Object.entries(byPM)
-    .sort((a,b)=>b[1]-a[1])
-    .map(([m,t]) => `<div class="row"><span>${pmLabel[m]||m}</span><span style="font-weight:600">${fmt(t)}</span></div>`).join('') || '<div class="empty">Sin datos</div>'
-}
-
-async function downloadAnalyticsCSV() {
-  const from = document.getElementById('an-date-from')?.value
-  const to   = document.getElementById('an-date-to')?.value
-  if(!from || !to) { showToast('Selecciona un rango de fechas primero', false); return }
-
-  // Load data if not already cached
-  if(!_analyticsOrders.length) {
-    await loadAnalyticsRange()
-  }
-
-  const orders = _analyticsOrders
-  if(!orders.length) { showToast('No hay órdenes en ese período', false); return }
-
-  const TYPE = {pickup:'Mostrador',dine_in:'Mesa',takeout:'Para llevar',delivery:'Domicilio'}
-  const PM   = {cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',mercado_pago:'Mercado Pago'}
-
-  const rows = [
-    ['Fecha','Hora','# Orden','Tipo','Mesa','Cliente','Productos','Subtotal','Descuento','Propina','IVA','Total','Pago','Notas']
-  ]
-
-  orders.forEach(o => {
-    const d   = new Date(o.created_at)
-    const items = (o.order_items||[]).map(i=>`${i.quantity}× ${i.item_name||i.name}`).join(' | ')
-    const mesa  = o.restaurant_tables?.number ? 'Mesa '+o.restaurant_tables.number : ''
-    rows.push([
-      d.toLocaleDateString('es-MX'),
-      d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),
-      '#' + String(o.order_number||o.id||'').padStart(4,'0'),
-      TYPE[o.type]||o.type||'',
-      mesa,
-      o.customer_name||'',
-      items,
-      Number(o.subtotal||0).toFixed(2),
-      Number(o.discount||0).toFixed(2),
-      Number(o.tip_amount||0).toFixed(2),
-      Number(o.tax||0).toFixed(2),
-      Number(o.total||0).toFixed(2),
-      PM[o.payment_method]||o.payment_method||'',
-      (o.notes||'').replace(/,/g,' ')
-    ])
-  })
-
-  // Totals row
-  const totals = orders.reduce((acc,o) => ({
-    subtotal: acc.subtotal + Number(o.subtotal||0),
-    discount: acc.discount + Number(o.discount||0),
-    tip:      acc.tip      + Number(o.tip_amount||0),
-    tax:      acc.tax      + Number(o.tax||0),
-    total:    acc.total    + Number(o.total||0)
-  }), {subtotal:0,discount:0,tip:0,tax:0,total:0})
-
-  rows.push([])
-  rows.push(['TOTALES','','','','','',`${orders.length} órdenes`,
-    totals.subtotal.toFixed(2), totals.discount.toFixed(2), totals.tip.toFixed(2),
-    totals.tax.toFixed(2), totals.total.toFixed(2),'',''])
-
-  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n')
-  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'})
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = `nomi-ventas-${from}${from!==to?'-a-'+to:''}.csv`
-  a.click()
-  showToast(`✓ CSV descargado (${orders.length} órdenes)`)
-}
-
 // ── RECETAS TAB ───────────────────────────────────────────────
 const _SB_URL  = 'https://vmvrigshxffagblmpvyf.supabase.co'
 const _SB_ANON = 'sb_publishable_2p2n5KWlB0hHx1Y071T18g_C_R7BOza'
