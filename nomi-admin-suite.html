@@ -3263,16 +3263,53 @@ async function loadAnalyticsRange() {
   const from = document.getElementById('an-date-from')?.value
   const to   = document.getElementById('an-date-to')?.value
   if(!from || !to) { showToast('Selecciona un rango de fechas', false); return }
+  if(new Date(from) > new Date(to)) { showToast('La fecha de inicio debe ser antes o igual al fin', false); return }
 
-  // Fetch all orders in range
-  let url = `/api/orders?date=${from}`
-  if(from !== to) url = `/api/orders?date_from=${from}&date_to=${to}`
+  // Generate array of dates in range (max 90 days)
+  const dates = []
+  const d = new Date(from + 'T12:00:00')
+  const end = new Date(to + 'T12:00:00')
+  while(d <= end && dates.length < 90) {
+    dates.push(d.toISOString().slice(0,10))
+    d.setDate(d.getDate() + 1)
+  }
+
+  const btn = document.querySelector('[onclick="loadAnalyticsRange()"]')
+  if(btn) btn.textContent = '⏳ Cargando...'
 
   try {
-    const orders = await fetch(url).then(r=>r.json())
-    _analyticsOrders = Array.isArray(orders) ? orders : []
-    renderAnalyticsFromOrders(_analyticsOrders, from, to)
-  } catch(e) { showToast('Error cargando datos', false) }
+    let orders = []
+
+    if(dates.length === 1) {
+      // Single day — use existing API
+      const res = await fetch(`/api/orders?date=${dates[0]}`).then(r=>r.json())
+      if(Array.isArray(res)) orders = res
+    } else {
+      // Multi-day — try range endpoint first, fall back to parallel day fetches
+      try {
+        const res = await fetch(`/api/orders?date_from=${from}&date_to=${to}`).then(r=>r.json())
+        if(Array.isArray(res) && res.length >= 0) {
+          orders = res
+        } else throw new Error('range not supported')
+      } catch {
+        // Parallel day-by-day fetch (works with existing API)
+        const results = await Promise.all(
+          dates.map(date =>
+            fetch(`/api/orders?date=${date}`).then(r=>r.json()).catch(()=>[])
+          )
+        )
+        orders = results.flat().filter(o => o?.id)
+      }
+    }
+
+    _analyticsOrders = orders
+    renderAnalyticsFromOrders(orders, from, to)
+    showToast(`✓ ${orders.length} orden${orders.length!==1?'es':''} en el período`)
+  } catch(e) {
+    showToast('Error cargando datos: ' + e.message, false)
+  } finally {
+    if(btn) btn.textContent = '🔍 Filtrar'
+  }
 }
 
 function renderAnalyticsFromOrders(orders, from, to) {
@@ -3312,17 +3349,13 @@ async function downloadAnalyticsCSV() {
   const to   = document.getElementById('an-date-to')?.value
   if(!from || !to) { showToast('Selecciona un rango de fechas primero', false); return }
 
-  showToast('Generando CSV...')
-
-  // Fetch if not cached for this range
-  let orders = _analyticsOrders
-  if(!orders.length) {
-    try {
-      const url = from === to ? `/api/orders?date=${from}` : `/api/orders?date_from=${from}&date_to=${to}`
-      orders = await fetch(url).then(r=>r.json())
-      if(!Array.isArray(orders)) orders = []
-    } catch(e) { showToast('Error al descargar datos', false); return }
+  // Load data if not already cached
+  if(!_analyticsOrders.length) {
+    await loadAnalyticsRange()
   }
+
+  const orders = _analyticsOrders
+  if(!orders.length) { showToast('No hay órdenes en ese período', false); return }
 
   const TYPE = {pickup:'Mostrador',dine_in:'Mesa',takeout:'Para llevar',delivery:'Domicilio'}
   const PM   = {cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',mercado_pago:'Mercado Pago'}
