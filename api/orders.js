@@ -13,15 +13,18 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const { status, date } = req.query
+      const { status, date, date_from, date_to } = req.query
       let query = supabase
         .from('orders')
         .select('*, order_items(*), restaurant_tables(number)')
         .order('created_at', { ascending: false })
       if (status && status !== 'all') query = query.eq('status', status)
-      if (date) {
+      if (date_from && date_to) {
+        // Full ISO timestamps sent from client (timezone-aware)
+        query = query.gte('created_at', date_from).lte('created_at', date_to)
+      } else if (date) {
         const start = new Date(date); start.setHours(0,0,0,0)
-        const end = new Date(date); end.setHours(23,59,59,999)
+        const end   = new Date(date); end.setHours(23,59,59,999)
         query = query.gte('created_at', start.toISOString()).lte('created_at', end.toISOString())
       } else {
         query = query.gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString())
