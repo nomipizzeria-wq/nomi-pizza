@@ -3570,39 +3570,54 @@ async function syncOfflineSales() {
   if(!pending.length) return
   if(!navigator.onLine) return
 
-  let synced = 0
+  let synced = 0, failed = 0
   for(const sale of pending) {
     try {
-      // Build a minimal order row that matches the orders table
+      // The orders API computes total from items: subtotal = items.reduce(unit_price * quantity)
+      // So we must send items with unit_price + quantity, not name/qty/price
+      const itemTotal = Math.round((Number(sale.total) - Number(sale.tip_amount||0)) * 100) / 100
       const row = {
         created_at:     sale.created_at,
+        type:           'pickup',
         status:         'delivered',
-        payment_method: sale.payment_method,
+        payment_method: sale.payment_method || 'cash',
         payment_status: 'paid',
-        customer_name:  sale.customer_name,
-        subtotal:       Math.round((sale.total / 1.16) * 100) / 100,
-        discount:       0,
-        tip_amount:     sale.tip_amount || 0,
-        total:          sale.total,
-        notes:          [sale.notes, sale.waiter_name ? 'Mesero: '+sale.waiter_name : null, 'Origen: manual', sale.items_text].filter(Boolean).join(' | '),
-        items:          [{name: sale.items_text, qty: 1, price: sale.total}]
+        customer_name:  sale.customer_name || null,
+        discount:       Number(sale.discount || 0),
+        tip_amount:     Number(sale.tip_amount || 0),
+        notes:          [sale.notes, sale.waiter_name ? 'Mesero: '+sale.waiter_name : null, sale.source === 'manual' ? 'Entrada manual' : 'Guardada offline', sale.items_text].filter(Boolean).join(' | '),
+        items: [{
+          item_name:  sale.items_text || 'Venta manual',
+          item_id:    null,
+          unit_price: itemTotal,
+          quantity:   1,
+          subtotal:   itemTotal
+        }]
       }
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify(row)
       })
-      if(res.ok) {
+      const data = await res.json()
+      if(res.ok && !data?.error) {
         sale.synced = true
         sale.synced_at = new Date().toISOString()
         synced++
+      } else {
+        console.warn('Sync rejected:', data?.error || res.status, sale)
+        failed++
       }
-    } catch(e) { console.warn('Sync failed for', sale.id, e) }
+    } catch(e) {
+      console.warn('Sync failed for', sale.id, e)
+      failed++
+    }
   }
 
   saveOfflineQueue(q)
   updatePendingBadge()
   if(synced > 0) showToast(`✓ ${synced} venta${synced>1?'s':''} sincronizada${synced>1?'s':''}`)
+  if(failed > 0) showToast(`${failed} venta${failed>1?'s':''} no pudieron sincronizarse`, false)
 }
 
 // ── View pending sales detail ─────────────────────────────────
