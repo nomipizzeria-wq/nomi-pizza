@@ -1713,28 +1713,34 @@ async function anLoad() {
 }
 
 function anRender(orders) {
-  const total   = orders.reduce((s,o) => s+Number(o.total||0), 0)
-  const count   = orders.length
+  // Split active vs cancelled — cancelled shown in table but excluded from all metrics
+  const active  = orders.filter(o => o.status !== 'cancelled' && o.status !== 'voided' && o.status !== 'anulado')
+  const cancelled = orders.filter(o => o.status === 'cancelled' || o.status === 'voided' || o.status === 'anulado')
+
+  const total   = active.reduce((s,o) => s+Number(o.total||0), 0)
+  const count   = active.length
   const avg     = count ? total/count : 0
-  const tax     = orders.reduce((s,o) => s+Number(o.tax||0), 0)
-  const disc    = orders.reduce((s,o) => s+Number(o.discount||0), 0)
-  const tips    = orders.reduce((s,o) => s+Number(o.tip_amount||0), 0)
+  const tax     = active.reduce((s,o) => s+Number(o.tax||0), 0)
+  const disc    = active.reduce((s,o) => s+Number(o.discount||0), 0)
+  const tips    = active.reduce((s,o) => s+Number(o.tip_amount||0), 0)
 
   // KPIs
   document.getElementById('an-revenue').textContent = fmt(total)
   document.getElementById('an-revenue-s').textContent = `sin IVA: ${fmt(total - tax)}`
   document.getElementById('an-orders').textContent = count
-  document.getElementById('an-orders-s').textContent = count ? `último: ${new Date(orders[0].created_at).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}` : '—'
+  document.getElementById('an-orders-s').textContent = cancelled.length > 0
+    ? `${count} válidas · ${cancelled.length} anulada${cancelled.length>1?'s':''}`
+    : count ? `último: ${new Date(active[0].created_at).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}` : '—'
   document.getElementById('an-avg').textContent = fmt(avg)
   document.getElementById('an-tax').textContent = fmt(tax)
   document.getElementById('an-disc').textContent = disc > 0 ? '-'+fmt(disc) : '$0'
   document.getElementById('an-tips-s').textContent = `Propinas: ${fmt(tips)}`
 
-  anRenderHourly(orders)
-  anRenderPayments(orders)
-  anRenderProducts(orders)
-  anRenderTypes(orders)
-  anRenderTable(orders)
+  anRenderHourly(active)
+  anRenderPayments(active)
+  anRenderProducts(active)
+  anRenderTypes(active)
+  anRenderTable(orders)  // table shows ALL orders including cancelled
 }
 
 function anRenderHourly(orders) {
@@ -1884,16 +1890,21 @@ function anRenderTable(orders) {
       const disc = Number(o.discount||0)
       const tip  = Number(o.tip_amount||0)
       const mesa = o.restaurant_tables?.number ? ` (${o.restaurant_tables.number})` : ''
-      const status = o.status === 'cancelled' ? '<span class="badge br">Anulada</span>' : o.status === 'delivered' ? '<span class="badge bg">✓</span>' : '<span class="badge ba">'+o.status+'</span>'
-      return `<tr>
+      const isCancelled = ['cancelled','voided','anulado'].includes(o.status)
+      const status = isCancelled
+        ? '<span class="badge br">Anulada</span>'
+        : o.status === 'delivered' ? '<span class="badge bg">✓</span>'
+        : '<span class="badge ba">'+o.status+'</span>'
+      const rowStyle = isCancelled ? 'opacity:.45;text-decoration:line-through' : ''
+      return `<tr style="${rowStyle}">
         <td style="font-size:11px;color:var(--ink60)">${hora}</td>
-        <td><span style="font-weight:600;color:var(--red)">#${String(o.order_number||'').padStart(4,'0')}</span></td>
+        <td><span style="font-weight:600;color:${isCancelled?'var(--ink60)':'var(--red)'}">#${String(o.order_number||'').padStart(4,'0')}</span></td>
         <td style="font-size:11px">${TYPE[o.type]||o.type||''}${mesa}</td>
         <td style="font-size:11px">${o.customer_name||'—'}</td>
         <td style="font-size:11px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${items}">${items||'—'}</td>
         <td style="color:var(--red);font-size:11px">${disc>0?'-'+fmt(disc):'—'}</td>
         <td style="color:var(--green);font-size:11px">${tip>0?'+'+fmt(tip):'—'}</td>
-        <td style="font-weight:700">${fmt(Number(o.total||0))}</td>
+        <td style="font-weight:700">${isCancelled?'<s>'+fmt(Number(o.total||0))+'</s>':fmt(Number(o.total||0))}</td>
         <td style="font-size:11px">${PM[o.payment_method]||o.payment_method||'—'}</td>
         <td>${status}</td>
       </tr>`
@@ -1901,10 +1912,15 @@ function anRenderTable(orders) {
     </tbody>
     <tfoot>
       <tr style="background:var(--cream);font-weight:700">
-        <td colspan="5" style="padding:10px 12px;font-size:12px">TOTALES</td>
-        <td style="padding:10px 12px;color:var(--red)">-${fmt(orders.reduce((s,o)=>s+Number(o.discount||0),0))}</td>
-        <td style="padding:10px 12px;color:var(--green)">+${fmt(orders.reduce((s,o)=>s+Number(o.tip_amount||0),0))}</td>
-        <td style="padding:10px 12px">${fmt(orders.reduce((s,o)=>s+Number(o.total||0),0))}</td>
+        <td colspan="5" style="padding:10px 12px;font-size:12px">
+          TOTALES (válidas)
+          ${orders.filter(o=>['cancelled','voided','anulado'].includes(o.status)).length > 0
+            ? `<span style="font-weight:400;font-size:10px;color:var(--ink60);margin-left:8px">${orders.filter(o=>['cancelled','voided','anulado'].includes(o.status)).length} anuladas excluidas</span>`
+            : ''}
+        </td>
+        <td style="padding:10px 12px;color:var(--red)">-${fmt(orders.filter(o=>!['cancelled','voided','anulado'].includes(o.status)).reduce((s,o)=>s+Number(o.discount||0),0))}</td>
+        <td style="padding:10px 12px;color:var(--green)">+${fmt(orders.filter(o=>!['cancelled','voided','anulado'].includes(o.status)).reduce((s,o)=>s+Number(o.tip_amount||0),0))}</td>
+        <td style="padding:10px 12px">${fmt(orders.filter(o=>!['cancelled','voided','anulado'].includes(o.status)).reduce((s,o)=>s+Number(o.total||0),0))}</td>
         <td colspan="2"></td>
       </tr>
     </tfoot>
@@ -1931,9 +1947,10 @@ async function anDownloadCSV() {
       o.status||''
     ])
   })
-  const tot = orders.reduce((a,o)=>({sub:a.sub+Number(o.subtotal||0),disc:a.disc+Number(o.discount||0),tip:a.tip+Number(o.tip_amount||0),tax:a.tax+Number(o.tax||0),total:a.total+Number(o.total||0)}),{sub:0,disc:0,tip:0,tax:0,total:0})
+  const active = orders.filter(o => !['cancelled','voided','anulado'].includes(o.status))
+  const tot = active.reduce((a,o)=>({sub:a.sub+Number(o.subtotal||0),disc:a.disc+Number(o.discount||0),tip:a.tip+Number(o.tip_amount||0),tax:a.tax+Number(o.tax||0),total:a.total+Number(o.total||0)}),{sub:0,disc:0,tip:0,tax:0,total:0})
   rows.push([])
-  rows.push(['TOTALES','','','','','',orders.length+' órdenes',tot.sub.toFixed(2),tot.disc.toFixed(2),tot.tip.toFixed(2),tot.tax.toFixed(2),tot.total.toFixed(2),'',''])
+  rows.push(["TOTALES (válidas)","","","","","",active.length+" órdenes",tot.sub.toFixed(2),tot.disc.toFixed(2),tot.tip.toFixed(2),tot.tax.toFixed(2),tot.total.toFixed(2),"",""])
   const csv = rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n')
   const a = document.createElement('a')
   a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}))
