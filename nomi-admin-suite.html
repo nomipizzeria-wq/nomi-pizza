@@ -972,6 +972,48 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 </div>
 
 <!-- PENDING SALES DETAIL MODAL -->
+<!-- ORDER DETAIL MODAL -->
+<div class="modal-bg" id="order-detail-modal">
+  <div class="modal" style="width:520px;max-width:96vw">
+    <div class="mh">
+      <div>
+        <div class="mt" id="od-title">Orden</div>
+        <div style="font-size:11px;color:var(--ink60);margin-top:2px" id="od-subtitle"></div>
+      </div>
+      <button class="mc-btn" onclick="closeM('order-detail-modal')">×</button>
+    </div>
+    <div class="mb" style="padding:0">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid var(--ink10);background:var(--cream)">
+        <span id="od-status-badge"></span>
+        <span id="od-type-badge" style="font-size:12px;color:var(--ink60)"></span>
+        <span style="flex:1"></span>
+        <span id="od-pm-badge" style="font-size:13px;font-weight:600"></span>
+      </div>
+      <div style="padding:14px 20px">
+        <div style="font-size:10px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Productos</div>
+        <div id="od-items"></div>
+      </div>
+      <div style="padding:0 20px 14px">
+        <div style="background:var(--cream);border-radius:var(--rsm);padding:12px 16px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink60);margin-bottom:6px"><span>Subtotal</span><span id="od-subtotal"></span></div>
+          <div id="od-discount-row" style="display:none;justify-content:space-between;font-size:12px;color:var(--red);margin-bottom:6px"><span>Descuento</span><span id="od-discount"></span></div>
+          <div id="od-tip-row" style="display:none;justify-content:space-between;font-size:12px;color:var(--green);margin-bottom:6px"><span>Propina</span><span id="od-tip"></span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink60);margin-bottom:6px"><span>Subtotal sin IVA</span><span id="od-net"></span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink60);margin-bottom:8px"><span>IVA (16% incluido)</span><span id="od-tax"></span></div>
+          <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;padding-top:10px;border-top:2px solid var(--ink10)"><span>TOTAL</span><span id="od-total" style="color:var(--red)"></span></div>
+        </div>
+        <div id="od-notes-wrap" style="display:none;margin-top:10px;font-size:11px;color:var(--ink60);padding:8px 12px;background:var(--cream);border-radius:var(--rsm);border-left:3px solid var(--ink10)">
+          <strong>Nota:</strong> <span id="od-notes"></span>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeM('order-detail-modal')">Cerrar</button>
+      <button class="btn btn-sm" id="od-reprint-btn">🖨 Reimprimir</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="pending-modal">
   <div class="modal" style="width:580px;max-width:96vw">
     <div class="mh">
@@ -1738,6 +1780,9 @@ async function anLoad() {
 }
 
 function anRender(orders) {
+  // Index orders by ID for onclick lookups (window scope accessible from inline handlers)
+  window._anOrderMap = {}
+  orders.forEach(o => { window._anOrderMap[o.id] = o })
   // Split active vs cancelled — cancelled shown in table but excluded from all metrics
   const active  = orders.filter(o => o.status !== 'cancelled' && o.status !== 'voided' && o.status !== 'anulado')
   const cancelled = orders.filter(o => o.status === 'cancelled' || o.status === 'voided' || o.status === 'anulado')
@@ -2011,8 +2056,8 @@ function anRenderTable(orders) {
         ? '<span class="badge br">Anulada</span>'
         : o.status === 'delivered' ? '<span class="badge bg">✓</span>'
         : '<span class="badge ba">'+o.status+'</span>'
-      const rowStyle = isCancelled ? 'opacity:.45;text-decoration:line-through' : ''
-      return `<tr style="${rowStyle}cursor:pointer" onclick="openOrderDetail(_anOrders.find(x=>x.id==='${o.id}'))">
+      const rowStyle = isCancelled ? 'opacity:.45;text-decoration:line-through;' : ''
+      return `<tr style="${rowStyle}cursor:pointer" onclick="openOrderDetail(window._anOrderMap&&window._anOrderMap['${o.id}'])">
         <td style="font-size:11px;color:var(--ink60)">${hora}</td>
         <td><span style="font-weight:600;color:${isCancelled?'var(--ink60)':'var(--red)'}">#${String(o.order_number||'').padStart(4,'0')}</span></td>
         <td style="font-size:11px">${TYPE[o.type]||o.type||''}${mesa}</td>
