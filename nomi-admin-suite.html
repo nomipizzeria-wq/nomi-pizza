@@ -1607,13 +1607,17 @@ async function loadLoyalty(){
 
 // ANALYTICS
 // ── ANALYTICS (FULL REBUILD) ─────────────────────────────────
-let _anDate  = new Date().toISOString().slice(0,10)  // YYYY-MM-DD local
+let _anDate  = localDateStr(new Date())
 let _anOrders = []
 let _anMode   = 'day'   // 'day' | 'week' | 'month'
 let _anFrom   = ''
 let _anTo     = ''
 
-function anTodayStr() { return new Date().toISOString().slice(0,10) }
+// Local date string (Mexico City / browser timezone) — avoids UTC midnight flipping day at 6pm
+function localDateStr(d) {
+  return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-')
+}
+function anTodayStr() { return localDateStr(new Date()) }
 
 function initAnalytics() {
   _anDate = anTodayStr()
@@ -1626,7 +1630,7 @@ function anNav(dir) {
   if(_anMode !== 'day') { _anMode='day'; anGoToday(); return }
   const d = new Date(_anDate + 'T12:00:00')
   d.setDate(d.getDate() + dir)
-  _anDate = d.toISOString().slice(0,10)
+  _anDate = localDateStr(d)
   anSetNav()
   anLoad()
 }
@@ -1647,7 +1651,7 @@ function anGoWeek() {
   const today = new Date()
   const day = today.getDay() || 7
   const mon = new Date(today); mon.setDate(today.getDate() - day + 1)
-  _anFrom = mon.toISOString().slice(0,10)
+  _anFrom = localDateStr(mon)
   _anTo   = anTodayStr()
   anSetNav(); anLoad()
 }
@@ -1672,7 +1676,7 @@ function anSetNav() {
     const d = new Date(_anDate + 'T12:00:00')
     const opts = {weekday:'long'}
     const isToday = _anDate === anTodayStr()
-    const isYest  = _anDate === new Date(Date.now()-86400000).toISOString().slice(0,10)
+    const isYest  = _anDate === localDateStr(new Date(Date.now()-86400000))
     if(dayName) dayName.textContent = isToday ? '— HOY —' : isYest ? '— AYER —' : d.toLocaleDateString('es-MX', opts)
     if(dayLabel) dayLabel.textContent = d.toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})
     if(pick) pick.value = _anDate
@@ -3512,9 +3516,11 @@ function updatePendingBadge() {
 function setManualDate(daysOffset) {
   const d = new Date()
   d.setDate(d.getDate() + daysOffset)
-  d.setMinutes(d.getMinutes() - d.getTimezoneOffset())
+  // Build datetime string in local time (avoids UTC-offset day flip)
+  const dateStr = localDateStr(d)
+  const timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
   const el = document.getElementById('ms-datetime')
-  if(el) el.value = d.toISOString().slice(0,16)
+  if(el) el.value = `${dateStr}T${timeStr}`
 }
 
 function openManualSaleModal() {
