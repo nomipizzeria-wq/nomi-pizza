@@ -989,6 +989,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
         <span style="flex:1"></span>
         <span id="od-pm-badge" style="font-size:13px;font-weight:600"></span>
       </div>
+      <!-- Editable payment method -->
+      <div id="od-pm-edit-section" style="padding:12px 20px;border-bottom:1px solid var(--ink10)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em">Método de pago</span>
+          <button class="btn btn-sm" id="od-pm-toggle" onclick="odToggleEditPM()" style="font-size:10px">✏️ Cambiar</button>
+        </div>
+        <div id="od-pm-display" style="font-size:14px;font-weight:600" id="od-pm-display2"></div>
+        <div id="od-pm-editor" style="display:none;margin-top:10px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <button class="od-pm-btn btn btn-sm" data-pm="cash" onclick="odSelectPM('cash',this)">💵 Efectivo</button>
+            <button class="od-pm-btn btn btn-sm" data-pm="card" onclick="odSelectPM('card',this)">💳 Tarjeta</button>
+            <button class="od-pm-btn btn btn-sm" data-pm="transfer" onclick="odSelectPM('transfer',this)">📲 Transferencia</button>
+            <button class="od-pm-btn btn btn-sm" data-pm="mercadopago" onclick="odSelectPM('mercadopago',this)">📱 Mercado Pago</button>
+          </div>
+          <button class="btn btn-p btn-sm" onclick="odSavePM()" style="width:100%;justify-content:center">✓ Guardar método de pago</button>
+        </div>
+      </div>
       <div style="padding:14px 20px">
         <div style="font-size:10px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Productos</div>
         <div id="od-items"></div>
@@ -1855,10 +1872,10 @@ function anRenderPayments(orders) {
   const _pmNorm = m => {
     if(!m) return 'otro'
     const n = m.toLowerCase().replace(/[_\s-]/g,'')
-    if(n==='cash'||n==='efectivo') return 'cash'
-    if(n==='card'||n==='tarjeta') return 'card'
+    if(n==='cash'||n==='efectivo'||n==='dinero') return 'cash'
+    if(n==='card'||n==='tarjeta'||n==='credito'||n==='debito'||n==='cardterminal'||n==='terminal') return 'card'
     if(n==='transfer'||n==='transferencia') return 'transfer'
-    if(n.includes('mercado')||n==='mp') return 'mercado_pago'
+    if(n.includes('mercado')||n==='mp'||n==='mercadopago') return 'mercado_pago'
     return 'otro'
   }
   orders.forEach(o => {
@@ -1946,8 +1963,45 @@ function anRenderTypes(orders) {
   el.innerHTML = lines + `<div style="height:1px;background:var(--ink10);margin:10px 0"></div>` + statusLines
 }
 
+function odToggleEditPM() {
+  const editor = document.getElementById('od-pm-editor')
+  const btn    = document.getElementById('od-pm-toggle')
+  const isOpen = editor.style.display !== 'none'
+  editor.style.display = isOpen ? 'none' : 'block'
+  btn.textContent = isOpen ? '✏️ Cambiar' : '✕ Cancelar'
+}
+
+function odSelectPM(pm, btn) {
+  document.querySelectorAll('.od-pm-btn').forEach(b => { b.style.borderColor='var(--ink10)'; b.style.background='var(--wh)' })
+  btn.style.borderColor = 'var(--red)'; btn.style.background = 'var(--red-l)'
+  window._odSelectedPM = pm
+}
+
+async function odSavePM() {
+  const id = window._odCurrentOrderId
+  const pm = window._odSelectedPM
+  if(!id || !pm) { showToast('Selecciona un método', false); return }
+  try {
+    const res = await api('orders', {method:'PATCH', body:{id, payment_method: pm}})
+    if(res?.error) throw new Error(res.error)
+    showToast('Método de pago actualizado ✓')
+    // Update local data
+    if(window._anOrderMap && window._anOrderMap[id]) window._anOrderMap[id].payment_method = pm
+    // Refresh display
+    const PM = {cash:'💵 Efectivo',card:'💳 Tarjeta',transfer:'📲 Transferencia',mercadopago:'📱 Mercado Pago',mercado_pago:'📱 Mercado Pago',otro:'💰 Otro'}
+    document.getElementById('od-pm-badge').textContent = PM[pm] || pm
+    document.getElementById('od-pm-display').textContent = PM[pm] || pm
+    document.getElementById('od-pm-editor').style.display = 'none'
+    document.getElementById('od-pm-toggle').textContent = '✏️ Cambiar'
+    // Refresh analytics table quietly
+    if(typeof anRender === 'function' && _anOrders.length) anRender(_anOrders.map(o => o.id===id ? {...o, payment_method:pm} : o))
+  } catch(e) { showToast('Error: ' + e.message, false) }
+}
+
 function openOrderDetail(o) {
   if(!o) return
+  window._odCurrentOrderId = o.id
+  window._odSelectedPM = null
   const TYPE  = {pickup:'🏪 Mostrador',dine_in:'🍽 Mesa',takeout:'🏃 Para llevar',delivery:'🛵 Domicilio'}
   const PM    = {cash:'💵 Efectivo',card:'💳 Tarjeta',transfer:'📲 Transferencia',mercado_pago:'📱 Mercado Pago',otro:'💰 Otro'}
   const STATUS = {delivered:'Entregada',cancelled:'Anulada',preparing:'Preparando',ready:'Lista',pending:'Pendiente'}
@@ -1969,12 +2023,23 @@ function openOrderDetail(o) {
     if(!m) return 'otro'
     const n = m.toLowerCase().replace(/[_\s-]/g,'')
     if(n==='cash'||n==='efectivo') return 'cash'
-    if(n==='card'||n==='tarjeta') return 'card'
+    if(n==='card'||n==='tarjeta'||n==='cardterminal'||n==='terminal') return 'card'
     if(n==='transfer'||n==='transferencia') return 'transfer'
-    if(n.includes('mercado')||n==='mp') return 'mercado_pago'
+    if(n.includes('mercado')||n==='mp'||n==='mercadopago') return 'mercado_pago'
     return 'otro'
   }
-  document.getElementById('od-pm-badge').textContent = PM[normPM(o.payment_method)] || o.payment_method || '—'
+  const PM = {cash:'💵 Efectivo',card:'💳 Tarjeta',transfer:'📲 Transferencia',mercado_pago:'📱 Mercado Pago',mercadopago:'📱 Mercado Pago',otro:'💰 Otro'}
+  const pmKey = normPM(o.payment_method)
+  const pmLabel = PM[pmKey] || o.payment_method || '—'
+  document.getElementById('od-pm-badge').textContent = pmLabel
+  document.getElementById('od-pm-display').textContent = pmLabel
+  // Reset editor state
+  document.getElementById('od-pm-editor').style.display = 'none'
+  document.getElementById('od-pm-toggle').textContent = '✏️ Cambiar'
+  document.querySelectorAll('.od-pm-btn').forEach(b => { b.style.borderColor='var(--ink10)'; b.style.background='var(--wh)' })
+  // Pre-highlight current method in editor
+  const matchBtn = document.querySelector(`.od-pm-btn[data-pm="${pmKey === 'mercado_pago' ? 'mercadopago' : pmKey}"]`)
+  if(matchBtn) { matchBtn.style.borderColor='var(--red)'; matchBtn.style.background='var(--red-l)'; window._odSelectedPM = matchBtn.dataset.pm }
 
   // Items
   const items = o.order_items || []
