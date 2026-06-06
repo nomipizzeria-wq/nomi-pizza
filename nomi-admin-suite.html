@@ -1510,10 +1510,22 @@ async function loadDash(){
   const dateEl = document.getElementById('dash-date-label')
   if(dateEl) dateEl.textContent = new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})
   try{
-    const [an,ord,tbl,inv]=await Promise.all([api('analytics'),api('orders'),api('tables'),api('inventory')])
-    document.getElementById('d-rev').textContent=fmt(an.today?.revenue)
-    document.getElementById('d-ord').textContent=an.today?.orders||0
-    document.getElementById('d-act').textContent=(an.today?.active_orders||0)+' activos'
+    // Use timezone-aware timestamps so Mexico City time is respected (UTC-6, no DST)
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0)
+    const todayEnd   = new Date(); todayEnd.setHours(23,59,59,999)
+    const todayFrom  = todayStart.toISOString()
+    const todayTo    = todayEnd.toISOString()
+    const [ordToday,ord,tbl,inv]=await Promise.all([
+      fetch('/api/orders?date_from='+encodeURIComponent(todayFrom)+'&date_to='+encodeURIComponent(todayTo)).then(r=>r.json()).catch(()=>[]),
+      api('orders'),api('tables'),api('inventory')
+    ])
+    const todayOrders = Array.isArray(ordToday) ? ordToday : []
+    const activeToday = todayOrders.filter(o=>['pending','accepted','preparing','ready'].includes(o.status))
+    const doneToday   = todayOrders.filter(o=>o.status==='delivered')
+    const revenue     = doneToday.reduce((s,o)=>s+Number(o.total||0),0)
+    document.getElementById('d-rev').textContent=fmt(revenue)
+    document.getElementById('d-ord').textContent=doneToday.length
+    document.getElementById('d-act').textContent=activeToday.length+' activos'
     const occ=(tbl||[]).filter(t=>t.status!=='available').length
     const rdy=(tbl||[]).filter(t=>t.status==='ready').length
     document.getElementById('d-tbl').textContent=occ+'/'+(tbl||[]).length
@@ -1534,7 +1546,12 @@ async function loadDash(){
 var allOrders=[],curFilter='all'
 async function loadOrders(){
   document.getElementById('orders-list').innerHTML='<div class="loading"><div class="spinner"></div>Cargando...</div>'
-  try{allOrders=await api('orders')||[];renderOrders()}catch(e){showToast('Error',false)}
+  try{
+    const _lo_s = new Date(); _lo_s.setHours(0,0,0,0)
+    const _lo_e = new Date(); _lo_e.setHours(23,59,59,999)
+    allOrders = await fetch('/api/orders?date_from='+encodeURIComponent(_lo_s.toISOString())+'&date_to='+encodeURIComponent(_lo_e.toISOString())).then(r=>r.json()).catch(()=>[])||[]
+    renderOrders()
+  }catch(e){showToast('Error',false)}
 }
 function filterO(s,el){document.querySelectorAll('#otabs .tab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');curFilter=s;renderOrders()}
 function renderOrders(){
@@ -1793,7 +1810,7 @@ function anRenderPayments(orders) {
   })
 
   const grand = Object.values(byPM).reduce((s,v) => s+v.total, 0) || 1
-  const label = {cash:'💵 Efectivo',card:'💳 Tarjeta',transfer:'📲 Transferencia',mercado_pago:'📱 Mercado Pago'}
+  const label = {cash:'💵 Efectivo',card:'💳 Tarjeta',transfer:'📲 Transferencia',mercado_pago:'📱 Mercado Pago',mercadopago:'📱 Mercado Pago',otro:'💰 Otro'}
   const colors= {cash:'var(--green)',card:'var(--blue)',transfer:'#7c5cbc',mercado_pago:'var(--red)'}
 
   el.innerHTML = Object.entries(byPM)
@@ -2617,10 +2634,12 @@ async function testWA() {
 async function loadRecentSales() {
   const el = document.getElementById('recent-sales')
   try {
-    const orders = await api('orders') || []
+    const _rs_start = new Date(); _rs_start.setHours(0,0,0,0)
+    const _rs_end   = new Date(); _rs_end.setHours(23,59,59,999)
+    const orders = await fetch('/api/orders?date_from='+encodeURIComponent(_rs_start.toISOString())+'&date_to='+encodeURIComponent(_rs_end.toISOString())).then(r=>r.json()).catch(()=>[])
     const recent = orders.filter(o => ['delivered','cancelled'].includes(o.status)).slice(0, 8)
     if (!recent.length) { el.innerHTML = '<div class="empty" style="padding:12px">Sin ventas hoy aún</div>'; return }
-    const pmIcons = {cash:'💵', card:'💳', mercadopago:'📱', mercado_pago:'📱'}
+    const pmIcons = {cash:'💵', card:'💳', transfer:'📲', mercadopago:'📱', mercado_pago:'📱', otro:'💰'}
     el.innerHTML = recent.map(o => `
       <div class="sale-row ${o.status==='cancelled'?'sale-cancelled':''}">
         <span style="font-size:16px">${pmIcons[o.payment_method]||'💰'}</span>
