@@ -1593,7 +1593,7 @@ async function loadDash(){
     const rdy=(tbl||[]).filter(t=>t.status==='ready').length
     document.getElementById('d-tbl').textContent=occ+'/'+(tbl||[]).length
     document.getElementById('d-tbl-s').textContent=rdy+' esperando cuenta'
-    document.getElementById('ob').textContent=an.today?.active_orders||0
+    document.getElementById('ob').textContent=activeToday.length
     document.getElementById('tb').textContent=occ
     const active=(ord||[]).filter(o=>['pending','accepted','preparing','ready'].includes(o.status)).slice(0,4)
     const lel=document.getElementById('live-orders')
