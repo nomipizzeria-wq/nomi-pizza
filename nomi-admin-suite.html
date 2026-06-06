@@ -1803,8 +1803,17 @@ function anRenderPayments(orders) {
   if(!orders.length) { el.innerHTML = '<div class="empty">Sin órdenes</div>'; return }
 
   const byPM = {}
+  const _pmNorm = m => {
+    if(!m) return 'otro'
+    const n = m.toLowerCase().replace(/[_\s-]/g,'')
+    if(n==='cash'||n==='efectivo') return 'cash'
+    if(n==='card'||n==='tarjeta') return 'card'
+    if(n==='transfer'||n==='transferencia') return 'transfer'
+    if(n.includes('mercado')||n==='mp') return 'mercado_pago'
+    return 'otro'
+  }
   orders.forEach(o => {
-    const m = o.payment_method||'otro'
+    const m = _pmNorm(o.payment_method)
     byPM[m] = (byPM[m]||{count:0,total:0})
     byPM[m].count++; byPM[m].total += Number(o.total||0)
   })
@@ -2637,12 +2646,21 @@ async function loadRecentSales() {
     const _rs_start = new Date(); _rs_start.setHours(0,0,0,0)
     const _rs_end   = new Date(); _rs_end.setHours(23,59,59,999)
     const orders = await fetch('/api/orders?date_from='+encodeURIComponent(_rs_start.toISOString())+'&date_to='+encodeURIComponent(_rs_end.toISOString())).then(r=>r.json()).catch(()=>[])
-    const recent = orders.filter(o => ['delivered','cancelled'].includes(o.status)).slice(0, 8)
+    const recent = orders.filter(o => ['delivered','cancelled'].includes(o.status)).slice(0, 12)
     if (!recent.length) { el.innerHTML = '<div class="empty" style="padding:12px">Sin ventas hoy aún</div>'; return }
-    const pmIcons = {cash:'💵', card:'💳', transfer:'📲', mercadopago:'📱', mercado_pago:'📱', otro:'💰'}
+    const _normPM = m => {
+      if(!m) return 'otro'
+      const n = m.toLowerCase().replace(/[_\s-]/g,'')
+      if(n==='cash'||n==='efectivo') return 'cash'
+      if(n==='card'||n==='tarjeta'||n==='credito'||n==='debito') return 'card'
+      if(n==='transfer'||n==='transferencia') return 'transfer'
+      if(n.includes('mercado')||n.includes('mp')) return 'mercado_pago'
+      return 'otro'
+    }
+    const pmIcons = {cash:'💵', card:'💳', transfer:'📲', mercado_pago:'📱', otro:'💰'}
     el.innerHTML = recent.map(o => `
       <div class="sale-row ${o.status==='cancelled'?'sale-cancelled':''}">
-        <span style="font-size:16px">${pmIcons[o.payment_method]||'💰'}</span>
+        <span style="font-size:16px">${pmIcons[_normPM(o.payment_method)]||'💰'}</span>
         <div style="flex:1;min-width:0">
           <div style="font-weight:500;font-size:12px">${o.customer_name||o.restaurant_tables?.number?'Mesa '+o.restaurant_tables?.number:'Mostrador'} <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink60)">#${String(o.order_number||'').padStart(4,'0')}</span></div>
           <div style="font-size:10px;color:var(--ink60)">${(o.order_items||[]).map(i=>i.quantity+'× '+i.item_name).join(', ').substring(0,40)}</div>
@@ -2654,6 +2672,10 @@ async function loadRecentSales() {
             `<button class=\"btn btn-sm\" style=\"font-size:10px;padding:2px 6px\" onclick=\"reprintReceipt('${o.id}')\" title=\"Reimprimir\">&#128424;</button> <button class="btn btn-sm" style="font-size:10px;padding:3px 7px;margin-top:3px;color:#EF4444;border-color:#EF4444" onclick="openVoid('${o.id}','${o.order_number||''}','${fmt(o.total)}')">Anular</button>`}
         </div>
       </div>`).join('')
+    // Add link to full orders page
+    if(recent.length >= 12) {
+      el.innerHTML += '<div style="padding:8px 14px;text-align:center"><button class="btn btn-sm" onclick="showPage(\'orders\',document.querySelector(\'.ni[onclick*=orders]\'))">Ver todos los pedidos →</button></div>'
+    }
   } catch(e) { el.innerHTML = '<div class="empty" style="padding:12px">Error cargando ventas</div>' }
 }
 
@@ -4270,11 +4292,24 @@ function openPrintWindow(html) {
 }
 
 function reprintReceipt(id) {
-  fetch('/api/orders').then(r=>r.json()).then(ords => {
-    const o = (ords||[]).find(x => x.id === id)
-    if(o) printReceipt(o, {paymentMethod: o.payment_method})
-    else showToast('No encontrado', false)
-  }).catch(() => showToast('Error', false))
+  // Fetch today's orders with timezone-aware timestamps (Mexico City = UTC-6)
+  const s = new Date(); s.setHours(0,0,0,0)
+  const e = new Date(); e.setHours(23,59,59,999)
+  fetch('/api/orders?date_from='+encodeURIComponent(s.toISOString())+'&date_to='+encodeURIComponent(e.toISOString()))
+    .then(r=>r.json())
+    .then(ords => {
+      const o = (ords||[]).find(x => x.id === id)
+      if(o) { printReceipt(o, {paymentMethod: o.payment_method}); return }
+      // Not in today — try fetching last 7 days as fallback
+      const w = new Date(); w.setDate(w.getDate()-7); w.setHours(0,0,0,0)
+      return fetch('/api/orders?date_from='+encodeURIComponent(w.toISOString())+'&date_to='+encodeURIComponent(e.toISOString()))
+        .then(r=>r.json())
+        .then(all => {
+          const o2 = (all||[]).find(x => x.id === id)
+          if(o2) printReceipt(o2, {paymentMethod: o2.payment_method})
+          else showToast('Recibo no encontrado', false)
+        })
+    }).catch(() => showToast('Error al reimprimir', false))
 }
 window.addEventListener('DOMContentLoaded', function() {
   // Auto-login check
