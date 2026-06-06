@@ -279,6 +279,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 .an-ord-tbl th{padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--ink10);white-space:nowrap;background:var(--cream)}
 .an-ord-tbl td{padding:10px 12px;border-bottom:1px solid var(--ink10);vertical-align:middle}
 .an-ord-tbl tr:hover td{background:var(--cream)}
+.an-ord-tbl tbody tr{cursor:pointer}
+.an-detail-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ink10);font-size:13px}
+.an-detail-item:last-child{border-bottom:none}
+.an-detail-total{display:flex;justify-content:space-between;font-size:16px;font-weight:700;padding:12px 0;border-top:2px solid var(--ink10);margin-top:6px}
 
 .pending-dot{width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block;margin-right:5px;animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
@@ -653,7 +657,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 
       <!-- Orders table -->
       <div class="card">
-        <div class="ch"><span class="ct">Detalle de órdenes</span><span class="cs" id="an-tbl-sub"></span></div>
+        <div class="ch"><span class="ct">Detalle de órdenes</span><span class="cs" id="an-tbl-sub"></span><span style="font-size:10px;color:var(--ink60);margin-left:8px">Toca una fila para ver detalle</span></div>
         <div id="an-orders-table" style="overflow-x:auto"><div class="empty">Sin datos</div></div>
       </div>
 
@@ -1897,6 +1901,88 @@ function anRenderTypes(orders) {
   el.innerHTML = lines + `<div style="height:1px;background:var(--ink10);margin:10px 0"></div>` + statusLines
 }
 
+function openOrderDetail(o) {
+  if(!o) return
+  const TYPE  = {pickup:'🏪 Mostrador',dine_in:'🍽 Mesa',takeout:'🏃 Para llevar',delivery:'🛵 Domicilio'}
+  const PM    = {cash:'💵 Efectivo',card:'💳 Tarjeta',transfer:'📲 Transferencia',mercado_pago:'📱 Mercado Pago',otro:'💰 Otro'}
+  const STATUS = {delivered:'Entregada',cancelled:'Anulada',preparing:'Preparando',ready:'Lista',pending:'Pendiente'}
+  const SBDG  = {delivered:'bg',cancelled:'br',preparing:'ba',ready:'ba',pending:'bk'}
+
+  const d    = new Date(o.created_at)
+  const dateStr = d.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
+  const timeStr = d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})
+  const mesa = o.restaurant_tables?.number ? ` · Mesa ${o.restaurant_tables.number}` : ''
+  const isCancelled = ['cancelled','voided','anulado'].includes(o.status)
+
+  document.getElementById('od-title').textContent = `Orden #${String(o.order_number||'').padStart(4,'0')}`
+  document.getElementById('od-subtitle').textContent = `${dateStr} · ${timeStr}`
+  document.getElementById('od-status-badge').innerHTML = `<span class="badge ${SBDG[o.status]||'bk'}">${STATUS[o.status]||o.status}</span>`
+  document.getElementById('od-type-badge').textContent = (TYPE[o.type]||o.type||'') + mesa + (o.customer_name ? ` · ${o.customer_name}` : '')
+
+  // Payment method
+  const normPM = m => {
+    if(!m) return 'otro'
+    const n = m.toLowerCase().replace(/[_\s-]/g,'')
+    if(n==='cash'||n==='efectivo') return 'cash'
+    if(n==='card'||n==='tarjeta') return 'card'
+    if(n==='transfer'||n==='transferencia') return 'transfer'
+    if(n.includes('mercado')||n==='mp') return 'mercado_pago'
+    return 'otro'
+  }
+  document.getElementById('od-pm-badge').textContent = PM[normPM(o.payment_method)] || o.payment_method || '—'
+
+  // Items
+  const items = o.order_items || []
+  const itemsEl = document.getElementById('od-items')
+  itemsEl.innerHTML = items.length
+    ? items.map(i => `<div class="an-detail-item">
+        <div>
+          <span style="font-weight:600">${i.quantity}×</span> ${i.item_name||i.name||'Producto'}
+        </div>
+        <span style="font-weight:600">${fmt(Number(i.unit_price||0)*Number(i.quantity||1))}</span>
+      </div>`).join('')
+    : `<div class="an-detail-item" style="color:var(--ink60)">${o.notes?.split('|').find(n=>n.trim()&&!n.includes('Mesero'))||'Sin detalle de productos'}</div>`
+
+  // Totals
+  const total   = Number(o.total||0)
+  const disc    = Number(o.discount||0)
+  const tip     = Number(o.tip_amount||0)
+  const tax     = Number(o.tax||0) || Math.round((total-total/1.16)*100)/100
+  const net     = Math.round(total/1.16*100)/100
+  const subtot  = Number(o.subtotal||0) || items.reduce((s,i)=>s+Number(i.unit_price||0)*Number(i.quantity||1),0) || total
+
+  document.getElementById('od-subtotal').textContent = fmt(subtot)
+
+  const discRow = document.getElementById('od-discount-row')
+  discRow.style.display = disc > 0 ? 'flex' : 'none'
+  document.getElementById('od-discount').textContent = '-' + fmt(disc)
+
+  const tipRow = document.getElementById('od-tip-row')
+  tipRow.style.display = tip > 0 ? 'flex' : 'none'
+  document.getElementById('od-tip').textContent = '+' + fmt(tip)
+
+  document.getElementById('od-net').textContent = fmt(net)
+  document.getElementById('od-tax').textContent = fmt(tax)
+  document.getElementById('od-total').textContent = fmt(total)
+
+  // Notes
+  const notesWrap = document.getElementById('od-notes-wrap')
+  const notes = (o.notes||'').replace(/Vendido por:[^|]+\|?/g,'').replace(/Origen:[^|]+\|?/g,'').replace(/\|\s*\|/g,'|').replace(/^\|+|\|+$/g,'').trim()
+  if(notes) {
+    notesWrap.style.display = 'block'
+    document.getElementById('od-notes').textContent = notes
+  } else {
+    notesWrap.style.display = 'none'
+  }
+
+  // Reprint button
+  const reprBtn = document.getElementById('od-reprint-btn')
+  reprBtn.onclick = () => { closeM('order-detail-modal'); reprintReceipt(o.id) }
+  reprBtn.style.display = isCancelled ? 'none' : 'inline-flex'
+
+  openM('order-detail-modal')
+}
+
 function anRenderTable(orders) {
   const el = document.getElementById('an-orders-table')
   if(!el) return
@@ -1926,7 +2012,7 @@ function anRenderTable(orders) {
         : o.status === 'delivered' ? '<span class="badge bg">✓</span>'
         : '<span class="badge ba">'+o.status+'</span>'
       const rowStyle = isCancelled ? 'opacity:.45;text-decoration:line-through' : ''
-      return `<tr style="${rowStyle}">
+      return `<tr style="${rowStyle}cursor:pointer" onclick="openOrderDetail(_anOrders.find(x=>x.id==='${o.id}'))">
         <td style="font-size:11px;color:var(--ink60)">${hora}</td>
         <td><span style="font-weight:600;color:${isCancelled?'var(--ink60)':'var(--red)'}">#${String(o.order_number||'').padStart(4,'0')}</span></td>
         <td style="font-size:11px">${TYPE[o.type]||o.type||''}${mesa}</td>
