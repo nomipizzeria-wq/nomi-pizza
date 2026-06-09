@@ -63,6 +63,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ intent_id: data.id, status: data.state?.worker?.result })
     }
 
+    // ── TERMINAL: cancel payment intent ───────────────────────
+    if (req.method === 'DELETE' && req.query.action === 'terminal_cancel') {
+      const { intent_id, device_id } = req.query
+      if (!intent_id) return res.status(400).json({ error: 'intent_id required' })
+      const target = device_id
+        ? `/point/integration-api/devices/${device_id}/payment-intents/${intent_id}`
+        : `/point/integration-api/payment-intents/${intent_id}`
+      const data = await mpFetch(target, { method: 'DELETE' })
+      return res.status(200).json({ ok: true, data })
+    }
+
     // ── TERMINAL: check payment intent status ──────────────────
     if (req.method === 'GET' && req.query.action === 'terminal_status') {
       const { intent_id } = req.query
