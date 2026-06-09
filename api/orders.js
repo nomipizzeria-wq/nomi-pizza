@@ -5,6 +5,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
+const MP_TOKEN  = process.env.MP_ACCESS_TOKEN
+const MP_BASE   = 'https://api.mercadopago.com'
+
+async function mpFetch(path, opts = {}) {
+  const res = await fetch(MP_BASE + path, {
+    ...opts,
+    headers: { 'Authorization': `Bearer ${MP_TOKEN}`, 'Content-Type': 'application/json', ...(opts.headers||{}) }
+  })
+  return res.json()
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
@@ -12,6 +23,49 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
 
   try {
+    // ── TERMINAL: list devices ──────────────────────────────────
+    if (req.method === 'GET' && req.query.action === 'devices') {
+      const data = await mpFetch('/point/integration-api/devices')
+      return res.status(200).json(data)
+    }
+
+    // ── TERMINAL: create payment intent ────────────────────────
+    if (req.method === 'POST' && req.body?.action === 'terminal_payment') {
+      const { device_id, amount, order_id, ticket_number } = req.body
+      if (!device_id || !amount) return res.status(400).json({ error: 'device_id and amount required' })
+
+      // MP Point uses cents for MXN (e.g. $200.00 = 20000 centavos)
+      // amount is passed as pesos from frontend, multiply by 100
+      const data = await mpFetch(
+        `/point/integration-api/devices/${device_id}/payment-intents`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            amount: Math.round(Number(amount) * 100),
+            additional_info: {
+              external_reference: order_id || '',
+              print_on_terminal: true,
+              ticket_number: String(ticket_number || '0000')
+            }
+          })
+        }
+      )
+      if (data.error || data.status === 400) return res.status(400).json({ error: data.message || 'Terminal error' })
+      return res.status(200).json({ intent_id: data.id, status: data.state?.worker?.result })
+    }
+
+    // ── TERMINAL: check payment intent status ──────────────────
+    if (req.method === 'GET' && req.query.action === 'terminal_status') {
+      const { intent_id } = req.query
+      if (!intent_id) return res.status(400).json({ error: 'intent_id required' })
+      const data = await mpFetch(`/point/integration-api/payment-intents/${intent_id}`)
+      return res.status(200).json({
+        state:    data.state?.worker?.result || data.state,
+        status:   data.status,
+        payment:  data.payment
+      })
+    }
+
     if (req.method === 'GET') {
       const { status, date, date_from, date_to } = req.query
       let query = supabase
