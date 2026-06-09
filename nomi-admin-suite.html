@@ -279,6 +279,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 .an-ord-tbl th{padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--ink10);white-space:nowrap;background:var(--cream)}
 .an-ord-tbl td{padding:10px 12px;border-bottom:1px solid var(--ink10);vertical-align:middle}
 .an-ord-tbl tr:hover td{background:var(--cream)}
+.terminal-overlay{position:fixed;inset:0;background:rgba(26,23,20,.85);z-index:600;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-family:inherit}
+.terminal-overlay.open{display:flex}
+.terminal-pulse{width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:40px;animation:tpulse 1.5s ease-in-out infinite}
+@keyframes tpulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.12);opacity:.7}}
 .an-ord-tbl tbody tr{cursor:pointer}
 .an-detail-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ink10);font-size:13px}
 .an-detail-item:last-child{border-bottom:none}
@@ -814,6 +818,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
             <div class="fl" style="margin-top:8px"><label>Facturación — RFC del restaurante</label><input class="fi" id="cfg-rfc2" placeholder="NPZ230401AA1"></div>
           </div>
         </div>
+          <div class="card" style="margin-top:12px">
+          <div class="ch">
+            <div>
+              <span class="ct">💳 Terminal MP Point Air</span>
+              <div style="font-size:11px;color:var(--ink60);margin-top:2px" id="term-config-status">
+                ${localStorage.getItem('nomi_term_device') ? '✓ Terminal configurada' : 'Sin terminal configurada'}
+              </div>
+            </div>
+            <button class="btn btn-sm" onclick="openTerminalSetup()">⚙️ Configurar</button>
+          </div>
+        </div>
+
         <div class="card" style="margin-top:12px">
           <div class="ch">
             <div>
@@ -1065,6 +1081,44 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
     <div class="mf">
       <button class="btn" id="sp-skip-btn" onclick="spSkipToFull()">Cobrar todo junto</button>
       <button class="btn btn-p" onclick="spConfirmPortion()" id="sp-confirm-btn">✓ Confirmar pago</button>
+    </div>
+  </div>
+</div>
+
+<!-- TERMINAL OVERLAY -->
+<div class="terminal-overlay" id="terminal-overlay">
+  <div class="terminal-pulse">💳</div>
+  <div style="font-size:18px;font-weight:700;color:#fff" id="term-title">Esperando terminal...</div>
+  <div style="font-size:13px;color:rgba(255,255,255,.6);text-align:center;max-width:260px" id="term-sub">El cliente puede pagar en la terminal</div>
+  <div style="font-size:28px;font-weight:700;color:#fff;margin-top:4px" id="term-amount"></div>
+  <button onclick="cancelTerminalPayment()" style="margin-top:16px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);padding:10px 24px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit">✕ Cancelar</button>
+</div>
+
+<!-- TERMINAL SETUP MODAL -->
+<div class="modal-bg" id="terminal-setup-modal">
+  <div class="modal" style="width:460px;max-width:96vw">
+    <div class="mh">
+      <div>
+        <div class="mt">💳 Configurar terminal</div>
+        <div style="font-size:11px;color:var(--ink60);margin-top:2px">Mercado Pago Point Air</div>
+      </div>
+      <button class="mc-btn" onclick="closeM('terminal-setup-modal')">×</button>
+    </div>
+    <div class="mb">
+      <div style="background:var(--blue-l);border-radius:var(--rsm);padding:10px 14px;font-size:12px;color:var(--blue);margin-bottom:16px">
+        Asegúrate de que la terminal esté encendida, conectada al bluetooth de tu dispositivo y con la app de Mercado Pago abierta.
+      </div>
+      <div class="fl">
+        <label>Selecciona tu terminal</label>
+        <select class="fs" id="terminal-device-select">
+          <option value="">Cargando dispositivos...</option>
+        </select>
+      </div>
+      <div id="terminal-device-info" style="font-size:11px;color:var(--ink60);margin-top:6px"></div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeM('terminal-setup-modal')">Cancelar</button>
+      <button class="btn btn-p" onclick="saveTerminalDevice()">✓ Guardar terminal</button>
     </div>
   </div>
 </div>
@@ -2673,6 +2727,22 @@ async function confirmSale() {
     }
 
     // Process the sale
+    // If payment method is card and terminal is configured → send to terminal
+    if((selectedPayMethod === 'card' || selectedPayMethod === 'card_terminal') && _termDeviceId) {
+      const total = parseFloat(document.getElementById('pm-total').textContent.replace(/[^0-9.]/g,'')) || 0
+      closeM('pin-confirm-modal')
+      closeM('payment-modal')
+      const sent = await sendToTerminal(null, total, worker?.order_number || '0000')
+      if(sent) {
+        showTerminalOverlay(total)
+        // Create the order in DB so webhook can update it
+        try {
+          const result = await processSale(worker)
+          _termOrderId = result?.id
+        } catch(e) { console.warn('Order pre-create failed', e) }
+        return
+      }
+    }
     await processSale(worker)
     closeM('pin-confirm-modal')
     closeM('payment-modal')
@@ -4219,6 +4289,124 @@ function spFinishAll() {
   window._splitNoteOverride = `DIVIDIDA: ${splitNote}`
   window._splitPMOverride   = mainPM
   openPaymentModal(true)
+}
+
+// ── MERCADO PAGO POINT TERMINAL ───────────────────────────────
+let _termDeviceId    = localStorage.getItem('nomi_term_device') || ''
+let _termIntentId    = null
+let _termPollTimer   = null
+let _termOrderId     = null
+
+// Load saved device on startup
+;(function initTerminal() {
+  const saved = localStorage.getItem('nomi_term_device')
+  if(saved) _termDeviceId = saved
+})()
+
+// Add terminal option to Pagos tab via a button in Configuración
+async function openTerminalSetup() {
+  openM('terminal-setup-modal')
+  const sel = document.getElementById('terminal-device-select')
+  sel.innerHTML = '<option>Cargando...</option>'
+  try {
+    const data = await fetch('/api/orders?action=devices').then(r=>r.json())
+    const devices = data.devices || []
+    if(!devices.length) {
+      sel.innerHTML = '<option value="">No se encontraron terminales. Verifica que estén encendidas y en modo integración.</option>'
+      return
+    }
+    sel.innerHTML = devices.map(d =>
+      `<option value="${d.id}" ${d.id===_termDeviceId?'selected':''}>${d.operating_mode||'Point'} · ${d.id.slice(-8)}</option>`
+    ).join('')
+    const info = document.getElementById('terminal-device-info')
+    if(info) info.textContent = `${devices.length} terminal${devices.length>1?'es':''} encontrada${devices.length>1?'s':''}`
+  } catch(e) {
+    sel.innerHTML = '<option value="">Error cargando terminales</option>'
+  }
+}
+
+function saveTerminalDevice() {
+  const sel = document.getElementById('terminal-device-select')
+  _termDeviceId = sel.value
+  if(_termDeviceId) {
+    localStorage.setItem('nomi_term_device', _termDeviceId)
+    showToast('Terminal guardada ✓')
+    closeM('terminal-setup-modal')
+  } else {
+    showToast('Selecciona una terminal', false)
+  }
+}
+
+async function sendToTerminal(orderId, amount, ticketNumber) {
+  if(!_termDeviceId) {
+    showToast('Configura la terminal primero en Configuración → Pagos', false)
+    return false
+  }
+  try {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action: 'terminal_payment',
+        device_id: _termDeviceId,
+        amount: amount,
+        order_id: orderId,
+        ticket_number: String(ticketNumber||'0000').padStart(4,'0')
+      })
+    }).then(r=>r.json())
+
+    if(res.error) { showToast('Terminal: ' + res.error, false); return false }
+    _termIntentId = res.intent_id
+    _termOrderId  = orderId
+    return true
+  } catch(e) { showToast('Error conectando terminal', false); return false }
+}
+
+function showTerminalOverlay(amount) {
+  document.getElementById('term-amount').textContent = fmt(amount)
+  document.getElementById('term-title').textContent  = 'Esperando terminal...'
+  document.getElementById('term-sub').textContent    = 'El cliente puede pagar en la terminal'
+  document.getElementById('terminal-overlay').classList.add('open')
+  startTerminalPoll()
+}
+
+function startTerminalPoll() {
+  clearInterval(_termPollTimer)
+  _termPollTimer = setInterval(async () => {
+    if(!_termIntentId) return
+    try {
+      const res = await fetch(`/api/orders?action=terminal_status&intent_id=${_termIntentId}`).then(r=>r.json())
+      const state = res.state
+
+      if(state === 'FINISHED') {
+        clearInterval(_termPollTimer)
+        document.getElementById('term-title').textContent = '✓ Pago aprobado'
+        document.getElementById('term-sub').textContent   = 'Procesando...'
+        setTimeout(() => {
+          document.getElementById('terminal-overlay').classList.remove('open')
+          closeM('payment-modal')
+          clrPOS()
+          loadRecentSales()
+          loadDash()
+          showToast('✓ Pago con tarjeta aprobado')
+        }, 1200)
+      } else if(state === 'FAILED' || state === 'CANCELED') {
+        clearInterval(_termPollTimer)
+        document.getElementById('terminal-overlay').classList.remove('open')
+        showToast('Pago rechazado en terminal', false)
+      }
+    } catch(e) { console.warn('Terminal poll error', e) }
+  }, 2500)
+}
+
+async function cancelTerminalPayment() {
+  clearInterval(_termPollTimer)
+  if(_termIntentId) {
+    // Best effort cancel — fire and forget
+    fetch(`/api/orders?action=terminal_cancel&intent_id=${_termIntentId}`, {method:'DELETE'}).catch(()=>{})
+  }
+  _termIntentId = null
+  document.getElementById('terminal-overlay').classList.remove('open')
 }
 
 // ── RECETAS TAB ───────────────────────────────────────────────
