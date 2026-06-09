@@ -29,6 +29,18 @@ export default async function handler(req, res) {
       return res.status(200).json(data)
     }
 
+    // ── TERMINAL: switch to PDV (integration) mode ─────────────
+    if (req.method === 'POST' && req.body?.action === 'set_pdv_mode') {
+      const { device_id } = req.body
+      if (!device_id) return res.status(400).json({ error: 'device_id required' })
+      const data = await mpFetch(
+        `/point/integration-api/devices/${device_id}`,
+        { method: 'PATCH', body: JSON.stringify({ operating_mode: 'PDV' }) }
+      )
+      if (data.error) return res.status(400).json({ error: data.message || 'Could not set PDV mode' })
+      return res.status(200).json({ ok: true, operating_mode: data.operating_mode })
+    }
+
     // ── TERMINAL: create payment intent ────────────────────────
     if (req.method === 'POST' && req.body?.action === 'terminal_payment') {
       const { device_id, amount, order_id, ticket_number } = req.body
