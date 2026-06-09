@@ -43,21 +43,19 @@ export default async function handler(req, res) {
 
     // ── TERMINAL: create payment intent ────────────────────────
     if (req.method === 'POST' && req.body?.action === 'terminal_payment') {
-      const { device_id, amount, order_id, ticket_number } = req.body
+      const { device_id, amount, order_id } = req.body
       if (!device_id || !amount) return res.status(400).json({ error: 'device_id and amount required' })
 
-      // MP Point uses cents for MXN (e.g. $200.00 = 20000 centavos)
-      // amount is passed as pesos from frontend, multiply by 100
+      // Point Air: only external_reference is valid in additional_info
+      // Amount in MXN pesos (NOT centavos) for Point Integration API
       const data = await mpFetch(
         `/point/integration-api/devices/${device_id}/payment-intents`,
         {
           method: 'POST',
           body: JSON.stringify({
-            amount: Math.round(Number(amount) * 100),
+            amount: Math.round(Number(amount)),
             additional_info: {
-              external_reference: order_id || '',
-              print_on_terminal: true,
-              ticket_number: String(ticket_number || '0000')
+              external_reference: order_id || ''
             }
           })
         }
