@@ -46,14 +46,13 @@ export default async function handler(req, res) {
       const { device_id, amount, order_id } = req.body
       if (!device_id || !amount) return res.status(400).json({ error: 'device_id and amount required' })
 
-      // Point Air: only external_reference is valid in additional_info
-      // Amount in MXN pesos (NOT centavos) for Point Integration API
+      // Amount in centavos for MP Point API (MXN: $180 = 18000)
       const data = await mpFetch(
         `/point/integration-api/devices/${device_id}/payment-intents`,
         {
           method: 'POST',
           body: JSON.stringify({
-            amount: Math.round(Number(amount)),
+            amount: Math.round(Number(amount) * 100),
             additional_info: {
               external_reference: order_id || ''
             }
