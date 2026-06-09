@@ -515,6 +515,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
           <div style="padding:12px 18px;border-top:1px solid var(--ink10);display:flex;gap:8px;flex-shrink:0">
             <button class="btn btn-sm" onclick="clrPOS()" style="flex:1;justify-content:center">🗑 Limpiar</button>
             <button class="btn btn-sm" onclick="openM('manual-sale-modal')" style="justify-content:center" title="Agregar venta manual / sin conexión">📝</button>
+            <button class="btn btn-sm" onclick="openSplitModal()" style="justify-content:center" title="Dividir cuenta">✂️</button>
             <button class="btn btn-p" onclick="openPaymentModal()" style="flex:2;justify-content:center;padding:9px" id="cobrar-btn">💳 Cobrar</button>
           </div>
         </div>
@@ -973,6 +974,101 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 
 <!-- PENDING SALES DETAIL MODAL -->
 <!-- ORDER DETAIL MODAL -->
+<!-- SPLIT BILL MODAL -->
+<div class="modal-bg" id="split-modal">
+  <div class="modal" style="width:500px;max-width:96vw">
+    <div class="mh">
+      <div>
+        <div class="mt">✂️ Dividir cuenta</div>
+        <div style="font-size:11px;color:var(--ink60);margin-top:2px" id="split-subtitle">Configura cómo dividir la cuenta</div>
+      </div>
+      <button class="mc-btn" onclick="closeM('split-modal')">×</button>
+    </div>
+    <div class="mb" style="padding:0">
+      <!-- Mode tabs -->
+      <div style="display:flex;border-bottom:1px solid var(--ink10)">
+        <button class="split-tab active" id="stab-equal" onclick="splitSetMode('equal',this)" style="flex:1;padding:10px;border:none;background:none;font-size:12px;font-weight:600;color:var(--red);border-bottom:2px solid var(--red);cursor:pointer">Por igual</button>
+        <button class="split-tab" id="stab-amount" onclick="splitSetMode('amount',this)" style="flex:1;padding:10px;border:none;background:none;font-size:12px;font-weight:500;color:var(--ink60);cursor:pointer">Por monto</button>
+        <button class="split-tab" id="stab-items" onclick="splitSetMode('items',this)" style="flex:1;padding:10px;border:none;background:none;font-size:12px;font-weight:500;color:var(--ink60);cursor:pointer">Por artículo</button>
+      </div>
+
+      <!-- EQUAL MODE -->
+      <div id="split-panel-equal" style="padding:18px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:20px">
+          <button class="btn" onclick="splitAdjust(-1)" style="width:40px;height:40px;font-size:20px;padding:0;justify-content:center">−</button>
+          <div style="text-align:center">
+            <div style="font-size:32px;font-weight:700" id="split-count">2</div>
+            <div style="font-size:11px;color:var(--ink60)">personas</div>
+          </div>
+          <button class="btn" onclick="splitAdjust(1)" style="width:40px;height:40px;font-size:20px;padding:0;justify-content:center">+</button>
+        </div>
+        <div id="split-equal-list" style="margin-bottom:16px"></div>
+        <div style="font-size:11px;color:var(--ink60);text-align:center;margin-bottom:14px">Cada persona puede pagar con distinto método</div>
+      </div>
+
+      <!-- AMOUNT MODE -->
+      <div id="split-panel-amount" style="padding:18px;display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:12px;font-weight:600;color:var(--ink60)">TOTAL: <span id="split-total-amt">$0</span></span>
+          <button class="btn btn-sm" onclick="splitAddPortion()">+ Agregar persona</button>
+        </div>
+        <div id="split-amount-list" style="margin-bottom:8px"></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:8px 0;border-top:1px solid var(--ink10)">
+          <span style="color:var(--ink60)">Restante por asignar</span>
+          <span id="split-remaining" style="font-weight:700;color:var(--red)">$0</span>
+        </div>
+      </div>
+
+      <!-- ITEMS MODE -->
+      <div id="split-panel-items" style="padding:18px;display:none">
+        <div style="font-size:11px;color:var(--ink60);margin-bottom:12px">Asigna cada producto a una persona. Toca el nombre para cambiar.</div>
+        <div id="split-items-list" style="margin-bottom:12px"></div>
+        <div id="split-items-summary" style="border-top:1px solid var(--ink10);padding-top:12px"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeM('split-modal')">Cancelar</button>
+      <button class="btn btn-p" onclick="startSplitPayment()" id="split-pay-btn">💳 Cobrar por turnos</button>
+    </div>
+  </div>
+</div>
+
+<!-- SPLIT PAYMENT FLOW MODAL -->
+<div class="modal-bg" id="split-pay-modal">
+  <div class="modal" style="width:400px;max-width:96vw">
+    <div class="mh">
+      <div>
+        <div class="mt" id="sp-title">Pago 1 de 2</div>
+        <div style="font-size:11px;color:var(--ink60);margin-top:2px" id="sp-subtitle"></div>
+      </div>
+    </div>
+    <div class="mb">
+      <div style="text-align:center;padding:16px 0;margin-bottom:16px;background:var(--cream);border-radius:var(--rsm)">
+        <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px" id="sp-person-lbl">Persona 1</div>
+        <div style="font-size:36px;font-weight:700;color:var(--ink)" id="sp-amount">$0.00</div>
+        <div id="sp-items-list" style="font-size:11px;color:var(--ink60);margin-top:4px"></div>
+      </div>
+      <!-- Payment method -->
+      <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Método de pago</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="sp-pm btn btn-sm" id="sp-pm-cash" onclick="spSelectPM('cash',this)" style="flex:1;justify-content:center">💵 Efectivo</button>
+        <button class="sp-pm btn btn-sm" id="sp-pm-card" onclick="spSelectPM('card',this)" style="flex:1;justify-content:center">💳 Tarjeta</button>
+        <button class="sp-pm btn btn-sm" id="sp-pm-transfer" onclick="spSelectPM('transfer',this)" style="flex:1;justify-content:center">📲 Transf.</button>
+      </div>
+      <!-- Cash received (optional) -->
+      <div id="sp-cash-section" style="display:none;margin-bottom:12px">
+        <label style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em">Efectivo recibido</label>
+        <input class="fi" type="number" id="sp-cash-input" placeholder="Cantidad..." oninput="spCalcChange()" style="margin-top:4px">
+        <div style="font-size:13px;color:var(--green);font-weight:600;margin-top:6px;display:none" id="sp-change">Cambio: $0.00</div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" id="sp-skip-btn" onclick="spSkipToFull()">Cobrar todo junto</button>
+      <button class="btn btn-p" onclick="spConfirmPortion()" id="sp-confirm-btn">✓ Confirmar pago</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="order-detail-modal">
   <div class="modal" style="width:520px;max-width:96vw">
     <div class="mh">
@@ -2449,7 +2545,7 @@ function chPOS(i, d) { posCart[i].qty += d; if(posCart[i].qty <= 0) posCart.spli
 function clrPOS() { posCart = []; document.getElementById('pos-discount').value=''; renderPOSCart() }
 
 // ── PAYMENT MODAL ─────────────────────────────────────────────
-function openPaymentModal() {
+function openPaymentModal(fromSplit=false) {
   if (!posCart.length) { showToast('Agrega al menos un producto', false); return }
   const discount = Number(document.getElementById('pos-discount')?.value || 0)
   const subtotal = posCart.reduce((s,c) => s + c.price*c.qty, 0)
@@ -2468,6 +2564,11 @@ function openPaymentModal() {
   updateQuickAmounts()
 
   selectPM('cash', document.getElementById('pmo-cash'))
+  // Apply split overrides if coming from split payment flow
+  if(fromSplit && window._splitPMOverride) {
+    const pmBtn = document.getElementById(`pmo-${window._splitPMOverride}`) || document.getElementById('pmo-cash')
+    selectPM(window._splitPMOverride, pmBtn)
+  }
   // Reset tip
   _tipAmount = 0; _tipPct = 0
   // Reset discount
@@ -2592,6 +2693,8 @@ async function confirmSale() {
     const _pm2=selectedPayMethod
     setTimeout(()=>{fetch('/api/orders').then(r=>r.json()).then(ords=>{if(ords&&ords[0])printReceipt(ords[0],{paymentMethod:_pm2,cashReceived:_cr})}).catch(()=>{})},600)
     clrPOS()
+    window._splitNoteOverride = null
+    window._splitPMOverride   = null
     loadRecentSales()
     loadDash()
   } catch(e) {
@@ -2634,7 +2737,7 @@ async function processSale(worker) {
     discount: Math.round(discAmt*100)/100,
     tip_amount: Math.round((_tipAmount||0)*100)/100,
     total: Math.round((total+(_tipAmount||0))*100)/100,
-    notes: `Vendido por: ${worker.name} | Método: ${selectedPayMethod}${received?` | Recibido: ${fmt(received)}`:''}`,
+    notes: `Vendido por: ${worker.name} | Método: ${selectedPayMethod}${received?` | Recibido: ${fmt(received)}`:''}${window._splitNoteOverride?' | '+window._splitNoteOverride:''}`,
     items: posCart.map(c => ({
       item_id: c.id, item_name: c.name, unit_price: c.price,
       quantity: c.qty, subtotal: c.price*c.qty
@@ -3892,6 +3995,232 @@ function clearSyncedSales() {
 
 // ── Hook: save to offline queue if POS sale fails due to network ──
 const _origProcessSale = typeof processSale === 'function' ? processSale : null
+// ── SPLIT BILL ────────────────────────────────────────────────
+let _splitMode    = 'equal'
+let _splitCount   = 2
+let _splitPortions = []   // [{label, total, items, payMethod}]
+let _splitItemAssign = {} // itemIndex → personIndex (0-based)
+let _spCurrentIdx = 0
+let _spPM = 'cash'
+
+function openSplitModal() {
+  const subtotal = posCart.reduce((s,c) => s+c.price*c.qty, 0)
+  if(!posCart.length) { showToast('Agrega productos primero', false); return }
+  _splitCount = 2
+  _splitMode  = 'equal'
+  _splitItemAssign = {}
+  posCart.forEach((_,i) => { _splitItemAssign[i] = 0 })
+  document.getElementById('split-count').textContent = _splitCount
+  document.getElementById('split-total-amt').textContent = fmt(subtotal)
+  splitSetMode('equal', document.getElementById('stab-equal'))
+  openM('split-modal')
+}
+
+function splitSetMode(mode, btn) {
+  _splitMode = mode
+  document.querySelectorAll('.split-tab').forEach(b => {
+    b.style.color = 'var(--ink60)'; b.style.borderBottom = 'none'; b.style.fontWeight='500'
+  })
+  btn.style.color = 'var(--red)'; btn.style.borderBottom = '2px solid var(--red)'; btn.style.fontWeight='600'
+  document.getElementById('split-panel-equal').style.display  = mode==='equal'  ? 'block' : 'none'
+  document.getElementById('split-panel-amount').style.display = mode==='amount' ? 'block' : 'none'
+  document.getElementById('split-panel-items').style.display  = mode==='items'  ? 'block' : 'none'
+  if(mode==='equal')  splitRenderEqual()
+  if(mode==='amount') splitRenderAmount()
+  if(mode==='items')  splitRenderItems()
+}
+
+function splitAdjust(d) {
+  _splitCount = Math.max(2, Math.min(8, _splitCount + d))
+  document.getElementById('split-count').textContent = _splitCount
+  splitRenderEqual()
+}
+
+function splitRenderEqual() {
+  const subtotal = posCart.reduce((s,c) => s+c.price*c.qty, 0)
+  const disc = Math.min(Number(document.getElementById('pos-discount')?.value||0), subtotal)
+  const total = subtotal - disc
+  const perPerson = total / _splitCount
+  const el = document.getElementById('split-equal-list')
+  el.innerHTML = Array.from({length:_splitCount},(_,i) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--ink10)">
+      <span style="font-size:13px;font-weight:500">Persona ${i+1}</span>
+      <span style="font-size:16px;font-weight:700;color:var(--red)">${fmt(perPerson)}</span>
+    </div>`).join('')
+  + `<div style="display:flex;justify-content:space-between;padding:10px 0;font-size:12px;color:var(--ink60)"><span>Total</span><span style="font-weight:700">${fmt(total)}</span></div>`
+
+  // Build portions
+  _splitPortions = Array.from({length:_splitCount},(_,i) => ({
+    label: `Persona ${i+1}`, total: Math.round(perPerson*100)/100,
+    items: posCart.map(c=>`${c.qty}× ${c.name}`), payMethod: 'cash'
+  }))
+  // Fix rounding: last person covers remainder
+  const totalRounded = _splitPortions.reduce((s,p)=>s+p.total,0)
+  _splitPortions[_splitCount-1].total += Math.round((total-totalRounded)*100)/100
+}
+
+function splitRenderAmount() {
+  const subtotal = posCart.reduce((s,c) => s+c.price*c.qty, 0)
+  const disc = Math.min(Number(document.getElementById('pos-discount')?.value||0), subtotal)
+  const total = subtotal - disc
+  if(!_splitPortions.length) {
+    _splitPortions = [{label:'Persona 1',total:0,items:[],payMethod:'cash'},{label:'Persona 2',total:0,items:[],payMethod:'cash'}]
+  }
+  const PM = {cash:'💵',card:'💳',transfer:'📲'}
+  const el = document.getElementById('split-amount-list')
+  el.innerHTML = _splitPortions.map((p,i) => `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+      <input class="fi" style="width:90px;font-size:12px;padding:6px 8px;font-weight:700" type="number" min="0" step="1"
+        value="${p.total||''}" placeholder="Monto" oninput="_splitPortions[${i}].total=Number(this.value)||0;splitUpdateRemaining()">
+      <div style="display:flex;gap:4px">
+        ${['cash','card','transfer'].map(pm=>`<button onclick="_splitPortions[${i}].payMethod='${pm}';splitRenderAmount()" style="padding:4px 8px;border:1px solid ${p.payMethod===pm?'var(--red)':'var(--ink10)'};background:${p.payMethod===pm?'var(--red-l)':'var(--wh)'};border-radius:6px;cursor:pointer;font-size:13px">${PM[pm]}</button>`).join('')}
+      </div>
+      <button onclick="_splitPortions.splice(${i},1);splitRenderAmount()" style="color:var(--red);background:none;border:none;cursor:pointer;font-size:16px;padding:0 4px">✕</button>
+    </div>`).join('')
+  splitUpdateRemaining()
+}
+
+function splitAddPortion() {
+  _splitPortions.push({label:`Persona ${_splitPortions.length+1}`,total:0,items:[],payMethod:'cash'})
+  splitRenderAmount()
+}
+
+function splitUpdateRemaining() {
+  const subtotal = posCart.reduce((s,c) => s+c.price*c.qty, 0)
+  const disc = Math.min(Number(document.getElementById('pos-discount')?.value||0), subtotal)
+  const total = subtotal - disc
+  const assigned = _splitPortions.reduce((s,p)=>s+Number(p.total||0),0)
+  const rem = Math.round((total - assigned)*100)/100
+  const el = document.getElementById('split-remaining')
+  if(el) { el.textContent = fmt(Math.abs(rem)); el.style.color = rem < -0.01 ? 'var(--red)' : rem > 0.01 ? 'var(--ink60)' : 'var(--green)' }
+}
+
+function splitRenderItems() {
+  const el = document.getElementById('split-items-list')
+  const people = ['A','B','C','D','E','F','G','H'].slice(0,_splitCount)
+  el.innerHTML = posCart.map((c,ci) => {
+    const assigned = _splitItemAssign[ci] ?? 0
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--ink10)">
+      <span style="font-size:18px">${c.emoji||'🍕'}</span>
+      <div style="flex:1;font-size:13px">${c.qty > 1 ? c.qty+'× ' : ''}${c.name}</div>
+      <span style="font-size:12px;color:var(--ink60);min-width:50px;text-align:right">${fmt(c.price*c.qty)}</span>
+      <div style="display:flex;gap:4px">
+        ${people.map((p,pi) => `<button onclick="_splitItemAssign[${ci}]=${pi};splitRenderItems()" style="width:28px;height:28px;border-radius:50%;border:2px solid ${assigned===pi?'var(--red)':'var(--ink10)'};background:${assigned===pi?'var(--red)':'var(--wh)'};color:${assigned===pi?'#fff':'var(--ink)'};font-size:12px;font-weight:700;cursor:pointer">${p}</button>`).join('')}
+      </div>
+    </div>`
+  }).join('')
+
+  // Summary
+  const sums = {}
+  posCart.forEach((c,ci) => {
+    const pi = _splitItemAssign[ci]??0
+    sums[pi] = (sums[pi]||0) + c.price*c.qty
+  })
+  const sumEl = document.getElementById('split-items-summary')
+  const people2 = ['A','B','C','D','E','F','G','H']
+  sumEl.innerHTML = Object.entries(sums).map(([pi,tot]) =>
+    `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px">
+      <span style="font-weight:600">Persona ${people2[pi]} — paga</span>
+      <span style="font-weight:700;color:var(--red)">${fmt(tot)}</span>
+    </div>`
+  ).join('')
+
+  // Build portions from item assignment
+  _splitPortions = Object.entries(sums).map(([pi,tot]) => ({
+    label: `Persona ${people2[pi]}`,
+    total: Math.round(tot*100)/100,
+    items: posCart.filter((_,ci)=>((_splitItemAssign[ci]??0)===Number(pi))).map(c=>`${c.qty}× ${c.name}`),
+    payMethod: 'cash'
+  }))
+}
+
+// ── SPLIT PAYMENT FLOW ────────────────────────────────────────
+function startSplitPayment() {
+  if(_splitMode==='equal') splitRenderEqual()
+  if(_splitMode==='amount') {
+    const subtotal = posCart.reduce((s,c)=>s+c.price*c.qty,0)
+    const disc = Math.min(Number(document.getElementById('pos-discount')?.value||0), subtotal)
+    const total = subtotal - disc
+    const assigned = _splitPortions.reduce((s,p)=>s+Number(p.total||0),0)
+    if(Math.abs(total-assigned) > 0.5) { showToast('Los montos no suman el total', false); return }
+  }
+  if(_splitMode==='items') splitRenderItems()
+  if(!_splitPortions.length) { showToast('Configura la división primero', false); return }
+  _spCurrentIdx = 0
+  closeM('split-modal')
+  spShowCurrent()
+}
+
+function spShowCurrent() {
+  if(_spCurrentIdx >= _splitPortions.length) { spFinishAll(); return }
+  const p = _splitPortions[_spCurrentIdx]
+  const total = _splitPortions.length
+  document.getElementById('sp-title').textContent    = `Pago ${_spCurrentIdx+1} de ${total}`
+  document.getElementById('sp-subtitle').textContent = `${_splitPortions.filter((_,i)=>i>_spCurrentIdx).length} pago${_splitPortions.length-_spCurrentIdx-1!==1?'s':''} restante${_splitPortions.length-_spCurrentIdx-1!==1?'s':''} después de este`
+  document.getElementById('sp-person-lbl').textContent = p.label
+  document.getElementById('sp-amount').textContent = fmt(p.total)
+  document.getElementById('sp-items-list').textContent = (p.items||[]).join(', ')
+  document.getElementById('sp-skip-btn').style.display = _spCurrentIdx===0 ? 'inline-flex' : 'none'
+  // Reset PM
+  _spPM = 'cash'
+  document.querySelectorAll('.sp-pm').forEach(b=>{ b.style.borderColor='var(--ink10)'; b.style.background='var(--wh)' })
+  const cashBtn = document.getElementById('sp-pm-cash')
+  if(cashBtn) { cashBtn.style.borderColor='var(--red)'; cashBtn.style.background='var(--red-l)' }
+  document.getElementById('sp-cash-section').style.display = 'block'
+  document.getElementById('sp-cash-input').value = ''
+  document.getElementById('sp-change').style.display = 'none'
+  openM('split-pay-modal')
+}
+
+function spSelectPM(pm, btn) {
+  _spPM = pm
+  document.querySelectorAll('.sp-pm').forEach(b=>{ b.style.borderColor='var(--ink10)'; b.style.background='var(--wh)' })
+  btn.style.borderColor='var(--red)'; btn.style.background='var(--red-l)'
+  document.getElementById('sp-cash-section').style.display = pm==='cash' ? 'block' : 'none'
+  document.getElementById('sp-change').style.display = 'none'
+}
+
+function spCalcChange() {
+  const p = _splitPortions[_spCurrentIdx]
+  const received = parseFloat(document.getElementById('sp-cash-input').value)||0
+  const changeEl = document.getElementById('sp-change')
+  if(received >= p.total) {
+    changeEl.textContent = `Cambio: ${fmt(received - p.total)}`
+    changeEl.style.display = 'block'
+  } else { changeEl.style.display = 'none' }
+}
+
+function spConfirmPortion() {
+  const p = _splitPortions[_spCurrentIdx]
+  p.payMethod = _spPM
+  p.paid = true
+  showToast(`✓ ${p.label}: ${fmt(p.total)} pagado con ${_spPM==='cash'?'Efectivo':_spPM==='card'?'Tarjeta':'Transferencia'}`)
+  _spCurrentIdx++
+  if(_spCurrentIdx >= _splitPortions.length) {
+    closeM('split-pay-modal')
+    spFinishAll()
+  } else {
+    spShowCurrent()
+  }
+}
+
+function spSkipToFull() {
+  closeM('split-pay-modal')
+  openPaymentModal()
+}
+
+function spFinishAll() {
+  // All portions paid — register as one order with split notes
+  const splitNote = _splitPortions.map(p=>`${p.label}: ${fmt(p.total)} (${p.payMethod==='cash'?'Efectivo':p.payMethod==='card'?'Tarjeta':'Transferencia'})`).join(' | ')
+  const pmMap = {}
+  _splitPortions.forEach(p => { pmMap[p.payMethod]=(pmMap[p.payMethod]||0)+p.total })
+  const mainPM = Object.entries(pmMap).sort((a,b)=>b[1]-a[1])[0][0]
+  // Briefly show a final PIN confirm using the main payment method
+  window._splitNoteOverride = `DIVIDIDA: ${splitNote}`
+  window._splitPMOverride   = mainPM
+  openPaymentModal(true)
+}
+
 // ── RECETAS TAB ───────────────────────────────────────────────
 const _SB_URL  = 'https://vmvrigshxffagblmpvyf.supabase.co'
 const _SB_ANON = 'sb_publishable_2p2n5KWlB0hHx1Y071T18g_C_R7BOza'
