@@ -4325,16 +4325,46 @@ async function openTerminalSetup() {
   }
 }
 
-function saveTerminalDevice() {
+async function saveTerminalDevice() {
   const sel = document.getElementById('terminal-device-select')
   _termDeviceId = sel.value
-  if(_termDeviceId) {
-    localStorage.setItem('nomi_term_device', _termDeviceId)
-    showToast('Terminal guardada ✓')
-    closeM('terminal-setup-modal')
+  if(!_termDeviceId) { showToast('Selecciona una terminal', false); return }
+
+  // Check if device is in STANDALONE mode — needs to switch to PDV for integration
+  const selectedOption = sel.options[sel.selectedIndex]
+  const isStandalone = selectedOption?.text?.includes('STANDALONE') || selectedOption?.text?.includes('standalone')
+
+  localStorage.setItem('nomi_term_device', _termDeviceId)
+
+  if(isStandalone) {
+    // Switch terminal to PDV (integration) mode via MP API
+    const btn = document.querySelector('[onclick="saveTerminalDevice()"]')
+    if(btn) { btn.disabled = true; btn.textContent = 'Activando modo integración...' }
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action: 'set_pdv_mode', device_id: _termDeviceId })
+      }).then(r=>r.json())
+
+      if(res.error) {
+        showToast('Terminal guardada (activa PDV manualmente si falla el primer pago)')
+      } else {
+        showToast('Terminal en modo integración ✓')
+      }
+    } catch(e) {
+      showToast('Terminal guardada ✓')
+    } finally {
+      if(btn) { btn.disabled = false; btn.textContent = '✓ Guardar terminal' }
+    }
   } else {
-    showToast('Selecciona una terminal', false)
+    showToast('Terminal guardada ✓')
   }
+
+  // Update status label
+  const lbl = document.getElementById('term-config-status')
+  if(lbl) lbl.textContent = '✓ Terminal configurada · ' + (_termDeviceId.includes('__') ? _termDeviceId.split('__').pop() : _termDeviceId.slice(-8))
+  closeM('terminal-setup-modal')
 }
 
 async function sendToTerminal(orderId, amount, ticketNumber) {
