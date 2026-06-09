@@ -74,6 +74,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);m
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 .loading{display:flex;align-items:center;justify-content:center;padding:30px;color:var(--ink60);font-size:13px;gap:8px}
 .spinner{width:16px;height:16px;border:2px solid var(--ink20);border-top-color:var(--red);border-radius:50%;animation:spin .6s linear infinite}
+.pay-sheet{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;background:var(--wh);border-radius:20px 20px 0 0;box-shadow:0 -8px 40px rgba(26,23,20,.18);z-index:400;transform:translateY(100%);transition:transform .35s cubic-bezier(.34,1.1,.64,1);max-height:92dvh;display:flex;flex-direction:column;pointer-events:none}
+.pay-sheet.open{transform:translateY(0);pointer-events:all}
+.pay-overlay{position:fixed;inset:0;background:rgba(26,23,20,.5);z-index:399;opacity:0;pointer-events:none;transition:opacity .25s}
+.pay-overlay.open{opacity:1;pointer-events:all}
+.pay-handle{width:36px;height:4px;background:var(--ink20);border-radius:2px;margin:10px auto 6px}
+.pm-btn{flex:1;padding:10px 6px;border:2px solid var(--ink20);border-radius:var(--rsm);background:var(--wh);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;text-align:center;transition:all .15s;color:var(--ink)}
+.pm-btn.active{border-color:var(--red);background:var(--red-l);color:var(--red-d);font-weight:600}
+.pm-btn:active{transform:scale(.96)}
+.pay-pin-overlay{position:fixed;inset:0;background:rgba(26,23,20,.85);z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px}
+.pay-pin-overlay.open{display:flex}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:30px;color:var(--ink60);font-size:13px}
 </style>
@@ -459,7 +469,7 @@ async function loadActiveOrders(){
     document.getElementById('qs-r').textContent=rdy.length
     rdy.forEach(o=>addNotif('🔔 Pedido #'+String(o.order_number||'').padStart(4,'0')+' ¡LISTO!','red'))
     if(!active.length){el.innerHTML='<div class="empty">No hay pedidos activos</div>';return}
-    el.innerHTML=active.map(o=>`<div class="card" style="margin-bottom:10px"><div class="ch"><span class="ct">${o.restaurant_tables?.number?'Mesa '+o.restaurant_tables.number:o.customer_name||'Pedido'} <span style="font-size:10px;color:var(--ink60)">#${String(o.order_number||'').padStart(4,'0')}</span></span><span class="badge ${stBdg[o.status]||'bk'}">${stLbl[o.status]||o.status}</span></div>${(o.order_items||[]).map(i=>`<div class="row"><div class="rm"><div class="rt">${i.quantity}× ${i.item_name}</div>${i.notes?`<div class="rs">* ${i.notes}</div>`:''}</div></div>`).join('')}${o.status==='ready'?`<div style="padding:10px 14px"><button class="sbtn" onclick="markServed('${o.id}')">✓ Marcar como servido</button></div>`:''}</div>`).join('')
+    el.innerHTML=active.map(o=>`<div class="card" style="margin-bottom:10px"><div class="ch"><span class="ct">${o.restaurant_tables?.number?'Mesa '+o.restaurant_tables.number:o.customer_name||'Pedido'} <span style="font-size:10px;color:var(--ink60)">#${String(o.order_number||'').padStart(4,'0')}</span></span><span class="badge ${stBdg[o.status]||'bk'}">${stLbl[o.status]||o.status}</span></div>${(o.order_items||[]).map(i=>`<div class="row"><div class="rm"><div class="rt">${i.quantity}× ${i.item_name}</div>${i.notes?`<div class="rs">* ${i.notes}</div>`:''}</div><div style="font-size:12px;font-weight:600;color:var(--ink60)">${fmt(i.unit_price*i.quantity)}</div></div>`).join('')}<div style="padding:10px 14px;display:flex;gap:8px">${o.status==='ready'?`<button class="sbtn" onclick="markServed('${o.id}')" style="flex:1">✓ Servido</button>`:''}<button class="sbtn" onclick="openPaySheet(${JSON.stringify(o).replace(/"/g,'&quot;')})" style="flex:2;background:var(--red);color:#fff">💳 Cobrar ${fmt(o.total)}</button></div></div>`).join('')
   }catch(e){el.innerHTML='<div class="empty">Error cargando pedidos</div>'}
 }
 
@@ -473,6 +483,202 @@ function addNotif(text,type){
   notifs.unshift({text,type,time:new Date()})
   const el=document.getElementById('notif-list')
   el.innerHTML=notifs.slice(0,10).map(n=>`<div style="display:flex;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--ink20);gap:10px"><div style="width:8px;height:8px;border-radius:50%;background:${n.type==='red'?'var(--red)':n.type==='amber'?'var(--amber)':'var(--green)'};flex-shrink:0;margin-top:4px"></div><span style="font-size:12px;flex:1">${n.text}</span><span style="font-size:10px;color:var(--ink60)">${Math.floor((new Date()-n.time)/60000)}m</span></div>`).join('')
+}
+
+// ── PAYMENT AT TABLE ──────────────────────────────────────────
+let _psOrder = null
+let _psPM    = 'cash'
+let _ppPIN   = ''
+
+function fmt(n){ return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(n||0) }
+
+function openPaySheet(order) {
+  _psOrder = order
+  _ppPIN   = ''
+  _psPM    = 'cash'
+
+  const items = order.order_items || []
+  const sub   = items.reduce((s,i) => s + Number(i.unit_price||0)*Number(i.quantity||1), 0) || Number(order.subtotal||0) || Number(order.total||0)
+
+  document.getElementById('ps-title').textContent = 'Cobrar · #' + String(order.order_number||'').padStart(4,'0')
+  document.getElementById('ps-subtitle').textContent = (order.restaurant_tables?.number ? 'Mesa '+order.restaurant_tables.number : '') + (order.customer_name ? ' · '+order.customer_name : '')
+  document.getElementById('ps-discount').value = ''
+  document.getElementById('ps-tip').value = ''
+  document.getElementById('ps-disc-row').style.display = 'none'
+  document.getElementById('ps-tip-row').style.display  = 'none'
+
+  // Reset PM
+  document.querySelectorAll('.pm-btn').forEach(b => b.classList.remove('active'))
+  document.getElementById('pspm-cash').classList.add('active')
+
+  // Items list
+  const el = document.getElementById('ps-items')
+  el.innerHTML = items.length
+    ? items.map(i => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--ink20);font-size:13px">
+        <span><strong>${i.quantity}×</strong> ${i.item_name||i.name}</span>
+        <span style="font-weight:600">${fmt(Number(i.unit_price||0)*Number(i.quantity||1))}</span>
+      </div>`).join('')
+    : `<div style="font-size:13px;color:var(--ink60);padding:8px 0">Total: ${fmt(sub)}</div>`
+
+  window._psBaseTotal = sub
+  psRecalc()
+
+  document.getElementById('pay-overlay').classList.add('open')
+  document.getElementById('pay-sheet').classList.add('open')
+}
+
+function closePaySheet() {
+  document.getElementById('pay-overlay').classList.remove('open')
+  document.getElementById('pay-sheet').classList.remove('open')
+  document.getElementById('pay-pin-overlay').classList.remove('open')
+}
+
+function psSelectPM(pm, btn) {
+  _psPM = pm
+  document.querySelectorAll('.pm-btn[id^="pspm-"]').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+}
+
+function psSetDisc(pct) {
+  const base = window._psBaseTotal || 0
+  document.getElementById('ps-discount').value = Math.round(base * pct / 100)
+  document.querySelectorAll('[id^="psd-"]').forEach(b => b.classList.remove('active'))
+  document.getElementById('psd-'+pct)?.classList.add('active')
+  psRecalc()
+}
+
+function psSetTip(pct) {
+  const base = window._psBaseTotal || 0
+  const disc = parseFloat(document.getElementById('ps-discount').value) || 0
+  document.getElementById('ps-tip').value = Math.round((base-disc) * pct / 100)
+  document.querySelectorAll('[id^="pst-"]').forEach(b => b.classList.remove('active'))
+  document.getElementById('pst-'+pct)?.classList.add('active')
+  psRecalc()
+}
+
+function psRecalc() {
+  const base = window._psBaseTotal || 0
+  const disc = Math.min(parseFloat(document.getElementById('ps-discount').value)||0, base)
+  const tip  = parseFloat(document.getElementById('ps-tip').value) || 0
+  const total = Math.max(0, base - disc + tip)
+  const net   = total / 1.16
+  const iva   = total - net
+
+  document.getElementById('ps-sub-display').textContent  = fmt(base)
+  document.getElementById('ps-disc-display').textContent = '-' + fmt(disc)
+  document.getElementById('ps-tip-display').textContent  = '+' + fmt(tip)
+  document.getElementById('ps-iva-display').textContent  = fmt(iva)
+  document.getElementById('ps-total-display').textContent = fmt(total)
+  document.getElementById('ps-btn-total').textContent    = fmt(total)
+  document.getElementById('ps-disc-row').style.display   = disc > 0 ? 'flex' : 'none'
+  document.getElementById('ps-tip-row').style.display    = tip  > 0 ? 'flex' : 'none'
+  window._psTotal = total
+  window._psDisc  = disc
+  window._psTip   = tip
+}
+
+function psOpenPIN() {
+  _ppPIN = ''
+  ppUpdateDots()
+  document.getElementById('pp-error').textContent = ''
+  document.getElementById('pp-amount').textContent = fmt(window._psTotal)
+  document.getElementById('pp-subtitle').textContent = 'Ingresa tu PIN para registrar la venta'
+  document.getElementById('pay-pin-overlay').classList.add('open')
+}
+
+function psClosePIN() {
+  document.getElementById('pay-pin-overlay').classList.remove('open')
+  _ppPIN = ''
+  ppUpdateDots()
+}
+
+function ppKey(k) {
+  if(_ppPIN.length >= 4) return
+  _ppPIN += k
+  ppUpdateDots()
+  if(_ppPIN.length === 4) setTimeout(ppVerify, 120)
+}
+
+function ppDel() {
+  _ppPIN = _ppPIN.slice(0,-1)
+  ppUpdateDots()
+}
+
+function ppUpdateDots() {
+  for(let i=0;i<4;i++) {
+    const d = document.getElementById('pp-d'+i)
+    if(d) { d.style.background = i < _ppPIN.length ? '#fff' : 'transparent'; d.style.borderColor = i < _ppPIN.length ? '#fff' : 'rgba(255,255,255,.3)' }
+  }
+}
+
+async function ppVerify() {
+  document.getElementById('pp-subtitle').textContent = 'Verificando...'
+  try {
+    const res = await fetch('/api/workers', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({pin: _ppPIN})
+    })
+    const worker = await res.json()
+    if(!res.ok || worker.error) {
+      document.getElementById('pp-error').textContent = 'PIN incorrecto'
+      _ppPIN = ''; ppUpdateDots()
+      document.getElementById('pp-subtitle').textContent = 'Ingresa tu PIN para registrar la venta'
+      return
+    }
+    // PIN verified — process payment
+    await ppProcessPayment(worker)
+  } catch(e) {
+    document.getElementById('pp-error').textContent = 'Error: ' + e.message
+    _ppPIN = ''; ppUpdateDots()
+    document.getElementById('pp-subtitle').textContent = 'Ingresa tu PIN para registrar la venta'
+  }
+}
+
+async function ppProcessPayment(worker) {
+  document.getElementById('pp-subtitle').textContent = 'Registrando venta...'
+  const order = _psOrder
+  const items = order.order_items || []
+  const sub   = items.reduce((s,i) => s + Number(i.unit_price||0)*Number(i.quantity||1), 0) || Number(order.subtotal||0)
+  const disc  = window._psDisc  || 0
+  const tip   = window._psTip   || 0
+  const total = window._psTotal || 0
+  const net   = total / 1.16
+  const iva   = total - net
+
+  try {
+    if(order.id) {
+      // Existing order — PATCH it to paid/delivered
+      await api('orders', {method:'PATCH', body:{
+        id: order.id,
+        status: 'delivered',
+        payment_method: _psPM,
+        payment_status: 'paid',
+        discount: Math.round(disc*100)/100,
+        tip_amount: Math.round(tip*100)/100,
+        tax: Math.round(iva*100)/100,
+        total: Math.round(total*100)/100,
+        notes: (order.notes||'') + ` | Cobrado por: ${worker.name} | Método: ${_psPM}`
+      }})
+    } else {
+      // New order (walk-in payment)
+      await api('orders', {method:'POST', body:{
+        type: 'pickup', status:'delivered', payment_method:_psPM, payment_status:'paid',
+        discount:disc, tip_amount:tip, tax:Math.round(iva*100)/100, total:Math.round(total*100)/100,
+        notes:`Cobrado por: ${worker.name}`,
+        items: items.map(i=>({item_id:i.item_id||i.id, item_name:i.item_name||i.name, unit_price:Number(i.unit_price||0), quantity:Number(i.quantity||1), subtotal:Number(i.unit_price||0)*Number(i.quantity||1)}))
+      }})
+    }
+
+    closePaySheet()
+    addNotif(`💳 #${String(order.order_number||'').padStart(4,'0')} cobrado ${fmt(total)} · ${worker.name}`, 'green')
+    showToast(`✓ Pago registrado por ${worker.name}`)
+    loadActiveOrders()
+  } catch(e) {
+    document.getElementById('pp-error').textContent = 'Error al registrar: ' + e.message
+    document.getElementById('pp-subtitle').textContent = 'Ingresa tu PIN para registrar la venta'
+    _ppPIN = ''; ppUpdateDots()
+  }
 }
 
 setInterval(async()=>{
@@ -515,6 +721,103 @@ document.getElementById('wsub').textContent='Mesero · Turno '+shiftStart.toLoca
   } catch(e) {}
 })()
 </script>
+
+<!-- PAYMENT OVERLAY -->
+<div class="pay-overlay" id="pay-overlay" onclick="closePaySheet()"></div>
+
+<!-- PAYMENT SHEET -->
+<div class="pay-sheet" id="pay-sheet">
+  <div class="pay-handle"></div>
+  <div style="padding:4px 18px 10px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+    <div>
+      <div style="font-size:16px;font-weight:700" id="ps-title">Cobrar pedido</div>
+      <div style="font-size:11px;color:var(--ink60);margin-top:2px" id="ps-subtitle"></div>
+    </div>
+    <button onclick="closePaySheet()" style="background:none;border:none;font-size:22px;color:var(--ink60);cursor:pointer;padding:4px">×</button>
+  </div>
+
+  <div style="flex:1;overflow-y:auto;padding:0 18px 16px">
+    <!-- Items -->
+    <div id="ps-items" style="margin-bottom:14px"></div>
+
+    <!-- Discount -->
+    <div style="margin-bottom:12px">
+      <label style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Descuento (opcional)</label>
+      <div style="display:flex;gap:6px">
+        <input type="number" id="ps-discount" min="0" step="1" placeholder="$0" oninput="psRecalc()" style="flex:1;padding:8px 10px;border:1px solid var(--ink20);border-radius:var(--rsm);font-size:14px;font-weight:600;font-family:inherit;color:var(--ink)">
+        <div style="display:flex;gap:4px">
+          <button onclick="psSetDisc(10)" class="pm-btn" id="psd-10" style="font-size:11px;padding:6px 8px;min-width:38px">10%</button>
+          <button onclick="psSetDisc(15)" class="pm-btn" id="psd-15" style="font-size:11px;padding:6px 8px;min-width:38px">15%</button>
+          <button onclick="psSetDisc(20)" class="pm-btn" id="psd-20" style="font-size:11px;padding:6px 8px;min-width:38px">20%</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tip -->
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Propina (opcional)</label>
+      <div style="display:flex;gap:6px">
+        <input type="number" id="ps-tip" min="0" step="5" placeholder="$0" oninput="psRecalc()" style="flex:1;padding:8px 10px;border:1px solid var(--ink20);border-radius:var(--rsm);font-size:14px;font-weight:600;font-family:inherit;color:var(--green)">
+        <div style="display:flex;gap:4px">
+          <button onclick="psSetTip(10)" class="pm-btn" id="pst-10" style="font-size:11px;padding:6px 8px;min-width:38px">10%</button>
+          <button onclick="psSetTip(15)" class="pm-btn" id="pst-15" style="font-size:11px;padding:6px 8px;min-width:38px">15%</button>
+          <button onclick="psSetTip(20)" class="pm-btn" id="pst-20" style="font-size:11px;padding:6px 8px;min-width:38px">20%</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment method -->
+    <div style="margin-bottom:16px">
+      <label style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:8px">Método de pago</label>
+      <div style="display:flex;gap:8px">
+        <button class="pm-btn active" id="pspm-cash" onclick="psSelectPM('cash',this)">💵<br>Efectivo</button>
+        <button class="pm-btn" id="pspm-card" onclick="psSelectPM('card',this)">💳<br>Tarjeta</button>
+        <button class="pm-btn" id="pspm-transfer" onclick="psSelectPM('transfer',this)">📲<br>Transfer.</button>
+        <button class="pm-btn" id="pspm-mercadopago" onclick="psSelectPM('mercadopago',this)">📱<br>MP</button>
+      </div>
+    </div>
+
+    <!-- Total -->
+    <div style="background:var(--cream);border-radius:var(--rsm);padding:14px 16px;margin-bottom:4px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink60);margin-bottom:4px"><span>Subtotal</span><span id="ps-sub-display">$0.00</span></div>
+      <div id="ps-disc-row" style="display:none;justify-content:space-between;font-size:12px;color:var(--red);margin-bottom:4px"><span>Descuento</span><span id="ps-disc-display">-$0.00</span></div>
+      <div id="ps-tip-row" style="display:none;justify-content:space-between;font-size:12px;color:var(--green);margin-bottom:4px"><span>Propina</span><span id="ps-tip-display">+$0.00</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink60);margin-bottom:8px"><span>IVA incluido</span><span id="ps-iva-display">$0.00</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:22px;font-weight:700;border-top:1px solid var(--ink20);padding-top:10px"><span>Total</span><span id="ps-total-display" style="color:var(--red)">$0.00</span></div>
+    </div>
+  </div>
+
+  <!-- Confirm button -->
+  <div style="padding:12px 18px 24px;flex-shrink:0;border-top:1px solid var(--ink20)">
+    <button onclick="psOpenPIN()" style="width:100%;padding:16px;background:var(--red);color:#fff;border:none;border-radius:var(--rsm);font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+      💳 Confirmar pago · <span id="ps-btn-total">$0.00</span>
+    </button>
+  </div>
+</div>
+
+<!-- PAYMENT PIN OVERLAY -->
+<div class="pay-pin-overlay" id="pay-pin-overlay">
+  <div style="text-align:center;margin-bottom:24px">
+    <div style="font-size:16px;font-weight:600;color:#fff">Confirmar pago</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:4px" id="pp-subtitle">Ingresa tu PIN para registrar la venta</div>
+    <div style="font-size:28px;font-weight:700;color:#fff;margin-top:8px" id="pp-amount">$0.00</div>
+  </div>
+  <div style="display:flex;gap:12px;margin-bottom:24px" id="pp-dots">
+    <div style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3)" id="pp-d0"></div>
+    <div style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3)" id="pp-d1"></div>
+    <div style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3)" id="pp-d2"></div>
+    <div style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3)" id="pp-d3"></div>
+  </div>
+  <div style="color:#EF4444;font-size:12px;margin-bottom:12px;min-height:18px;text-align:center" id="pp-error"></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:260px">
+    ${[1,2,3,4,5,6,7,8,9,'','0','⌫'].map(k=>
+      k===''?`<div></div>`:
+      k==='⌫'?`<button onclick="ppDel()" style="height:64px;border-radius:14px;border:none;background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);font-size:20px;cursor:pointer">⌫</button>`:
+      `<button onclick="ppKey('${k}')" style="height:64px;border-radius:14px;border:none;background:rgba(255,255,255,.08);color:#fff;font-size:22px;font-weight:500;cursor:pointer">${k}</button>`
+    ).join('')}
+  </div>
+  <button onclick="psClosePIN()" style="margin-top:20px;background:none;border:none;color:rgba(255,255,255,.4);font-size:13px;cursor:pointer">Cancelar</button>
+</div>
 
 </body>
 </html>
