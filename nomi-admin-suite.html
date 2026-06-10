@@ -821,12 +821,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
           <div class="card" style="margin-top:12px">
           <div class="ch">
             <div>
-              <span class="ct">💳 Terminal MP Point Air</span>
+              <span class="ct">💳 Terminal MP Point</span>
               <div style="font-size:11px;color:var(--ink60);margin-top:2px" id="term-config-status">
-                ${localStorage.getItem('nomi_term_device') ? '✓ Terminal configurada' : 'Sin terminal configurada'}
+                Listo para conectar Point Smart
               </div>
             </div>
             <button class="btn btn-sm" onclick="openTerminalSetup()">⚙️ Configurar</button>
+          </div>
+          <div style="padding:10px 16px;font-size:12px;color:var(--ink60);background:var(--cream);border-top:1px solid var(--ink10)">
+            ⚠️ Point Air (D20) no soporta PDV. Conecta tu <strong>Point Smart</strong> y activa con <code style="font-size:10px;background:var(--ink10);padding:1px 5px;border-radius:4px">localStorage.setItem('nomi_term_pdv','1')</code> en consola.
           </div>
         </div>
 
@@ -2727,19 +2730,31 @@ async function confirmSale() {
     }
 
     // Process the sale
-    // If payment method is card and terminal is configured → send to terminal
-    if((selectedPayMethod === 'card' || selectedPayMethod === 'card_terminal') && _termDeviceId) {
-      const total = parseFloat(document.getElementById('pm-total').textContent.replace(/[^0-9.]/g,'')) || 0
+    // TERMINAL INTEGRATION: disabled for Point Air (D20) — enable when Point Smart arrives
+    // To re-enable: set localStorage.setItem('nomi_term_pdv', '1') after configuring Point Smart
+    const _termPDVReady = localStorage.getItem('nomi_term_pdv') === '1'
+    if(_termPDVReady && (selectedPayMethod === 'card' || selectedPayMethod === 'card_terminal') && _termDeviceId) {
+      const total = parseFloat(document.getElementById('pm-total')?.textContent?.replace(/[^0-9.]/g,'')) || 0
+      if(total <= 0) { showToast('Total inválido para terminal', false); return }
       closeM('pin-confirm-modal')
       closeM('payment-modal')
-      const sent = await sendToTerminal(null, total, worker?.order_number || '0000')
+      showTerminalOverlay(total)
+      document.getElementById('term-title').textContent = 'Enviando a terminal...'
+      document.getElementById('term-sub').textContent   = 'Conectando con Point Smart'
+      const sent = await sendToTerminal(null, total, String(worker?.name||'').slice(0,4)+'01')
       if(sent) {
-        showTerminalOverlay(total)
-        // Create the order in DB so webhook can update it
+        document.getElementById('term-title').textContent = 'Esperando terminal...'
+        document.getElementById('term-sub').textContent   = 'El cliente puede pagar en la terminal · ' + fmt(total)
         try {
-          const result = await processSale(worker)
-          _termOrderId = result?.id
+          const result = await processSale(worker, true)
+          if(result?.id) { _termOrderId = result.id }
         } catch(e) { console.warn('Order pre-create failed', e) }
+        startTerminalPoll()
+        return
+      } else {
+        document.getElementById('terminal-overlay').classList.remove('open')
+        showToast('Terminal no disponible — procesando manualmente', false)
+        openPaymentModal()
         return
       }
     }
@@ -4373,23 +4388,32 @@ async function sendToTerminal(orderId, amount, ticketNumber) {
     return false
   }
   try {
+    const body = {
+      action: 'terminal_payment',
+      device_id: _termDeviceId,
+      amount: amount,
+      order_id: orderId || '',
+      ticket_number: String(ticketNumber||'0001').slice(0,8)
+    }
+    console.log('Terminal payment request:', body)
     const res = await fetch('/api/orders', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        action: 'terminal_payment',
-        device_id: _termDeviceId,
-        amount: amount,
-        order_id: orderId,
-        ticket_number: String(ticketNumber||'0000').padStart(4,'0')
-      })
+      body: JSON.stringify(body)
     }).then(r=>r.json())
-
-    if(res.error) { showToast('Terminal: ' + res.error, false); return false }
+    console.log('Terminal payment response:', res)
+    if(res.error) {
+      showToast('Terminal: ' + (res.error || 'Error desconocido'), false)
+      return false
+    }
     _termIntentId = res.intent_id
     _termOrderId  = orderId
     return true
-  } catch(e) { showToast('Error conectando terminal', false); return false }
+  } catch(e) {
+    console.error('Terminal error:', e)
+    showToast('Error conectando terminal: ' + e.message, false)
+    return false
+  }
 }
 
 function showTerminalOverlay(amount) {
