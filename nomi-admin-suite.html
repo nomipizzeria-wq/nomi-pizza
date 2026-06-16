@@ -929,7 +929,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
         <div class="mt" style="color:#fff">🛵 Nuevo pedido Rappi</div>
         <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">Rappi ya cobró — solo registra el pedido</div>
       </div>
-      <button class="mc-btn" onclick="closeM('rappi-modal')" style="color:#fff">×</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="text-align:right">
+          <div style="font-size:10px;color:rgba(255,255,255,.7)">Comisión Rappi</div>
+          <div style="display:flex;align-items:center;gap:4px">
+            <input type="number" id="rappi-commission" min="0" max="50" step="1" value="23"
+              oninput="rappiUpdatePrices()"
+              style="width:46px;padding:2px 6px;border:none;border-radius:4px;font-size:13px;font-weight:700;text-align:center;background:rgba(255,255,255,.2);color:#fff">
+            <span style="color:rgba(255,255,255,.8);font-size:13px">%</span>
+          </div>
+        </div>
+        <button class="mc-btn" onclick="closeM('rappi-modal')" style="color:#fff">×</button>
+      </div>
     </div>
     <div class="mb" style="padding:0">
       <!-- Items selector -->
@@ -4549,12 +4560,29 @@ async function openRappiModal() {
   openM('rappi-modal')
 }
 
+function rappiMarkupPrice(basePrice) {
+  const commission = parseFloat(document.getElementById('rappi-commission')?.value || 23) / 100
+  // To recover commission: price / (1 - rate), rounded to nearest 5
+  const marked = basePrice / (1 - commission)
+  return Math.ceil(marked / 5) * 5  // round up to nearest $5
+}
+
+function rappiUpdatePrices() {
+  // Re-price all items in cart when commission changes
+  _rappiCart.forEach(item => {
+    item.price = rappiMarkupPrice(item.basePrice)
+  })
+  rappiRenderCart()
+}
+
 function rappiAddItem(sel) {
   if(!sel.value) return
   try {
     const item = JSON.parse(sel.value)
+    const markedPrice = rappiMarkupPrice(item.price)
     const ex = _rappiCart.find(c => c.id === item.id)
-    if(ex) ex.qty++; else _rappiCart.push({...item, qty:1})
+    if(ex) ex.qty++
+    else _rappiCart.push({...item, basePrice: item.price, price: markedPrice, qty:1})
     rappiRenderCart()
   } catch(e) {}
   sel.value = ''
@@ -4570,7 +4598,8 @@ function rappiRenderCart() {
   el.innerHTML = _rappiCart.map((item,i) => `
     <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--cream);border-radius:var(--rsm)">
       <span style="flex:1;font-size:13px;font-weight:500">${item.name}</span>
-      <span style="font-size:12px;color:var(--ink60)">${fmt(item.price)}</span>
+      <span style="font-size:10px;color:var(--ink60);text-decoration:line-through">${fmt(item.basePrice)}</span>
+      <span style="font-size:12px;font-weight:600;color:#FF441A">${fmt(item.price)}</span>
       <button onclick="_rappiCart[${i}].qty=Math.max(1,_rappiCart[${i}].qty-1);rappiRenderCart()" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer">−</button>
       <span style="font-size:13px;font-weight:600;min-width:16px;text-align:center">${item.qty}</span>
       <button onclick="_rappiCart[${i}].qty++;rappiRenderCart()" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer">+</button>
