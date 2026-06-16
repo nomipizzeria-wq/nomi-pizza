@@ -4608,21 +4608,19 @@ function _rappiBeep() {
 
 async function checkRappiOrders() {
   try {
-    const s = new Date(_rappiLastCheck)
-    s.setSeconds(s.getSeconds() - 5) // small overlap to avoid missing orders
-    const e = new Date(); e.setHours(23,59,59,999)
-    const data = await fetch(
-      `${window.SUPABASE_URL}/rest/v1/orders?type=eq.delivery&payment_method=eq.rappi&status=eq.pending&created_at=gt.${encodeURIComponent(s.toISOString())}&select=id,order_number,total,customer_name,notes,created_at,order_items(item_name,quantity)&order=created_at.desc&limit=5`,
-      { headers: { 'apikey': window.SUPABASE_ANON, 'Authorization': 'Bearer ' + window.SUPABASE_ANON } }
-    ).then(r=>r.json())
-
-    const orders = Array.isArray(data) ? data : []
-    if(orders.length) {
+    const rappiSince = new Date(_rappiLastCheck)
+    rappiSince.setSeconds(rappiSince.getSeconds() - 5)
+    const rappiUrl = _SB_URL + '/rest/v1/orders?type=eq.delivery&payment_method=eq.rappi&status=eq.pending&created_at=gt.' + encodeURIComponent(rappiSince.toISOString()) + '&select=id,order_number,total,customer_name,notes,created_at,order_items(item_name,quantity)&order=created_at.desc&limit=5'
+    const rappiData = await fetch(rappiUrl, {
+      headers: { 'apikey': _SB_ANON, 'Authorization': 'Bearer ' + _SB_ANON }
+    }).then(r=>r.json())
+    const rappiOrders = Array.isArray(rappiData) ? rappiData : []
+    if(rappiOrders.length) {
       _rappiLastCheck = new Date().toISOString()
       localStorage.setItem('nomi_rappi_last', _rappiLastCheck)
-      orders.forEach(o => showRappiAlert(o))
+      rappiOrders.forEach(o => showRappiAlert(o))
     }
-  } catch(e) { console.warn('Rappi check failed', e) }
+  } catch(rappiErr) { console.warn('Rappi check failed', rappiErr) }
 }
 
 function showRappiAlert(order) {
@@ -4648,8 +4646,6 @@ setInterval(checkRappiOrders, 30000)
 
 // ── RECETAS TAB ───────────────────────────────────────────────
 const _SB_URL  = 'https://vmvrigshxffagblmpvyf.supabase.co'
-window.SUPABASE_URL = _SB_URL
-window.SUPABASE_ANON = 'sb_publishable_2p2n5KWlB0hHx1Y071T18g_C_R7BOza'
 const _SB_ANON = 'sb_publishable_2p2n5KWlB0hHx1Y071T18g_C_R7BOza'
 const _sbH = (extra={}) => ({ apikey:_SB_ANON, Authorization:`Bearer ${_SB_ANON}`, 'Content-Type':'application/json', ...extra })
 async function _sbGet(t,q=''){return fetch(`${_SB_URL}/rest/v1/${t}${q}`,{headers:_sbH()}).then(r=>r.json())}
