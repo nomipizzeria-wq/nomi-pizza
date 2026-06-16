@@ -1,0 +1,43 @@
+{
+  "name": "Nomi Pizza",
+  "short_name": "Nomi Pizza",
+  "description": "Ordena tu pizza favorita en Nomi Pizza Bar",
+  "start_url": "/nomi-customer-app.html?pwa=1",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF5E9",
+  "theme_color": "#CE3827",
+  "lang": "es-MX",
+  "categories": [
+    "food",
+    "restaurants"
+  ],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-apple.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Ver menú",
+      "url": "/nomi-customer-app.html?pwa=1",
+      "description": "Abre el menú de Nomi Pizza"
+    }
+  ]
+}
