@@ -477,6 +477,17 @@ if(customer)document.getElementById('hpts').textContent='🎁 '+(customer.loyalt
       <div style="display:flex;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--ink20);font-size:13px"><span style="color:var(--ink)">Correo</span><span style="color:var(--ink60);font-weight:500" id="pf-email">—</span></div>
       <div style="display:flex;justify-content:space-between;padding:11px 14px;font-size:13px"><span style="color:var(--ink)">Nivel</span><span style="color:var(--ink60);font-weight:500" id="pf-lvl">Bronze 🥉</span></div>
     </div>
+
+    <!-- Install App button — only shown when not already installed -->
+    <div id="pf-install-wrap" style="margin-bottom:10px;display:none">
+      <button onclick="pf_triggerInstall()" id="pf-install-btn" style="width:100%;padding:13px;background:#CE3827;border:none;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+        ⬇ Instalar app en tu celular
+      </button>
+      <div id="pf-ios-hint" style="display:none;margin-top:8px;padding:10px 14px;background:var(--cream);border-radius:var(--r);font-size:12px;color:var(--ink60);line-height:1.6;text-align:center">
+        En Safari: toca <strong style="color:var(--ink)">Compartir □↑</strong> → <strong style="color:var(--ink)">Agregar a inicio ＋</strong>
+      </div>
+    </div>
+
     <button onclick="logoutCustomer()" style="width:100%;padding:13px;background:var(--wh);border:1.5px solid var(--ink20);border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;color:var(--ink60);cursor:pointer;margin-bottom:8px">🔒 Cerrar sesión</button>
     <button onclick="showMain();setBN(0)" style="width:100%;padding:13px;background:var(--red);border:none;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:#fff;cursor:pointer">← Seguir pidiendo</button>
   </div>
@@ -484,6 +495,7 @@ if(customer)document.getElementById('hpts').textContent='🎁 '+(customer.loyalt
 
 <script>
 function showProfilePage() {
+  pf_checkInstall()
   document.getElementById('main-view').style.display = 'none'
   document.getElementById('cart-page').classList.remove('active')
   document.getElementById('track-page').classList.remove('active')
@@ -628,6 +640,36 @@ if(_isIOS() && _isSafari() && _shouldShowPWA()) {
 function showPWABanner() {
   const b = document.getElementById('pwa-banner')
   if(b) b.style.display = 'block'
+}
+
+// Show install button in profile tab when not in standalone mode
+function pf_checkInstall() {
+  if(_pwaInstalled) return  // already installed, don't show
+  const wrap = document.getElementById('pf-install-wrap')
+  if(!wrap) return
+  wrap.style.display = 'block'
+  if(_isIOS() && _isSafari()) {
+    // iOS: show instructions, hide button
+    document.getElementById('pf-install-btn').style.display = 'none'
+    document.getElementById('pf-ios-hint').style.display = 'block'
+  }
+}
+
+function pf_triggerInstall() {
+  if(_pwaPrompt) {
+    _pwaPrompt.prompt()
+    _pwaPrompt.userChoice.then(r => {
+      if(r.outcome === 'accepted') {
+        document.getElementById('pf-install-wrap').style.display = 'none'
+        dismissPWA()
+      }
+      _pwaPrompt = null
+    })
+  } else {
+    // Prompt already used or not available — show banner as fallback
+    localStorage.removeItem('nomi_pwa_dismissed')
+    showPWABanner()
+  }
 }
 
 function dismissPWA() {
