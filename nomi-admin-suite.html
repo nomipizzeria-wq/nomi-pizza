@@ -4519,17 +4519,33 @@ async function openRappiModal() {
   document.getElementById('rappi-customer').value = ''
   document.getElementById('rappi-notes').value = ''
   rappiRenderCart()
+
   const sel = document.getElementById('rappi-add-item')
   sel.innerHTML = '<option value="">+ Agregar producto...</option>'
-  try {
-    const menu = await api('menu') || []
-    menu.filter(m => m.is_available !== false).forEach(item => {
-      const opt = document.createElement('option')
-      opt.value = JSON.stringify({id:item.id, name:item.name, price:Number(item.price||0)})
-      opt.textContent = item.name + ' — ' + fmt(item.price)
-      sel.appendChild(opt)
-    })
-  } catch(e) {}
+
+  // Use already-loaded POS menu first, fall back to API
+  let menuItems = (typeof posItems !== 'undefined' && posItems?.length) ? posItems : []
+  if(!menuItems.length) {
+    try {
+      const data = await api('menu')
+      menuItems = Array.isArray(data) ? data : (data?.items || data?.menu || [])
+    } catch(e) { console.warn('Menu load failed', e) }
+  }
+
+  menuItems.filter(m => m.is_available !== false && m.price).forEach(item => {
+    const opt = document.createElement('option')
+    opt.value = JSON.stringify({id:item.id, name:item.name, price:Number(item.price||0)})
+    opt.textContent = item.name + ' — ' + fmt(item.price)
+    sel.appendChild(opt)
+  })
+
+  if(sel.options.length <= 1) {
+    const opt = document.createElement('option')
+    opt.disabled = true
+    opt.textContent = 'Abre el POS primero para cargar el menú'
+    sel.appendChild(opt)
+  }
+
   openM('rappi-modal')
 }
 
