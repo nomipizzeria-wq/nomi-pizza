@@ -423,6 +423,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
         <div style="font-size:13px;color:var(--ink60)" id="dash-date-label"></div>
         <button class="btn btn-sm" onclick="openManualSaleModal()">📝 Registrar venta manual</button>
+        <button class="btn btn-sm" onclick="openRappiModal()" style="background:#FF441A;color:#fff;border-color:#FF441A">🛵 Pedido Rappi</button>
       </div>
       <div class="mg4">
         <div class="mc"><div class="mc-l">Ventas hoy</div><div class="mc-v" id="d-rev">$0</div><div class="mc-s">Cargando...</div></div>
@@ -920,6 +921,51 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 <div class="modal-bg" id="restock-modal"><div class="modal"><div class="mh"><span class="mt">Reabastecer</span><button class="mc-btn" onclick="closeM('restock-modal')">×</button></div><div class="mb"><div class="fl"><label>Ingrediente</label><select class="fs" id="rs-ing"></select></div><div class="fl"><label>Cantidad</label><input class="fi" id="rs-qty" type="number" step="0.1" placeholder="0.0"></div><div class="fl"><label>Notas</label><input class="fi" id="rs-notes" placeholder="Proveedor, lote..."></div></div><div class="mf"><button class="btn" onclick="closeM('restock-modal')">Cancelar</button><button class="btn btn-p" onclick="saveRestock()">✓ Registrar</button></div></div></div>
 
 <!-- MANUAL SALE MODAL -->
+<!-- RAPPI QUICK ORDER MODAL -->
+<div class="modal-bg" id="rappi-modal">
+  <div class="modal" style="width:520px;max-width:96vw">
+    <div class="mh" style="background:#FF441A;border-radius:var(--r) var(--r) 0 0">
+      <div>
+        <div class="mt" style="color:#fff">🛵 Nuevo pedido Rappi</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">Rappi ya cobró — solo registra el pedido</div>
+      </div>
+      <button class="mc-btn" onclick="closeM('rappi-modal')" style="color:#fff">×</button>
+    </div>
+    <div class="mb" style="padding:0">
+      <!-- Items selector -->
+      <div style="padding:14px 18px;border-bottom:1px solid var(--ink10)">
+        <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Productos</div>
+        <div id="rappi-items-list" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto"></div>
+        <div style="margin-top:10px">
+          <select id="rappi-add-item" class="fs" onchange="rappiAddItem(this)" style="font-size:12px">
+            <option value="">+ Agregar producto...</option>
+          </select>
+        </div>
+      </div>
+      <!-- Customer + notes -->
+      <div style="padding:14px 18px;border-bottom:1px solid var(--ink10)">
+        <div class="fl" style="margin-bottom:10px">
+          <label>Nombre del cliente (opcional)</label>
+          <input class="fi" id="rappi-customer" placeholder="Nombre en Rappi...">
+        </div>
+        <div class="fl">
+          <label>Notas (opcional)</label>
+          <input class="fi" id="rappi-notes" placeholder="Sin cebolla, extra salsa...">
+        </div>
+      </div>
+      <!-- Total -->
+      <div style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:var(--ink60)">Total estimado</span>
+        <span style="font-size:22px;font-weight:700;color:#FF441A" id="rappi-total">$0.00</span>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeM('rappi-modal')">Cancelar</button>
+      <button class="btn btn-p" onclick="submitRappiOrder()" style="background:#FF441A;border-color:#FF441A" id="rappi-submit-btn">✓ Registrar pedido</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="manual-sale-modal">
   <div class="modal" style="width:500px;max-width:96vw">
     <div class="mh">
@@ -4463,6 +4509,83 @@ async function cancelTerminalPayment() {
   }
   _termIntentId = null
   document.getElementById('terminal-overlay').classList.remove('open')
+}
+
+// ── RAPPI QUICK ORDER ─────────────────────────────────────────
+let _rappiCart = []
+
+async function openRappiModal() {
+  _rappiCart = []
+  document.getElementById('rappi-customer').value = ''
+  document.getElementById('rappi-notes').value = ''
+  rappiRenderCart()
+  const sel = document.getElementById('rappi-add-item')
+  sel.innerHTML = '<option value="">+ Agregar producto...</option>'
+  try {
+    const menu = await api('menu') || []
+    menu.filter(m => m.is_available !== false).forEach(item => {
+      const opt = document.createElement('option')
+      opt.value = JSON.stringify({id:item.id, name:item.name, price:Number(item.price||0)})
+      opt.textContent = item.name + ' — ' + fmt(item.price)
+      sel.appendChild(opt)
+    })
+  } catch(e) {}
+  openM('rappi-modal')
+}
+
+function rappiAddItem(sel) {
+  if(!sel.value) return
+  try {
+    const item = JSON.parse(sel.value)
+    const ex = _rappiCart.find(c => c.id === item.id)
+    if(ex) ex.qty++; else _rappiCart.push({...item, qty:1})
+    rappiRenderCart()
+  } catch(e) {}
+  sel.value = ''
+}
+
+function rappiRenderCart() {
+  const el = document.getElementById('rappi-items-list')
+  if(!_rappiCart.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--ink60);padding:8px 0">Agrega productos de arriba</div>'
+    document.getElementById('rappi-total').textContent = '$0.00'
+    return
+  }
+  el.innerHTML = _rappiCart.map((item,i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--cream);border-radius:var(--rsm)">
+      <span style="flex:1;font-size:13px;font-weight:500">${item.name}</span>
+      <span style="font-size:12px;color:var(--ink60)">${fmt(item.price)}</span>
+      <button onclick="_rappiCart[${i}].qty=Math.max(1,_rappiCart[${i}].qty-1);rappiRenderCart()" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer">−</button>
+      <span style="font-size:13px;font-weight:600;min-width:16px;text-align:center">${item.qty}</span>
+      <button onclick="_rappiCart[${i}].qty++;rappiRenderCart()" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer">+</button>
+      <button onclick="_rappiCart.splice(${i},1);rappiRenderCart()" style="width:24px;height:24px;border-radius:50%;border:none;background:none;cursor:pointer;color:var(--red);font-size:16px">✕</button>
+      <span style="font-size:12px;font-weight:700;min-width:55px;text-align:right">${fmt(item.price*item.qty)}</span>
+    </div>`).join('')
+  const total = _rappiCart.reduce((s,c) => s+c.price*c.qty, 0)
+  document.getElementById('rappi-total').textContent = fmt(total)
+}
+
+async function submitRappiOrder() {
+  if(!_rappiCart.length) { showToast('Agrega al menos un producto', false); return }
+  const btn = document.getElementById('rappi-submit-btn')
+  btn.disabled = true; btn.textContent = 'Registrando...'
+  const customer = document.getElementById('rappi-customer').value.trim()
+  const notes    = document.getElementById('rappi-notes').value.trim()
+  try {
+    await api('orders', { method:'POST', body:{
+      type:'delivery', status:'pending',
+      payment_method:'rappi', payment_status:'paid',
+      customer_name: customer||'Cliente Rappi',
+      discount:0, tip_amount:0,
+      notes: ['Fuente: Rappi', notes].filter(Boolean).join(' | '),
+      items: _rappiCart.map(c => ({item_id:c.id, item_name:c.name, unit_price:c.price, quantity:c.qty, subtotal:c.price*c.qty}))
+    }})
+    closeM('rappi-modal')
+    showToast('🛵 Pedido Rappi registrado ✓')
+    loadRecentSales(); loadDash()
+    if(document.getElementById('orders')?.classList.contains('active')) loadOrders()
+  } catch(e) { showToast('Error al registrar pedido', false) }
+  finally { btn.disabled=false; btn.textContent='✓ Registrar pedido' }
 }
 
 // ── RAPPI INTEGRATION ────────────────────────────────────────
