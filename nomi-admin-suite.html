@@ -279,6 +279,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 .an-ord-tbl th{padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--ink10);white-space:nowrap;background:var(--cream)}
 .an-ord-tbl td{padding:10px 12px;border-bottom:1px solid var(--ink10);vertical-align:middle}
 .an-ord-tbl tr:hover td{background:var(--cream)}
+.rappi-badge{display:inline-flex;align-items:center;gap:4px;background:#FF441A;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:.03em}
+.rappi-order{border-left:3px solid #FF441A!important}
 .terminal-overlay{position:fixed;inset:0;background:rgba(26,23,20,.85);z-index:600;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;font-family:inherit}
 .terminal-overlay.open{display:flex}
 .terminal-pulse{width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:40px;animation:tpulse 1.5s ease-in-out infinite}
@@ -1774,7 +1776,7 @@ function renderOrders(){
   const f=curFilter==='all'?allOrders:allOrders.filter(o=>o.status===curFilter)
   const el=document.getElementById('orders-list')
   if(!f.length){el.innerHTML='<div class="empty">No hay pedidos</div>';return}
-  el.innerHTML=f.map((o,i)=>`<div class="ocard"><div class="av ${avCls(i)}" style="margin-top:2px">${initials(o.customer_name||'P')}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><div class="rt">${o.customer_name||'Mesa '+(o.restaurant_tables?.number||'?')}</div><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink60)">#${String(o.order_number||'').padStart(4,'0')}</span><span class="badge ${stBdg[o.status]||'bk'}" style="margin-left:auto">${stLbl[o.status]||o.status}</span></div><div class="rs">${(o.order_items||[]).map(i=>i.item_name+'x'+i.quantity).join(', ').substring(0,60)}</div>${['pending','accepted','preparing','ready'].includes(o.status)?`<div style="display:flex;gap:6px;margin-top:8px">${o.status==='pending'?`<button class="btn btn-p btn-sm" onclick="updO('${o.id}','preparing')">▶ Aceptar</button>`:''} ${o.status==='preparing'?`<button class="btn btn-p btn-sm" onclick="updO('${o.id}','ready')">✓ Listo</button>`:''} ${o.status==='ready'?`<button class="btn btn-p btn-sm" onclick="updO('${o.id}','delivered')">✓ Entregado</button>`:''}<button class="btn btn-sm" onclick="updO('${o.id}','cancelled')">Cancelar</button></div>`:''}</div><div style="text-align:right;flex-shrink:0;margin-left:10px"><div class="rp">${fmt(o.total)}</div></div></div>`).join('')
+  el.innerHTML=f.map((o,i)=>{const _isR=o.payment_method==='rappi'||!!o.notes?.includes('Fuente: Rappi');return `<div class="ocard${_isR?' rappi-order':''}"><div class="av ${avCls(i)}" style="margin-top:2px">${initials(o.customer_name||'P')}</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><div class="rt">${o.customer_name||'Mesa '+(o.restaurant_tables?.number||'?')}</div><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ink60)">#${String(o.order_number||'').padStart(4,'0')}</span><span class="badge ${stBdg[o.status]||'bk'}" style="margin-left:auto">${stLbl[o.status]||o.status}</span></div><div class="rs">${(o.order_items||[]).map(i=>i.item_name+'x'+i.quantity).join(', ').substring(0,60)}</div>${['pending','accepted','preparing','ready'].includes(o.status)?`<div style="display:flex;gap:6px;margin-top:8px">${o.status==='pending'?`<button class="btn btn-p btn-sm" onclick="updO('${o.id}','preparing')">▶ Aceptar</button>`:''} ${o.status==='preparing'?`<button class="btn btn-p btn-sm" onclick="updO('${o.id}','ready')">✓ Listo</button>`:''} ${o.status==='ready'?`<button class="btn btn-p btn-sm" onclick="updO('${o.id}','delivered')">✓ Entregado</button>`:''}<button class="btn btn-sm" onclick="updO('${o.id}','cancelled')">Cancelar</button></div>`:''}</div><div style="text-align:right;flex-shrink:0;margin-left:10px"><div class="rp">${fmt(o.total)}</div></div></div>`)}).join('')
 }
 async function updO(id,status){try{await api('orders',{method:'PATCH',body:{id,status}});showToast('Actualizado: '+(stLbl[status]||status));loadOrders();loadDash()}catch(e){showToast('Error',false)}}
 
@@ -4463,8 +4465,68 @@ async function cancelTerminalPayment() {
   document.getElementById('terminal-overlay').classList.remove('open')
 }
 
+// ── RAPPI INTEGRATION ────────────────────────────────────────
+let _rappiLastCheck = localStorage.getItem('nomi_rappi_last') || new Date().toISOString()
+let _rappiAudio = null
+
+function _rappiBeep() {
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain); gain.connect(ctx.destination)
+    osc.frequency.setValueAtTime(880, ctx.currentTime)
+    osc.frequency.setValueAtTime(660, ctx.currentTime+0.15)
+    gain.gain.setValueAtTime(0.4, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.4)
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.4)
+  } catch(e){}
+}
+
+async function checkRappiOrders() {
+  try {
+    const s = new Date(_rappiLastCheck)
+    s.setSeconds(s.getSeconds() - 5) // small overlap to avoid missing orders
+    const e = new Date(); e.setHours(23,59,59,999)
+    const data = await fetch(
+      `${window.SUPABASE_URL}/rest/v1/orders?type=eq.delivery&payment_method=eq.rappi&status=eq.pending&created_at=gt.${encodeURIComponent(s.toISOString())}&select=id,order_number,total,customer_name,notes,created_at,order_items(item_name,quantity)&order=created_at.desc&limit=5`,
+      { headers: { 'apikey': window.SUPABASE_ANON, 'Authorization': 'Bearer ' + window.SUPABASE_ANON } }
+    ).then(r=>r.json())
+
+    const orders = Array.isArray(data) ? data : []
+    if(orders.length) {
+      _rappiLastCheck = new Date().toISOString()
+      localStorage.setItem('nomi_rappi_last', _rappiLastCheck)
+      orders.forEach(o => showRappiAlert(o))
+    }
+  } catch(e) { console.warn('Rappi check failed', e) }
+}
+
+function showRappiAlert(order) {
+  _rappiBeep()
+  const items = (order.order_items||[]).map(i=>`${i.quantity}× ${i.item_name}`).join(', ')
+  const toast = document.createElement('div')
+  toast.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#FF441A;color:#fff;padding:14px 20px;border-radius:12px;z-index:9999;font-family:inherit;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,.3);min-width:280px;max-width:90vw;cursor:pointer`
+  toast.innerHTML = `<div style="font-weight:700;font-size:15px;margin-bottom:4px">🛵 Nuevo pedido Rappi</div>
+    <div>${order.customer_name || 'Cliente'} · ${fmt(order.total)}</div>
+    <div style="opacity:.8;font-size:11px;margin-top:4px">${items}</div>
+    <div style="opacity:.6;font-size:10px;margin-top:2px">Toca para ver pedidos</div>`
+  toast.onclick = () => { showPage('orders', document.querySelector('.ni[onclick*=orders]')); toast.remove() }
+  document.body.appendChild(toast)
+  setTimeout(() => toast.remove(), 12000)
+  // Refresh pedidos if on orders page
+  if(document.getElementById('orders')?.classList.contains('active')) loadOrders()
+  // Refresh dashboard
+  if(document.getElementById('dashboard')?.classList.contains('active')) loadDash()
+}
+
+// Poll every 30 seconds for new Rappi orders
+setInterval(checkRappiOrders, 30000)
+
 // ── RECETAS TAB ───────────────────────────────────────────────
 const _SB_URL  = 'https://vmvrigshxffagblmpvyf.supabase.co'
+window.SUPABASE_URL = _SB_URL
+window.SUPABASE_ANON = 'sb_publishable_2p2n5KWlB0hHx1Y071T18g_C_R7BOza'
 const _SB_ANON = 'sb_publishable_2p2n5KWlB0hHx1Y071T18g_C_R7BOza'
 const _sbH = (extra={}) => ({ apikey:_SB_ANON, Authorization:`Bearer ${_SB_ANON}`, 'Content-Type':'application/json', ...extra })
 async function _sbGet(t,q=''){return fetch(`${_SB_URL}/rest/v1/${t}${q}`,{headers:_sbH()}).then(r=>r.json())}
