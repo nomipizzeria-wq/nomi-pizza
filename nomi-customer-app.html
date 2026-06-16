@@ -2,8 +2,18 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Nomi Pizza — App</title>
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#CE3827">
+<meta name="mobile-web-app-capable" content="yes">
+<!-- iOS -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nomi Pizza">
+<link rel="apple-touch-icon" href="/icon-apple.png">
+<link rel="icon" type="image/png" href="/favicon.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{--red:#C8392B;--red-d:#9B2A1E;--red-l:#FAECE7;--ink:#1A1714;--ink60:#6B6460;--ink20:#E8E4DF;--wh:#fff;--cream:#FAF8F5;--green:#2D7A4F;--green-l:#E8F5EE;--amber:#B45309;--r:14px;--rsm:10px}
@@ -542,5 +552,106 @@ function showMain() {
 })()
 </script>
 
+
+<!-- PWA Install Banner -->
+<div id="pwa-banner" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:398px;background:#1A1714;color:#fff;border-radius:14px;padding:14px 16px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.25);font-family:'DM Sans',sans-serif">
+  <div style="display:flex;align-items:center;gap:12px">
+    <img src="/icon-192.png" style="width:44px;height:44px;border-radius:10px;flex-shrink:0">
+    <div style="flex:1">
+      <div style="font-size:14px;font-weight:600;margin-bottom:2px">Instala Nomi Pizza</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.6)" id="pwa-banner-sub">Acceso rápido desde tu pantalla de inicio</div>
+    </div>
+    <button onclick="dismissPWA()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;cursor:pointer;padding:4px;line-height:1">×</button>
+  </div>
+  <div id="pwa-install-btn-wrap" style="margin-top:12px">
+    <button onclick="triggerInstall()" style="width:100%;padding:11px;background:#CE3827;color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer">
+      ⬇ Instalar app
+    </button>
+  </div>
+  <!-- iOS instructions (shown only on Safari/iOS) -->
+  <div id="pwa-ios-instructions" style="display:none;margin-top:10px;padding:10px;background:rgba(255,255,255,.08);border-radius:10px;font-size:12px;line-height:1.6;color:rgba(255,255,255,.8)">
+    Toca <strong>Compartir</strong> 
+    <span style="display:inline-block;background:rgba(255,255,255,.15);border-radius:4px;padding:1px 6px">□↑</span>
+    luego <strong>"Agregar a inicio"</strong>
+    <span style="display:inline-block;background:rgba(255,255,255,.15);border-radius:4px;padding:1px 6px">＋</span>
+  </div>
+</div>
+
+<script>
+// ── PWA: Service Worker Registration ─────────────────────────
+if('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.warn('SW error:', err))
+  })
+}
+
+// ── PWA: Install Prompt ───────────────────────────────────────
+let _pwaPrompt = null
+const _pwaDismissed = localStorage.getItem('nomi_pwa_dismissed')
+const _pwaInstalled = window.matchMedia('(display-mode: standalone)').matches
+  || window.navigator.standalone === true
+
+// Don't show banner if already installed or dismissed in last 7 days
+function _shouldShowPWA() {
+  if(_pwaInstalled) return false
+  if(!_pwaDismissed) return true
+  return Date.now() - Number(_pwaDismissed) > 7 * 24 * 60 * 60 * 1000
+}
+
+// Android/Chrome: capture the install prompt
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault()
+  _pwaPrompt = e
+  if(_shouldShowPWA()) setTimeout(showPWABanner, 4000)
+})
+
+// iOS detection
+function _isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream
+}
+function _isSafari() {
+  return /safari/i.test(navigator.userAgent) && !/chrome/i.test(navigator.userAgent)
+}
+
+// Show banner on iOS Safari after delay
+if(_isIOS() && _isSafari() && _shouldShowPWA()) {
+  setTimeout(() => {
+    document.getElementById('pwa-install-btn-wrap').style.display = 'none'
+    document.getElementById('pwa-ios-instructions').style.display = 'block'
+    document.getElementById('pwa-banner-sub').textContent = 'Sigue los pasos para instalarla'
+    showPWABanner()
+  }, 4000)
+}
+
+function showPWABanner() {
+  const b = document.getElementById('pwa-banner')
+  if(b) b.style.display = 'block'
+}
+
+function dismissPWA() {
+  const b = document.getElementById('pwa-banner')
+  if(b) b.style.display = 'none'
+  localStorage.setItem('nomi_pwa_dismissed', Date.now())
+}
+
+async function triggerInstall() {
+  if(!_pwaPrompt) return
+  _pwaPrompt.prompt()
+  const { outcome } = await _pwaPrompt.userChoice
+  if(outcome === 'accepted') {
+    dismissPWA()
+    console.log('PWA installed!')
+  }
+  _pwaPrompt = null
+}
+
+// Hide banner once installed
+window.addEventListener('appinstalled', () => {
+  dismissPWA()
+  localStorage.setItem('nomi_pwa_dismissed', Date.now())
+})
+</script>
 </body>
 </html>
