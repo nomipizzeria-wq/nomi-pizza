@@ -303,6 +303,12 @@ function logoutCustomer() {
   <div class="hero">
     <div class="hero-top"><div><div class="hbrand">Nomi Pizza</div><div class="hstars">★★★★★</div><div class="hrat">4.8 · +500 reseñas</div></div><div style="width:60px;height:60px;border-radius:14px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:32px;position:relative;z-index:1;overflow:hidden;flex-shrink:0" class="logo-emoji">🍕</div></div>
     <div class="hinfo"><div class="hchip"><div class="hcdot"></div>Abierto ahora</div><div class="hchip">🛵 ~30 min</div><div class="hchip" id="hpts">🎁 0 pts</div></div>
+    <!-- PWA Install chip — hidden when already installed -->
+    <div id="hero-install-chip" style="margin-top:10px;display:none">
+      <button onclick="heroInstall()" style="background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.4);color:#fff;border-radius:20px;padding:6px 14px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;backdrop-filter:blur(4px);display:flex;align-items:center;gap:6px">
+        ⬇ Agregar a inicio
+      </button>
+    </div>
   </div>
   <div class="search-a"><div class="sbox"><span class="sic">🔍</span><span class="sph">Buscar pizzas o extras…</span></div></div>
   <div class="content">
@@ -637,7 +643,37 @@ if(_isIOS() && _isSafari() && _shouldShowPWA()) {
   }, 4000)
 }
 
-function showPWABanner() {
+// Show install chip in hero immediately (don't wait for beforeinstallprompt)
+if(!_pwaInstalled) {
+  setTimeout(() => {
+    const chip = document.getElementById('hero-install-chip')
+    if(chip) chip.style.display = 'block'
+  }, 1000)
+}
+
+function heroInstall() {
+  if(_pwaPrompt) {
+    _pwaPrompt.prompt()
+    _pwaPrompt.userChoice.then(r => {
+      if(r.outcome === 'accepted') {
+        document.getElementById('hero-install-chip').style.display = 'none'
+        dismissPWA()
+      }
+      _pwaPrompt = null
+    })
+  } else if(_isIOS() && _isSafari()) {
+    // iOS: show banner with instructions
+    localStorage.removeItem('nomi_pwa_dismissed')
+    document.getElementById('pwa-install-btn-wrap').style.display = 'none'
+    document.getElementById('pwa-ios-instructions').style.display = 'block'
+    document.getElementById('pwa-banner-sub').textContent = 'Sigue los pasos para instalarla'
+    showPWABanner()
+  } else {
+    // Android without prompt yet — show Chrome's mini-infobar manually
+    // by opening the page fresh, which re-triggers the prompt
+    alert('Abre el menú de Chrome (⋮) y toca "Añadir a pantalla de inicio"')
+  }
+}
   const b = document.getElementById('pwa-banner')
   if(b) b.style.display = 'block'
 }
