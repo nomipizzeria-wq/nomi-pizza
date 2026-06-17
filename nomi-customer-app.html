@@ -471,11 +471,25 @@ if(customer)document.getElementById('hpts').textContent='🎁 '+(customer.loyalt
     <div style="font-size:13px;color:rgba(255,255,255,.75);margin-top:4px" id="pf-tier">Miembro Nomi</div>
   </div>
   <div style="flex:1;padding:16px;background:var(--cream)">
-    <div style="background:var(--wh);border-radius:var(--r);border:1px solid var(--ink20);padding:14px;margin-bottom:12px">
-      <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Puntos de lealtad</div>
-      <div style="font-size:32px;font-weight:700;color:var(--ink)" id="pf-pts">0</div>
-      <div style="height:6px;background:var(--ink20);border-radius:3px;overflow:hidden;margin:8px 0"><div id="pf-bar" style="height:100%;background:var(--red);border-radius:3px;width:0%;transition:width .5s ease"></div></div>
-      <div style="font-size:11px;color:var(--ink60)">500 pts = <strong style="color:var(--red)">$50 MXN de descuento</strong></div>
+    <!-- LOYALTY CARD -->
+    <div style="background:linear-gradient(135deg,#CE3827 0%,#9B2A1E 100%);border-radius:var(--r);padding:18px;margin-bottom:12px;color:#fff;position:relative;overflow:hidden">
+      <div style="position:absolute;right:-20px;top:-20px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.07)"></div>
+      <div style="position:absolute;right:20px;bottom:-30px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.05)"></div>
+      <div style="font-size:11px;font-weight:600;letter-spacing:.08em;opacity:.8;margin-bottom:6px">MIS PUNTOS</div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:12px">
+        <span style="font-size:44px;font-weight:700;line-height:1" id="pf-pts">0</span>
+        <span style="font-size:14px;opacity:.8">pts</span>
+        <span style="margin-left:auto;background:rgba(255,255,255,.2);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;backdrop-filter:blur(4px)" id="pf-tier-badge">🥉 Bronze</span>
+      </div>
+      <div style="height:5px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden;margin-bottom:6px">
+        <div id="pf-bar" style="height:100%;background:#fff;border-radius:3px;width:0%;transition:width .6s ease"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.75" id="pf-progress-label">
+        <span>0 pts</span><span>Siguiente nivel: Plata (500 pts)</span>
+      </div>
+      <button onclick="showRewardsSheet()" style="margin-top:14px;width:100%;padding:10px;background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.35);border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;backdrop-filter:blur(4px)">
+        🎁 Ver recompensas y canjear
+      </button>
     </div>
     <div style="background:var(--wh);border-radius:var(--r);border:1px solid var(--ink20);overflow:hidden;margin-bottom:12px">
       <div style="font-size:11px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;padding:10px 14px;border-bottom:1px solid var(--ink20)">Mi cuenta</div>
@@ -528,9 +542,28 @@ function showProfilePage() {
   document.getElementById('pf-lvl').textContent = tierLabels[c.tier] || 'Bronze 🥉'
 
   const pts = c.loyalty_points || 0
-  document.getElementById('pf-pts').textContent = pts
-  const goal = pts < 500 ? 500 : pts < 2000 ? 2000 : pts < 5000 ? 5000 : 10000
-  document.getElementById('pf-bar').style.width = Math.min(100, Math.round(pts/goal*100)) + '%'
+  document.getElementById('pf-pts').textContent = pts.toLocaleString()
+  // Tier badge
+  const TIER_DEFS = [
+    {key:'bronze',  badge:'🥉 Bronze',  min:0,    max:499,  next:500,   nextLabel:'Plata'},
+    {key:'silver',  badge:'🥈 Plata',   min:500,  max:1999, next:2000,  nextLabel:'Oro'},
+    {key:'gold',    badge:'🥇 Oro',     min:2000, max:4999, next:5000,  nextLabel:'Platino'},
+    {key:'platinum',badge:'💎 Platino', min:5000, max:999999,next:null, nextLabel:null}
+  ]
+  const curTier = TIER_DEFS.slice().reverse().find(t => pts >= t.min) || TIER_DEFS[0]
+  const tbadge = document.getElementById('pf-tier-badge')
+  if(tbadge) tbadge.textContent = curTier.badge
+  // Progress bar
+  if(curTier.next) {
+    const pct = Math.min(100, Math.round((pts - curTier.min) / (curTier.next - curTier.min) * 100))
+    document.getElementById('pf-bar').style.width = pct + '%'
+    const lbl = document.getElementById('pf-progress-label')
+    if(lbl) lbl.innerHTML = `<span>${pts.toLocaleString()} pts</span><span>Siguiente: ${curTier.nextLabel} (${curTier.next.toLocaleString()} pts)</span>`
+  } else {
+    document.getElementById('pf-bar').style.width = '100%'
+    const lbl = document.getElementById('pf-progress-label')
+    if(lbl) lbl.innerHTML = `<span>${pts.toLocaleString()} pts</span><span>🏆 Nivel máximo alcanzado</span>`
+  }
 }
 
 // Override showMain to also hide profile page
@@ -732,5 +765,185 @@ window.addEventListener('appinstalled', () => {
   localStorage.setItem('nomi_pwa_dismissed', Date.now())
 })
 </script>
+
+<!-- REWARDS SHEET -->
+<div id="rewards-sheet" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.5)" onclick="if(event.target===this)closeRewardsSheet()">
+  <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--cream);border-radius:24px 24px 0 0;max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,16px)">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#CE3827,#9B2A1E);border-radius:24px 24px 0 0;padding:20px 20px 24px;text-align:center;color:#fff;position:relative">
+      <button onclick="closeRewardsSheet()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+      <div style="font-size:28px;margin-bottom:6px">🎁</div>
+      <div style="font-size:18px;font-weight:700">Programa de Lealtad</div>
+      <div style="font-size:12px;opacity:.8;margin-top:4px">$1 gastado = 1 punto</div>
+    </div>
+
+    <div style="padding:16px">
+
+      <!-- HOW IT WORKS -->
+      <div style="background:var(--wh);border-radius:var(--r);padding:14px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--ink60);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px">¿Cómo funciona?</div>
+        <div style="display:flex;gap:0;align-items:flex-start">
+          <div style="flex:1;text-align:center;padding:0 8px">
+            <div style="font-size:22px;margin-bottom:6px">🍕</div>
+            <div style="font-size:11px;font-weight:600;color:var(--ink)">Pide</div>
+            <div style="font-size:10px;color:var(--ink60);margin-top:2px">Haz un pedido con tu cuenta</div>
+          </div>
+          <div style="color:var(--ink20);font-size:18px;padding-top:14px">→</div>
+          <div style="flex:1;text-align:center;padding:0 8px">
+            <div style="font-size:22px;margin-bottom:6px">⭐</div>
+            <div style="font-size:11px;font-weight:600;color:var(--ink)">Acumula</div>
+            <div style="font-size:10px;color:var(--ink60);margin-top:2px">Gana 1 pt por cada $1</div>
+          </div>
+          <div style="color:var(--ink20);font-size:18px;padding-top:14px">→</div>
+          <div style="flex:1;text-align:center;padding:0 8px">
+            <div style="font-size:22px;margin-bottom:6px">💰</div>
+            <div style="font-size:11px;font-weight:600;color:var(--ink)">Canjea</div>
+            <div style="font-size:10px;color:var(--ink60);margin-top:2px">Elige tu recompensa</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIERS -->
+      <div style="background:var(--wh);border-radius:var(--r);padding:14px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--ink60);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px">Niveles de membresía</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div id="tier-row-bronze" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--cream)">
+            <span style="font-size:20px">🥉</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600">Bronze</div>
+              <div style="font-size:10px;color:var(--ink60)">0 – 499 pts · 1 pt por $1</div>
+            </div>
+          </div>
+          <div id="tier-row-silver" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--cream)">
+            <span style="font-size:20px">🥈</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600">Plata</div>
+              <div style="font-size:10px;color:var(--ink60)">500 – 1,999 pts · +25% puntos extra</div>
+            </div>
+            <span style="font-size:10px;background:#E8F5EE;color:#1D6A40;padding:2px 8px;border-radius:20px;font-weight:600">+25%</span>
+          </div>
+          <div id="tier-row-gold" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--cream)">
+            <span style="font-size:20px">🥇</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600">Oro</div>
+              <div style="font-size:10px;color:var(--ink60)">2,000 – 4,999 pts · +50% puntos · postre de cumpleaños</div>
+            </div>
+            <span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:20px;font-weight:600">+50%</span>
+          </div>
+          <div id="tier-row-platinum" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--cream)">
+            <span style="font-size:20px">💎</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600">Platino</div>
+              <div style="font-size:10px;color:var(--ink60)">5,000+ pts · 2× puntos · pizza de cumpleaños · eventos exclusivos</div>
+            </div>
+            <span style="font-size:10px;background:#EDE9FE;color:#5B21B6;padding:2px 8px;border-radius:20px;font-weight:600">2×</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- REWARDS CATALOG -->
+      <div style="background:var(--wh);border-radius:var(--r);padding:14px;margin-bottom:12px" id="rewards-catalog-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--ink60);text-transform:uppercase;letter-spacing:.07em">Tus recompensas</div>
+          <div style="font-size:11px;color:var(--ink60)">Tienes <strong id="rs-pts" style="color:var(--red)">0</strong> pts</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px" id="rewards-list"></div>
+      </div>
+
+      <!-- REDEMPTION CODE AREA -->
+      <div id="redeem-code-area" style="display:none;background:var(--wh);border-radius:var(--r);padding:16px;margin-bottom:12px;text-align:center">
+        <div style="font-size:13px;color:var(--ink60);margin-bottom:10px">Muestra este código al staff</div>
+        <div style="font-size:11px;color:var(--ink60);margin-bottom:8px" id="redeem-desc"></div>
+        <div style="font-size:32px;font-weight:700;letter-spacing:4px;color:var(--ink);font-family:monospace;background:var(--cream);border-radius:10px;padding:12px;margin:0 auto;border:2px dashed var(--ink20)" id="redeem-code">NOM-XXXX</div>
+        <div style="font-size:10px;color:var(--ink60);margin-top:8px">Válido por 30 minutos · El staff descontará los puntos</div>
+        <button onclick="cancelRedeem()" style="margin-top:12px;padding:8px 20px;background:none;border:1px solid var(--ink20);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;color:var(--ink60)">Cancelar</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const TIERS = [
+  {key:'bronze', label:'Bronze 🥉', min:0,    max:499,  badge:'🥉 Bronze',   mult:1.0},
+  {key:'silver', label:'Plata 🥈',  min:500,  max:1999, badge:'🥈 Plata',    mult:1.25},
+  {key:'gold',   label:'Oro 🥇',    min:2000, max:4999, badge:'🥇 Oro',      mult:1.5},
+  {key:'platinum',label:'Platino 💎',min:5000,max:999999,badge:'💎 Platino', mult:2.0}
+]
+
+const REWARDS = [
+  {id:'r25',  pts:250,  emoji:'🏷️', label:'$25 de descuento',  desc:'Aplica como descuento en tu pedido'},
+  {id:'r50',  pts:500,  emoji:'💵', label:'$50 de descuento',  desc:'Aplica como descuento en tu pedido'},
+  {id:'r100', pts:1000, emoji:'💰', label:'$100 de descuento', desc:'Aplica como descuento en tu pedido'},
+  {id:'r200', pts:2000, emoji:'💸', label:'$200 de descuento', desc:'Aplica como descuento en tu pedido'},
+]
+
+function getTier(pts) {
+  return TIERS.slice().reverse().find(t => pts >= t.min) || TIERS[0]
+}
+
+function showRewardsSheet() {
+  const c = JSON.parse(localStorage.getItem('nomi_c') || 'null')
+  const pts = c?.loyalty_points || 0
+  document.getElementById('rewards-sheet').style.display = 'block'
+  document.getElementById('rs-pts').textContent = pts
+  document.getElementById('redeem-code-area').style.display = 'none'
+  document.getElementById('rewards-catalog-section').style.display = 'block'
+
+  // Highlight current tier row
+  const tier = getTier(pts)
+  TIERS.forEach(t => {
+    const row = document.getElementById('tier-row-' + t.key)
+    if(row) {
+      row.style.background = t.key === tier.key ? '#FAECE7' : 'var(--cream)'
+      row.style.border = t.key === tier.key ? '1.5px solid var(--red)' : '1.5px solid transparent'
+    }
+  })
+
+  // Render rewards
+  const list = document.getElementById('rewards-list')
+  list.innerHTML = REWARDS.map(r => {
+    const canAfford = pts >= r.pts
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;border:1px solid ${canAfford?'var(--red)':'var(--ink20)'};background:${canAfford?'#FFF5E9':'var(--cream)'}">
+      <span style="font-size:22px">${r.emoji}</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:${canAfford?'var(--ink)':'var(--ink60)'}">${r.label}</div>
+        <div style="font-size:10px;color:var(--ink60)">${r.desc}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;font-weight:700;color:${canAfford?'var(--red)':'var(--ink60)'}">${r.pts} pts</div>
+        ${canAfford 
+          ? `<button onclick="redeemReward('${r.id}','${r.pts}','${r.label}')" style="margin-top:4px;padding:4px 10px;background:var(--red);color:#fff;border:none;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer">Canjear</button>`
+          : `<div style="font-size:10px;color:var(--ink60);margin-top:2px">Te faltan ${r.pts-pts}</div>`
+        }
+      </div>
+    </div>`
+  }).join('')
+}
+
+function closeRewardsSheet() {
+  document.getElementById('rewards-sheet').style.display = 'none'
+}
+
+function redeemReward(id, pts, label) {
+  const c = JSON.parse(localStorage.getItem('nomi_c') || 'null')
+  if(!c) return
+  // Generate a readable code: NOM + last4 of phone + reward code
+  const phone = (c.phone || c.email || '').replace(/\D/g,'').slice(-4).padStart(4,'0')
+  const rndPart = Math.random().toString(36).slice(2,5).toUpperCase()
+  const code = `NOM-${phone}-${rndPart}`
+  
+  document.getElementById('rewards-catalog-section').style.display = 'none'
+  document.getElementById('redeem-desc').textContent = `${label} · ${pts} puntos`
+  document.getElementById('redeem-code').textContent = code
+  document.getElementById('redeem-code-area').style.display = 'block'
+}
+
+function cancelRedeem() {
+  document.getElementById('redeem-code-area').style.display = 'none'
+  document.getElementById('rewards-catalog-section').style.display = 'block'
+}
+</script>
+
 </body>
 </html>
