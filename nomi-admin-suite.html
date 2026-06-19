@@ -623,13 +623,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 
       <!-- Quick actions -->
       <div style="display:flex;gap:6px;justify-content:center;margin-bottom:16px;flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="anGoToday()">Hoy</button>
-        <button class="btn btn-sm" onclick="anGoWeek()">Esta semana</button>
-        <button class="btn btn-sm" onclick="anGoMonth()">Este mes</button>
+        <button class="btn btn-sm" id="anb-hoy"  onclick="anGoToday()">Hoy</button>
+        <button class="btn btn-sm" id="anb-sem"  onclick="anGoWeek()">Esta semana</button>
+        <button class="btn btn-sm" id="anb-mes"  onclick="anGoMonth()">Este mes</button>
+        <button class="btn btn-sm" id="anb-rng"  onclick="anToggleRange()">📊 Rango</button>
         <div style="flex:1;min-width:8px"></div>
         <button class="btn btn-sm" onclick="openManualSaleModal()">📝 Venta manual</button>
         <button class="btn btn-sm" onclick="anDownloadCSV()">📥 CSV</button>
         <button class="btn btn-sm" onclick="printZReport()">🖨 Corte Z</button>
+      </div>
+
+      <!-- Date Range Row (hidden by default) -->
+      <div id="an-range-row" style="display:none;background:var(--cream);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:600;color:var(--ink60)">Desde</span>
+        <input type="date" id="an-range-from" class="fi" style="width:140px;padding:6px 10px;font-size:13px" oninput="anApplyRange()">
+        <span style="font-size:12px;font-weight:600;color:var(--ink60)">Hasta</span>
+        <input type="date" id="an-range-to"   class="fi" style="width:140px;padding:6px 10px;font-size:13px" oninput="anApplyRange()">
+        <button class="btn btn-sm btn-p" onclick="anApplyRange()" style="margin-left:4px">Ver ventas</button>
       </div>
 
       <!-- KPI Cards -->
@@ -1901,7 +1911,7 @@ async function loadLoyalty(){
 // ── ANALYTICS (FULL REBUILD) ─────────────────────────────────
 let _anDate  = localDateStr(new Date())
 let _anOrders = []
-let _anMode   = 'day'   // 'day' | 'week' | 'month'
+let _anMode   = 'day'   // 'day' | 'week' | 'month' | 'range'
 let _anFrom   = ''
 let _anTo     = ''
 
@@ -1925,6 +1935,29 @@ function anNav(dir) {
   _anDate = localDateStr(d)
   anSetNav()
   anLoad()
+}
+
+function anToggleRange() {
+  const row = document.getElementById('an-range-row')
+  const visible = row.style.display !== 'none'
+  row.style.display = visible ? 'none' : 'flex'
+  if(!visible) {
+    // Pre-fill from/to with current week
+    const today = anTodayStr()
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-6)
+    const weekAgoStr = localDateStr(weekAgo)
+    document.getElementById('an-range-from').value = _anFrom || weekAgoStr
+    document.getElementById('an-range-to').value   = _anTo   || today
+  }
+}
+
+function anApplyRange() {
+  const from = document.getElementById('an-range-from').value
+  const to   = document.getElementById('an-range-to').value
+  if(!from || !to) return
+  if(from > to) { alert('La fecha de inicio debe ser antes que la fecha final'); return }
+  _anMode = 'range'; _anFrom = from; _anTo = to
+  anSetNav(); anLoad()
 }
 
 function anOpenDatePicker() {
@@ -1995,9 +2028,14 @@ function anSetNav() {
   } else if(_anMode === 'week') {
     if(dayName) dayName.textContent = '— ESTA SEMANA —'
     if(dayLabel) dayLabel.textContent = `${_anFrom} — ${_anTo}`
-  } else {
+  } else if(_anMode === 'month') {
     if(dayName) dayName.textContent = '— ESTE MES —'
     if(dayLabel) dayLabel.textContent = new Date(_anFrom+'T12:00:00').toLocaleDateString('es-MX',{month:'long',year:'numeric'})
+  } else if(_anMode === 'range') {
+    if(dayName) dayName.textContent = '— RANGO PERSONALIZADO —'
+    const fmtD = d => new Date(d+'T12:00:00').toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})
+    if(dayLabel) dayLabel.textContent = `${fmtD(_anFrom)} → ${fmtD(_anTo)}`
+    if(nextBtn) nextBtn.disabled = true
   }
 }
 
