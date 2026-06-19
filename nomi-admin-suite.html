@@ -615,8 +615,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
         <div style="flex:1;text-align:center;min-width:160px">
           <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink60)" id="an-day-name">—</div>
           <div style="font-size:18px;font-weight:700;color:var(--ink);margin:2px 0" id="an-day-label">—</div>
-          <input type="date" id="an-date-pick" onchange="anPickDate(this.value)" style="opacity:0;position:absolute;width:1px;height:1px">
-          <button class="btn btn-sm" onclick="document.getElementById('an-date-pick').click()" style="font-size:10px;margin-top:2px">📅 Elegir fecha</button>
+          <input type="date" id="an-date-pick" onchange="anPickDate(this.value)" style="opacity:0;position:absolute;width:0;height:0;pointer-events:none">
+          <button class="btn btn-sm" onclick="anOpenDatePicker()" style="font-size:10px;margin-top:2px">📅 Elegir fecha</button>
         </div>
         <button class="btn" id="an-next-btn" onclick="anNav(1)" style="font-size:18px;padding:6px 14px;line-height:1">→</button>
       </div>
@@ -1925,6 +1925,26 @@ function anNav(dir) {
   _anDate = localDateStr(d)
   anSetNav()
   anLoad()
+}
+
+function anOpenDatePicker() {
+  const inp = document.getElementById('an-date-pick')
+  // Set current date as default value
+  if(!inp.value) inp.value = _anDate || anTodayStr()
+  try {
+    if(typeof inp.showPicker === 'function') {
+      inp.showPicker()   // modern Chrome/Firefox/Safari
+    } else {
+      inp.style.position = 'fixed'
+      inp.style.top = '50%'
+      inp.style.left = '50%'
+      inp.style.opacity = '0.01'
+      inp.style.width = '1px'
+      inp.style.height = '1px'
+      inp.focus()
+      inp.click()
+    }
+  } catch(e) { inp.click() }
 }
 
 function anPickDate(val) {
