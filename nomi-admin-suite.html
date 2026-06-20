@@ -1550,27 +1550,64 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
   <div class="modal">
     <div class="mh"><span class="mt" id="cfg-ing-modal-title">Nuevo ingrediente</span><button class="mc-btn" onclick="closeM('cfg-add-ingredient-modal')">x</button></div>
     <div class="mb">
-      <div class="fl"><label>Nombre</label><input class="fi" id="cfg-ing-name" placeholder="Ej: Mozzarella fresca"></div>
+      <div class="fl"><label>Nombre del ingrediente</label><input class="fi" id="cfg-ing-name" placeholder="Ej: Pepperoni"></div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="fl"><label>Unidad</label>
-          <select class="fs" id="cfg-ing-unit">
-            <option value="kg">kg</option><option value="g">g</option><option value="L">Litros</option>
-            <option value="ml">ml</option><option value="pzas">Piezas</option><option value="cajas">Cajas</option>
-          </select>
-        </div>
-        <div class="fl"><label>Categoria</label>
+        <div class="fl"><label>Categoría</label>
           <select class="fs" id="cfg-ing-cat">
             <option value="masa">Masa</option><option value="quesos">Quesos</option><option value="embutidos">Embutidos</option>
             <option value="verduras">Verduras</option><option value="salsas">Salsas</option><option value="hierbas">Hierbas</option>
-            <option value="aceites">Aceites</option><option value="dairy">Lacteos</option><option value="conservas">Conservas</option><option value="general">General</option>
+            <option value="aceites">Aceites</option><option value="dairy">Lácteos</option><option value="conservas">Conservas</option><option value="general">General</option>
           </select>
         </div>
+        <div class="fl"><label>Proveedor (opcional)</label>
+          <input class="fi" id="cfg-ing-supplier" placeholder="Ej: Sam's Club">
+        </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-        <div class="fl"><label>Stock actual</label><input class="fi" id="cfg-ing-qty" type="number" step="0.1" placeholder="0"></div>
-        <div class="fl"><label>Stock minimo</label><input class="fi" id="cfg-ing-min" type="number" step="0.1" placeholder="0"></div>
-        <div class="fl"><label>Costo/unidad</label><input class="fi" id="cfg-ing-cost" type="number" step="0.01" placeholder="0.00"></div>
+
+      <!-- PURCHASE UNIT SECTION -->
+      <div style="background:var(--cream);border-radius:var(--rsm);padding:12px;margin-top:4px">
+        <div style="font-size:10px;font-weight:700;color:var(--ink60);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">📦 Cómo lo compras</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="fl"><label>Stock actual</label>
+            <input class="fi" id="cfg-ing-qty" type="number" step="0.01" min="0" placeholder="0" oninput="cfgIngCalc()">
+          </div>
+          <div class="fl"><label>Unidad de compra</label>
+            <input class="fi" id="cfg-ing-unit" placeholder="bolsa, caja, kg..." oninput="cfgIngCalc()">
+          </div>
+          <div class="fl"><label>Costo por unidad</label>
+            <input class="fi" id="cfg-ing-cost" type="number" step="0.01" min="0" placeholder="0.00" oninput="cfgIngCalc()">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+          <div class="fl"><label>Stock mínimo</label>
+            <input class="fi" id="cfg-ing-min" type="number" step="0.01" min="0" placeholder="0">
+          </div>
+          <div class="fl"><label>Unidades por paquete</label>
+            <input class="fi" id="cfg-ing-pkg" type="number" step="1" min="1" placeholder="Ej: 1000" oninput="cfgIngCalc()"
+              title="Cuántas unidades de uso hay en cada unidad de compra. Ej: 1000 rebanadas por bolsa">
+          </div>
+        </div>
       </div>
+
+      <!-- USAGE UNIT SECTION -->
+      <div style="background:var(--cream);border-radius:var(--rsm);padding:12px;margin-top:8px">
+        <div style="font-size:10px;font-weight:700;color:var(--ink60);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">🍕 Cómo lo usas en recetas</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="fl"><label>Unidad de uso</label>
+            <input class="fi" id="cfg-ing-use-unit" placeholder="Ej: rebanadas, g, ml..." oninput="cfgIngCalc()">
+          </div>
+          <div class="fl"><label>Cantidad por porción</label>
+            <input class="fi" id="cfg-ing-portion" type="number" step="0.1" min="0" placeholder="Ej: 20" oninput="cfgIngCalc()"
+              title="Cuántas unidades de uso usas por porción/pizza">
+          </div>
+        </div>
+        <!-- Auto-calculated summary -->
+        <div id="cfg-ing-calc" style="margin-top:10px;padding:10px;background:var(--wh);border-radius:var(--rsm);font-size:12px;color:var(--ink60);display:none">
+          <div id="cfg-ing-calc-text"></div>
+        </div>
+      </div>
+
       <input type="hidden" id="cfg-ing-id">
     </div>
     <div class="mf">
@@ -3798,10 +3835,21 @@ async function cfgLoadInventory() {
       return catItems.map((ing, idx) => {
         const stColor = Number(ing.quantity) <= 0 ? '#EF4444' : Number(ing.quantity) <= Number(ing.min_level) ? 'var(--amber)' : 'var(--green)'
         const val = Number(ing.quantity) * Number(ing.cost_per_unit||0)
+        // Parse metadata for portions display
+        let portionStr = ''
+        try {
+          const meta = JSON.parse(ing.notes || '{}')
+          if(meta.pkg_size && meta.portion && meta.use_unit) {
+            const totalUse = Number(ing.quantity) * Number(meta.pkg_size)
+            const portions = Math.floor(totalUse / Number(meta.portion))
+            portionStr = `<div style="font-size:10px;color:var(--ink60);margin-top:1px">${totalUse.toLocaleString()} ${meta.use_unit} · <strong style="color:${stColor}">${portions.toLocaleString()} porciones</strong></div>`
+          }
+        } catch(e) {}
         return `<div class="ing-row">
           <div>
             ${idx === 0 ? `<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink60);margin-bottom:4px">${catLabel}</div>` : ''}
             <div style="font-size:13px;font-weight:500">${ing.name}</div>
+            ${portionStr}
           </div>
           <div style="text-align:right;font-weight:600;color:${stColor}">${ing.quantity} <span style="font-size:10px;color:var(--ink60);font-weight:400">${ing.unit}</span></div>
           <div style="text-align:right;font-size:11px;color:var(--ink60)">${ing.min_level} ${ing.unit}</div>
@@ -3817,11 +3865,25 @@ async function cfgLoadInventory() {
 function cfgOpenEditIngredient(ing) {
   document.getElementById('cfg-ing-id').value = ing.id
   document.getElementById('cfg-ing-name').value = ing.name || ''
-  document.getElementById('cfg-ing-unit').value = ing.unit || 'kg'
+  document.getElementById('cfg-ing-unit').value = ing.unit || ''
   document.getElementById('cfg-ing-cat').value = ing.category || 'general'
   document.getElementById('cfg-ing-qty').value = ing.quantity || 0
   document.getElementById('cfg-ing-min').value = ing.min_level || 0
   document.getElementById('cfg-ing-cost').value = ing.cost_per_unit || 0
+  // Parse extra fields from notes JSON
+  try {
+    const meta = JSON.parse(ing.notes || '{}')
+    document.getElementById('cfg-ing-supplier').value = meta.supplier || ''
+    document.getElementById('cfg-ing-pkg').value     = meta.pkg_size  || ''
+    document.getElementById('cfg-ing-use-unit').value= meta.use_unit  || ''
+    document.getElementById('cfg-ing-portion').value = meta.portion   || ''
+  } catch(e) {
+    document.getElementById('cfg-ing-supplier').value = ''
+    document.getElementById('cfg-ing-pkg').value      = ''
+    document.getElementById('cfg-ing-use-unit').value = ''
+    document.getElementById('cfg-ing-portion').value  = ''
+  }
+  cfgIngCalc()
   document.getElementById('cfg-ing-modal-title').textContent = 'Editar: ' + ing.name
   document.getElementById('cfg-ing-delete-btn').style.display = 'inline-flex'
   openM('cfg-add-ingredient-modal')
@@ -3835,20 +3897,58 @@ function cfgOpenAddIngredient() {
   document.getElementById('cfg-ing-cost').value = '0'
   document.getElementById('cfg-ing-modal-title').textContent = 'Nuevo ingrediente'
   document.getElementById('cfg-ing-delete-btn').style.display = 'none'
+  document.getElementById('cfg-ing-supplier').value = ''
+  document.getElementById('cfg-ing-pkg').value      = ''
+  document.getElementById('cfg-ing-use-unit').value = ''
+  document.getElementById('cfg-ing-portion').value  = ''
+  document.getElementById('cfg-ing-calc').style.display = 'none'
   openM('cfg-add-ingredient-modal')
+}
+
+async function cfgIngCalc() {
+  const qty     = Number(document.getElementById('cfg-ing-qty').value) || 0
+  const pkgSize = Number(document.getElementById('cfg-ing-pkg').value) || 0
+  const portion = Number(document.getElementById('cfg-ing-portion').value) || 0
+  const cost    = Number(document.getElementById('cfg-ing-cost').value) || 0
+  const unit    = document.getElementById('cfg-ing-unit').value || 'unidad'
+  const useUnit = document.getElementById('cfg-ing-use-unit').value || 'unidad'
+  const calc    = document.getElementById('cfg-ing-calc')
+  const txt     = document.getElementById('cfg-ing-calc-text')
+  if(!pkgSize && !portion) { calc.style.display='none'; return }
+  calc.style.display = 'block'
+  const lines = []
+  const totalUseUnits = pkgSize ? qty * pkgSize : 0
+  if(pkgSize) lines.push(`📦 ${qty} ${unit} × ${pkgSize.toLocaleString()} = <strong>${totalUseUnits.toLocaleString()} ${useUnit}</strong> en total`)
+  if(pkgSize && portion) {
+    const portions = Math.floor(totalUseUnits / portion)
+    lines.push(`🍕 Alcanza para <strong>${portions.toLocaleString()} porciones</strong> (${portion} ${useUnit} c/u)`)
+  }
+  if(cost && pkgSize && portion) {
+    const costPerPortion = (cost / pkgSize * portion)
+    lines.push(`💰 Costo por porción: <strong>$${costPerPortion.toFixed(2)}</strong>`)
+  }
+  txt.innerHTML = lines.join('<br>')
 }
 
 async function cfgSaveIngredient() {
   const id = document.getElementById('cfg-ing-id').value
   const name = document.getElementById('cfg-ing-name').value.trim()
   if(!name) { showToast('Ingresa el nombre', false); return }
+  const pkgSize  = Number(document.getElementById('cfg-ing-pkg').value) || 1
+  const portion  = Number(document.getElementById('cfg-ing-portion').value) || 0
   const body = {
     name,
-    unit: document.getElementById('cfg-ing-unit').value,
+    unit: document.getElementById('cfg-ing-unit').value || 'pzas',
     category: document.getElementById('cfg-ing-cat').value,
     quantity: Number(document.getElementById('cfg-ing-qty').value),
     min_level: Number(document.getElementById('cfg-ing-min').value),
-    cost_per_unit: Number(document.getElementById('cfg-ing-cost').value)
+    cost_per_unit: Number(document.getElementById('cfg-ing-cost').value),
+    notes: JSON.stringify({
+      supplier:  document.getElementById('cfg-ing-supplier').value.trim(),
+      pkg_size:  pkgSize,
+      use_unit:  document.getElementById('cfg-ing-use-unit').value.trim(),
+      portion:   portion
+    })
   }
   try {
     if(id) { await api('inventory', { method:'PATCH', body:{ id, ...body } }); showToast(name + ' actualizado ✓') }
