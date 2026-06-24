@@ -1679,6 +1679,17 @@ function pinDel() {
   clearPinError()
 }
 
+// Keyboard support for PIN login
+document.addEventListener('keydown', function(e) {
+  const pinScreen = document.getElementById('pin-screen')
+  if (!pinScreen || pinScreen.style.display === 'none') return
+  // Only capture when no input/textarea is focused
+  const tag = document.activeElement?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+  if (e.key >= '0' && e.key <= '9') { e.preventDefault(); pinKey(e.key) }
+  else if (e.key === 'Backspace') { e.preventDefault(); pinDel() }
+})
+
 function updateDots() {
   for (var i = 0; i < 4; i++) {
     document.getElementById('d' + i).classList.toggle('filled', i < pinVal.length)
