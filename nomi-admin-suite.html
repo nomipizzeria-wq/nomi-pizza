@@ -2258,9 +2258,36 @@ function anRenderPayments(orders) {
     return 'otro'
   }
   orders.forEach(o => {
+    const total = Number(o.total||0)
+    // Parse split payment breakdown from notes
+    const splitMatch = (o.notes||'').match(/DIVIDIDA:(.+?)(?:\||Vendido|$)/i)
+    if(splitMatch) {
+      // Format: "Persona 1: $100.00 (Efectivo) | Persona 2: $150.00 (Tarjeta)"
+      const portions = (o.notes||'').split('|').filter(s => s.includes('('))
+      let parsed = false
+      portions.forEach(part => {
+        const amtMatch = part.match(/\$([0-9,]+\.?\d*)/)
+        const pmMatch  = part.match(/\(([^)]+)\)/)
+        if(amtMatch && pmMatch) {
+          const amt = parseFloat(amtMatch[1].replace(',',''))
+          const pm  = _pmNorm(pmMatch[1])
+          byPM[pm] = (byPM[pm]||{count:0,total:0})
+          byPM[pm].total += amt
+          parsed = true
+        }
+      })
+      if(parsed) {
+        // Count the order once under its dominant method
+        const m = _pmNorm(o.payment_method)
+        byPM[m] = (byPM[m]||{count:0,total:0})
+        byPM[m].count++
+        return
+      }
+    }
+    // Normal (non-split) order
     const m = _pmNorm(o.payment_method)
     byPM[m] = (byPM[m]||{count:0,total:0})
-    byPM[m].count++; byPM[m].total += Number(o.total||0)
+    byPM[m].count++; byPM[m].total += total
   })
 
   const grand = Object.values(byPM).reduce((s,v) => s+v.total, 0) || 1
