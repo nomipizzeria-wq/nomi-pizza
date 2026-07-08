@@ -924,6 +924,67 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 </div>
 
 <!-- MODALS -->
+
+<!-- NEW PURCHASE MODAL -->
+<div class="modal-bg" id="new-purchase-modal">
+  <div class="modal" style="width:680px;max-width:98vw">
+    <div class="mh">
+      <span class="mt">🛒 Nueva compra</span>
+      <button class="mc-btn" onclick="closeM('new-purchase-modal')">×</button>
+    </div>
+    <div class="mb" style="padding:0">
+
+      <!-- Header fields -->
+      <div style="padding:16px 18px;border-bottom:1px solid var(--ink10);display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="fl">
+          <label>Proveedor</label>
+          <select class="fs" id="np-supplier">
+            <option value="">Sin proveedor</option>
+          </select>
+        </div>
+        <div class="fl">
+          <label>Fecha</label>
+          <input class="fi" type="date" id="np-date">
+        </div>
+        <div class="fl">
+          <label>Notas (opcional)</label>
+          <input class="fi" id="np-notes" placeholder="Factura, referencia...">
+        </div>
+      </div>
+
+      <!-- Column headers -->
+      <div style="padding:10px 18px 4px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:6px">
+        <div style="font-size:10px;font-weight:700;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em">Ingrediente</div>
+        <div style="font-size:10px;font-weight:700;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em">Cantidad</div>
+        <div style="font-size:10px;font-weight:700;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em">Unidad</div>
+        <div style="font-size:10px;font-weight:700;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em">Precio unit.</div>
+        <div style="font-size:10px;font-weight:700;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em">Total</div>
+      </div>
+
+      <!-- Items list -->
+      <div style="padding:0 18px;max-height:340px;overflow-y:auto" id="np-items-list">
+        <div style="text-align:center;padding:20px;color:var(--ink60);font-size:13px">Agrega los productos que compraste</div>
+      </div>
+
+      <!-- Add item button -->
+      <div style="padding:12px 18px;border-top:1px solid var(--ink10)">
+        <button class="btn btn-sm" onclick="addPurchaseItem()" style="width:100%;justify-content:center">+ Agregar producto</button>
+      </div>
+
+      <!-- Total -->
+      <div style="padding:12px 18px;border-top:1px solid var(--ink10);display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:600;color:var(--ink60)">Total de la compra</span>
+        <span style="font-size:22px;font-weight:700;color:var(--ink)" id="np-total">$0.00</span>
+      </div>
+
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeM('new-purchase-modal')">Cancelar</button>
+      <button class="btn btn-p" onclick="savePurchase()">✓ Guardar compra</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="menu-modal"><div class="modal"><div class="mh"><span class="mt">Agregar producto</span><button class="mc-btn" onclick="closeM('menu-modal')">×</button></div><div class="mb"><div class="fl"><label>Nombre</label><input class="fi" id="mi-name" placeholder="Ej: Margherita Nomi"></div><div class="fl"><label>Descripción</label><input class="fi" id="mi-desc" placeholder="Ingredientes..."></div><div class="fl"><label>Precio (MXN)</label><input class="fi" id="mi-price" type="number" placeholder="159"></div><div class="fl"><label>Emoji</label><input class="fi" id="mi-emoji" placeholder="🍕" style="width:80px"></div><div class="fl"><label>Categoría</label><select class="fs" id="mi-cat"><option value="">Seleccionar...</option></select></div></div><div class="mf"><button class="btn" onclick="closeM('menu-modal')">Cancelar</button><button class="btn btn-p" onclick="saveMenu()">✓ Guardar</button></div></div></div>
 
 <div class="modal-bg" id="worker-modal"><div class="modal"><div class="mh"><span class="mt">Agregar trabajador</span><button class="mc-btn" onclick="closeM('worker-modal')">×</button></div><div class="mb"><div class="fl"><label>Nombre</label><input class="fi" id="w-name" placeholder="Jorge López"></div><div class="fl"><label>Correo</label><input class="fi" id="w-email" type="email" placeholder="jorge@nomipizza.mx"></div><div class="fl"><label>PIN (4 dígitos)</label><input class="fi" id="w-pin" type="password" maxlength="4" placeholder="••••"></div><div class="fl"><label>Rol</label><select class="fs" id="w-role"><option value="admin">👑 Administrador</option><option value="manager">👨‍💼 Gerente</option><option value="waiter" selected>🍽 Mesero</option><option value="kitchen">👨‍🍳 Cocina</option><option value="delivery">🛵 Repartidor</option><option value="cashier">💰 Cajero</option></select></div></div><div class="mf"><button class="btn" onclick="closeM('worker-modal')">Cancelar</button><button class="btn btn-p" onclick="saveWorker()">✓ Crear</button></div></div></div>
@@ -3518,10 +3579,15 @@ async function loadPurchases() {
 
 function openNewPurchase() {
   purchaseItems = []
-  // Set today's date
-  var today = new Date().toISOString().split('T')[0]
+  var today = new Date().toLocaleDateString('sv-SE', {timeZone:'America/Mexico_City'})
   document.getElementById('np-date').value = today
   document.getElementById('np-notes').value = ''
+  // Populate suppliers
+  var sel = document.getElementById('np-supplier')
+  if(sel) {
+    sel.innerHTML = '<option value="">Sin proveedor</option>' +
+      (allSuppliers||[]).map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>' }).join('')
+  }
   renderPurchaseItems()
   openM('new-purchase-modal')
 }
