@@ -3920,7 +3920,7 @@ async function cfgSaveCategory() {
   } catch(apiErr) {
     // Fallback: write directly to Supabase
     try {
-      const sbRes = await fetch(_SB_URL + '/rest/v1/menu_categories', {
+      const sbRes = await fetch(_SB_URL + '/rest/v1/categories', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3928,7 +3928,7 @@ async function cfgSaveCategory() {
           'Authorization': 'Bearer ' + _SB_ANON,
           'Prefer': 'return=representation'
         },
-        body: JSON.stringify({ name, emoji, sort_order })
+        body: JSON.stringify({ name, emoji, sort_order, active: true })
       })
       if(!sbRes.ok) {
         const err = await sbRes.json().catch(() => ({}))
@@ -3955,7 +3955,7 @@ async function cfgDeleteCategory(id, name) {
     const items = (cfgTabData.menu?.items||[]).filter(i => i.category_id === id)
     await Promise.all(items.map(i => api('menu', { method:'PATCH', body:{ id:i.id, category_id: null } })))
     // Delete the category via Supabase
-    await fetch(_SB_URL + '/rest/v1/menu_categories?id=eq.' + id, {
+    await fetch(_SB_URL + '/rest/v1/categories?id=eq.' + id, {
       method: 'DELETE',
       headers: { 'apikey': _SB_ANON, 'Authorization': 'Bearer ' + _SB_ANON }
     })
