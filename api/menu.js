@@ -28,6 +28,16 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
+      // Category creation
+      if (req.body?.type === 'category') {
+        const { type, ...catBody } = req.body
+        if(!catBody.active) catBody.active = true
+        const { data, error } = await supabase
+          .from('categories').insert([catBody]).select().single()
+        if (error) throw error
+        return res.status(201).json(data)
+      }
+      // Menu item creation
       const { data, error } = await supabase
         .from('menu_items').insert([req.body]).select().single()
       if (error) throw error
@@ -40,6 +50,18 @@ export default async function handler(req, res) {
         .from('menu_items').update(updates).eq('id', id).select().single()
       if (error) throw error
       return res.status(200).json(data)
+    }
+
+    if (req.method === 'DELETE') {
+      const { id, type } = req.body || {}
+      if (type === 'category') {
+        const { error } = await supabase.from('categories').delete().eq('id', id)
+        if (error) throw error
+        return res.status(200).json({ ok: true })
+      }
+      const { error } = await supabase.from('menu_items').delete().eq('id', id)
+      if (error) throw error
+      return res.status(200).json({ ok: true })
     }
 
     return res.status(405).json({ error: 'Method not allowed' })
