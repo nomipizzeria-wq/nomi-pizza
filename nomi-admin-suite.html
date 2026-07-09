@@ -3906,35 +3906,63 @@ async function cfgDeleteItem() {
 async function cfgSaveCategory() {
   const name = document.getElementById('cfg-cat-name').value.trim()
   if(!name) { showToast('Ingresa el nombre de la categoría', false); return }
+  const emoji      = document.getElementById('cfg-cat-emoji').value.trim() || '🍽'
+  const sort_order = Number(document.getElementById('cfg-cat-order').value) || 1
   try {
-    await fetch('/api/menu', {
+    // Try API first
+    const apiRes = await fetch('/api/menu', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        type: 'category',
-        name,
-        emoji: document.getElementById('cfg-cat-emoji').value || '🍽',
-        sort_order: Number(document.getElementById('cfg-cat-order').value) || 1
-      })
+      body: JSON.stringify({ type: 'category', name, emoji, sort_order })
     })
+    if(!apiRes.ok) throw new Error('API ' + apiRes.status)
     showToast('Categoría "' + name + '" agregada ✓')
-    closeM('cfg-add-category-modal')
-    document.getElementById('cfg-cat-name').value = ''
-    document.getElementById('cfg-cat-emoji').value = ''
-    cfgLoadMenu()
-  } catch(e) { showToast('Error: ' + e.message, false) }
+  } catch(apiErr) {
+    // Fallback: write directly to Supabase
+    try {
+      const sbRes = await fetch(_SB_URL + '/rest/v1/menu_categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': _SB_ANON,
+          'Authorization': 'Bearer ' + _SB_ANON,
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({ name, emoji, sort_order })
+      })
+      if(!sbRes.ok) {
+        const err = await sbRes.json().catch(() => ({}))
+        throw new Error(err.message || sbRes.status)
+      }
+      showToast('Categoría "' + name + '" agregada ✓')
+    } catch(sbErr) {
+      showToast('Error al guardar: ' + sbErr.message, false)
+      return
+    }
+  }
+  closeM('cfg-add-category-modal')
+  document.getElementById('cfg-cat-name').value = ''
+  document.getElementById('cfg-cat-emoji').value = ''
+  document.getElementById('cfg-cat-order').value = '1'
+  cfgLoadMenu()
+  loadMenu()
 }
 
 async function cfgDeleteCategory(id, name) {
   if(!confirm('Eliminar categoría "' + name + '"? Los productos quedarán sin categoría.')) return
   try {
-    // Move items to no category
+    // Move items to no category first
     const items = (cfgTabData.menu?.items||[]).filter(i => i.category_id === id)
     await Promise.all(items.map(i => api('menu', { method:'PATCH', body:{ id:i.id, category_id: null } })))
-    // Delete category - we'll just mark items uncategorized for now
-    showToast('Categoría eliminada')
+    // Delete the category via Supabase
+    await fetch(_SB_URL + '/rest/v1/menu_categories?id=eq.' + id, {
+      method: 'DELETE',
+      headers: { 'apikey': _SB_ANON, 'Authorization': 'Bearer ' + _SB_ANON }
+    })
+    showToast('Categoría "' + name + '" eliminada')
     cfgLoadMenu()
-  } catch(e) { showToast('Error', false) }
+    loadMenu()
+  } catch(e) { showToast('Error: ' + e.message, false) }
 }
 
 // ── INVENTORY TAB ─────────────────────────────────────────────
