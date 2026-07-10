@@ -275,6 +275,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 .an-bar-lbl{font-size:9px;color:var(--ink60);text-align:center;margin-top:3px;white-space:nowrap}
 .an-h-bar{height:8px;border-radius:4px;background:var(--red);transition:.4s}
 .an-pm-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.emoji-picker{display:none;position:absolute;z-index:999;background:var(--wh);border:1px solid var(--ink10);border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.12);padding:10px;width:280px;max-height:220px;overflow-y:auto}
+.emoji-picker.open{display:block}
+.emoji-picker-grid{display:flex;flex-wrap:wrap;gap:2px}
+.ep-btn{font-size:20px;width:36px;height:36px;border:none;background:none;cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:background .1s}
+.ep-btn:hover{background:var(--cream)}
+.ep-section{font-size:9px;font-weight:700;color:var(--ink60);text-transform:uppercase;letter-spacing:.07em;width:100%;padding:6px 2px 3px}
+.emoji-wrap{position:relative;display:flex;gap:6px;align-items:center}
+.emoji-preview{font-size:24px;min-width:36px;text-align:center}
+
 .an-ord-tbl{width:100%;border-collapse:collapse;font-size:12px}
 .an-ord-tbl th{padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--ink60);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--ink10);white-space:nowrap;background:var(--cream)}
 .an-ord-tbl td{padding:10px 12px;border-bottom:1px solid var(--ink10);vertical-align:middle}
@@ -1576,7 +1585,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
     <div class="mh"><span class="mt">Nueva categoria</span><button class="mc-btn" onclick="closeM('cfg-add-category-modal')">x</button></div>
     <div class="mb">
       <div class="fl"><label>Nombre</label><input class="fi" id="cfg-cat-name" placeholder="Ej: Pizzas, Bebidas..."></div>
-      <div class="fl"><label>Emoji</label><input class="fi" id="cfg-cat-emoji" placeholder="🍕" style="width:80px"></div>
+      <div class="fl"><label>Emoji de la categoría</label>
+      <div class="emoji-wrap">
+        <span class="emoji-preview" id="cfg-cat-emoji-preview">🍽</span>
+        <input class="fi" id="cfg-cat-emoji" placeholder="🍽" style="width:70px" oninput="document.getElementById('cfg-cat-emoji-preview').textContent=this.value||'🍽'">
+        <button type="button" class="btn btn-sm" onclick="toggleEmojiPicker('cat-ep','cfg-cat-emoji','cfg-cat-emoji-preview')" style="flex-shrink:0">Elegir</button>
+        <div class="emoji-picker" id="cat-ep"></div>
+      </div>
+    </div>
       <div class="fl"><label>Orden</label><input class="fi" id="cfg-cat-order" type="number" value="1"></div>
     </div>
     <div class="mf"><button class="btn" onclick="closeM('cfg-add-category-modal')">Cancelar</button><button class="btn btn-p" onclick="cfgSaveCategory()">+ Agregar</button></div>
@@ -1591,7 +1607,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
       <div class="fl"><label>Descripcion</label><input class="fi" id="cfg-item-desc" placeholder="Ingredientes..."></div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
         <div class="fl"><label>Precio (MXN)</label><input class="fi" id="cfg-item-price" type="number" placeholder="200"></div>
-        <div class="fl"><label>Emoji</label><input class="fi" id="cfg-item-emoji" placeholder="🍕"></div>
+        <div class="fl"><label>Emoji del producto</label>
+      <div class="emoji-wrap">
+        <span class="emoji-preview" id="cfg-item-emoji-preview">🍕</span>
+        <input class="fi" id="cfg-item-emoji" placeholder="🍕" style="width:70px" oninput="document.getElementById('cfg-item-emoji-preview').textContent=this.value||'🍕'">
+        <button type="button" class="btn btn-sm" onclick="toggleEmojiPicker('item-ep','cfg-item-emoji','cfg-item-emoji-preview')" style="flex-shrink:0">Elegir</button>
+        <div class="emoji-picker" id="item-ep"></div>
+      </div>
+    </div>
         <div class="fl"><label>Disponible</label>
           <select class="fs" id="cfg-item-available"><option value="true">Si</option><option value="false">No</option></select>
         </div>
@@ -3861,6 +3884,7 @@ function cfgOpenEditItem(item) {
   document.getElementById('cfg-item-desc').value = item.description || ''
   document.getElementById('cfg-item-price').value = item.price || ''
   document.getElementById('cfg-item-emoji').value = item.emoji || '🍕'
+  document.getElementById('cfg-item-emoji-preview').textContent = item.emoji || '🍕'
   document.getElementById('cfg-item-available').value = item.available ? 'true' : 'false'
   document.getElementById('cfg-item-cat').value = item.category_id || ''
   document.getElementById('cfg-item-modal-title').textContent = 'Editar: ' + item.name
@@ -5005,6 +5029,60 @@ function showRappiAlert(order) {
 
 // Poll every 30 seconds for new Rappi orders
 setInterval(checkRappiOrders, 30000)
+
+
+// ── EMOJI PICKER ──────────────────────────────────────────────
+const EMOJI_DATA = {
+  'Pizzas & Comida': ['🍕','🫓','🥖','🧆','🥗','🥙','🌮','🌯','🥪','🧇','🥞','🍔','🌭','🥨','🧀','🥚','🍳','🥓','🥩','🍗','🍖','🌶️','🧄','🧅','🥕','🌽','🥦','🥬','🥒','🍅','🍆','🥑'],
+  'Bebidas': ['🥤','🧃','🍺','🍻','🥂','🍷','🍸','🍹','🧉','☕','🍵','🧋','🫖','💧','🧊'],
+  'Postres': ['🍰','🎂','🧁','🍩','🍪','🍫','🍬','🍭','🍮','🍯','🍦','🍧','🍨','🍡','🍢','🧁'],
+  'Ingredientes': ['🧄','🧅','🌿','🫒','🧂','🫙','🥫','🍋','🫑','🌰','🫚','🧈','🥜','🫘'],
+  'Especiales': ['⭐','🌟','✨','🔥','💥','🎉','🎊','🏆','💎','👑','❤️','💛','💚','💙','💜','🖤','🤍','🎯','🆕','🔝','🆙','🆒','🌈'],
+  'Números & Letras': ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔤','🅰️','🅱️','🆎','🅾️'],
+  'Otros': ['🏠','🛵','🚗','✈️','🌍','🌙','☀️','⚡','💨','🌊','🏔️','🎸','🎵','🎶','📦','🛒','💰','💳','📱','🖥️','⌚']
+}
+
+let _epTarget = null
+let _epPreview = null
+
+function buildEmojiPicker(pickerId) {
+  const el = document.getElementById(pickerId)
+  if(!el || el.innerHTML) return  // already built
+  el.innerHTML = Object.entries(EMOJI_DATA).map(([section, emojis]) =>
+    `<div class="ep-section">${section}</div>` +
+    `<div class="emoji-picker-grid">` +
+    emojis.map(e =>
+      `<button class="ep-btn" onclick="selectEmoji('${pickerId}','${e}')" title="${e}">${e}</button>`
+    ).join('') +
+    `</div>`
+  ).join('')
+}
+
+function toggleEmojiPicker(pickerId, inputId, previewId) {
+  buildEmojiPicker(pickerId)
+  const el = document.getElementById(pickerId)
+  const isOpen = el.classList.contains('open')
+  // Close all pickers
+  document.querySelectorAll('.emoji-picker').forEach(p => p.classList.remove('open'))
+  if(!isOpen) {
+    el.classList.add('open')
+    _epTarget  = inputId
+    _epPreview = previewId
+  }
+}
+
+function selectEmoji(pickerId, emoji) {
+  if(_epTarget)  document.getElementById(_epTarget).value = emoji
+  if(_epPreview) document.getElementById(_epPreview).textContent = emoji
+  document.getElementById(pickerId).classList.remove('open')
+}
+
+// Close picker when clicking outside
+document.addEventListener('click', function(e) {
+  if(!e.target.closest('.emoji-wrap')) {
+    document.querySelectorAll('.emoji-picker').forEach(p => p.classList.remove('open'))
+  }
+})
 
 // ── RECETAS TAB ───────────────────────────────────────────────
 const _SB_URL  = 'https://vmvrigshxffagblmpvyf.supabase.co'
