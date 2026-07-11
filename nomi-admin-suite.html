@@ -2349,59 +2349,63 @@ function anRenderProducts(orders) {
   const allSorted = Object.entries(items).sort((a,b)=>b[1].qty-a[1].qty)
   if(!allSorted.length) { el.innerHTML = '<div class="empty">Sin datos de productos</div>'; return }
 
-  // Total pizzas sold (sum of all items)
   const totalPizzas = Object.values(items).reduce((s,v) => s+v.qty, 0)
   const totalRev    = Object.values(items).reduce((s,v) => s+v.rev, 0)
   const maxQty      = allSorted[0][1].qty
 
-  // Track show-all state per render
-  if(typeof el._showAll === 'undefined') el._showAll = false
+  // Store data globally for toggle
+  window._anProdData = { allSorted, totalPizzas, totalRev, maxQty }
+  anRenderProdRows(false)
+}
 
-  function renderProductRows(showAll) {
-    el._showAll = showAll
-    const sorted = showAll ? allSorted : allSorted.slice(0,10)
-    const rows = sorted.map(([name,v], i) => `
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <div style="width:16px;font-size:11px;color:var(--ink60);text-align:right;flex-shrink:0">${i+1}</div>
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
-            <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
-            <div style="font-size:10px;color:var(--ink60);flex-shrink:0;margin-left:6px">${Math.round(v.qty/totalPizzas*100)}%</div>
-          </div>
-          <div style="background:var(--ink10);border-radius:4px;height:7px;overflow:hidden">
-            <div style="height:100%;width:${Math.round(v.qty/maxQty*100)}%;background:var(--red);border-radius:4px"></div>
-          </div>
-        </div>
-        <div style="flex-shrink:0;text-align:right">
-          <div style="font-size:12px;font-weight:700">${v.qty} uds</div>
-          <div style="font-size:10px;color:var(--ink60)">${fmt(v.rev)}</div>
-        </div>
-      </div>`).join('')
+function anRenderProdRows(showAll) {
+  const { allSorted, totalPizzas, totalRev, maxQty } = window._anProdData || {}
+  if(!allSorted) return
+  const el = document.getElementById('an-products')
+  if(!el) return
 
-    const toggleBtn = allSorted.length > 10 ? `
-      <button onclick="(${renderProductRows.toString()})(${!showAll})"
-        style="width:100%;margin-top:6px;padding:8px;background:none;border:1px solid var(--ink20);border-radius:var(--rsm);font-family:inherit;font-size:12px;color:var(--ink60);cursor:pointer">
-        ${showAll ? '▲ Ver menos' : `▼ Ver todos (${allSorted.length} productos)`}
+  const sorted = showAll ? allSorted : allSorted.slice(0,10)
+
+  const summary = `<div style="display:flex;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--ink10)">
+    <div style="flex:1;text-align:center;padding:10px;background:var(--cream);border-radius:var(--rsm)">
+      <div style="font-size:24px;font-weight:700;color:var(--red)">${totalPizzas.toLocaleString()}</div>
+      <div style="font-size:10px;color:var(--ink60);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Total vendidas</div>
+    </div>
+    <div style="flex:1;text-align:center;padding:10px;background:var(--cream);border-radius:var(--rsm)">
+      <div style="font-size:24px;font-weight:700;color:var(--ink)">${allSorted.length}</div>
+      <div style="font-size:10px;color:var(--ink60);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Productos distintos</div>
+    </div>
+    <div style="flex:1;text-align:center;padding:10px;background:var(--cream);border-radius:var(--rsm)">
+      <div style="font-size:18px;font-weight:700;color:var(--ink)">${fmt(totalRev)}</div>
+      <div style="font-size:10px;color:var(--ink60);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Ingresos</div>
+    </div>
+  </div>`
+
+  const rows = sorted.map(([name,v], i) =>
+    `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <div style="width:16px;font-size:11px;color:var(--ink60);text-align:right;flex-shrink:0">${i+1}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+          <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
+          <div style="font-size:10px;color:var(--ink60);flex-shrink:0;margin-left:6px">${Math.round(v.qty/totalPizzas*100)}%</div>
+        </div>
+        <div style="background:var(--ink10);border-radius:4px;height:7px;overflow:hidden">
+          <div style="height:100%;width:${Math.round(v.qty/maxQty*100)}%;background:var(--red);border-radius:4px"></div>
+        </div>
+      </div>
+      <div style="flex-shrink:0;text-align:right">
+        <div style="font-size:12px;font-weight:700">${v.qty} uds</div>
+        <div style="font-size:10px;color:var(--ink60)">${fmt(v.rev)}</div>
+      </div>
+    </div>`
+  ).join('')
+
+  const toggleBtn = allSorted.length > 10
+    ? `<button onclick="anRenderProdRows(${!showAll})" style="width:100%;margin-top:6px;padding:8px;background:none;border:1px solid var(--ink20);border-radius:var(--rsm);font-family:inherit;font-size:12px;color:var(--ink60);cursor:pointer">
+        ${showAll ? '▲ Ver menos' : '▼ Ver todos (' + allSorted.length + ' productos)'}
       </button>` : ''
 
-    document.getElementById('an-products').innerHTML =
-      `<div style="display:flex;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--ink10)">
-        <div style="flex:1;text-align:center;padding:10px;background:var(--cream);border-radius:var(--rsm)">
-          <div style="font-size:24px;font-weight:700;color:var(--red)">${totalPizzas.toLocaleString()}</div>
-          <div style="font-size:10px;color:var(--ink60);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Total vendidas</div>
-        </div>
-        <div style="flex:1;text-align:center;padding:10px;background:var(--cream);border-radius:var(--rsm)">
-          <div style="font-size:24px;font-weight:700;color:var(--ink)">${allSorted.length}</div>
-          <div style="font-size:10px;color:var(--ink60);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Productos distintos</div>
-        </div>
-        <div style="flex:1;text-align:center;padding:10px;background:var(--cream);border-radius:var(--rsm)">
-          <div style="font-size:18px;font-weight:700;color:var(--ink)">${fmt(totalRev)}</div>
-          <div style="font-size:10px;color:var(--ink60);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Ingresos</div>
-        </div>
-      </div>` + rows + toggleBtn
-  }
-
-  renderProductRows(el._showAll)
+  el.innerHTML = summary + rows + toggleBtn
 }
 
 function anRenderTypes(orders) {
