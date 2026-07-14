@@ -1594,6 +1594,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
       </div>
     </div>
       <div class="fl"><label>Orden</label><input class="fi" id="cfg-cat-order" type="number" value="1"></div>
+      <input type="hidden" id="cfg-cat-id">
     </div>
     <div class="mf"><button class="btn" onclick="closeM('cfg-add-category-modal')">Cancelar</button><button class="btn btn-p" onclick="cfgSaveCategory()">+ Agregar</button></div>
   </div>
@@ -3850,6 +3851,7 @@ async function cfgLoadMenu() {
             </div>
             <div style="display:flex;gap:6px">
               <button class="btn btn-sm" onclick="cfgOpenAddItem('${cat.id}')">+ Item</button>
+              <button class="btn btn-sm" onclick="cfgEditCategory('${cat.id}','${cat.name}','${cat.emoji||''}',${cat.sort_order||1})">✏️</button>
               <button class="btn btn-sm" style="color:#EF4444;border-color:#EF4444" onclick="cfgDeleteCategory('${cat.id}','${cat.name}')">🗑</button>
             </div>
           </div>
@@ -3947,49 +3949,66 @@ async function cfgDeleteItem() {
   } catch(e) { showToast('Error', false) }
 }
 
+function cfgEditCategory(id, name, emoji, sortOrder) {
+  document.getElementById('cfg-cat-id').value = id
+  document.getElementById('cfg-cat-name').value = name
+  document.getElementById('cfg-cat-emoji').value = emoji
+  document.getElementById('cfg-cat-emoji-preview').textContent = emoji || '🍽'
+  document.getElementById('cfg-cat-order').value = sortOrder
+  document.getElementById('cfg-cat-modal-title').textContent = 'Editar categoría'
+  openM('cfg-add-category-modal')
+}
+
 async function cfgSaveCategory() {
-  const name = document.getElementById('cfg-cat-name').value.trim()
+  const id       = document.getElementById('cfg-cat-id').value
+  const name     = document.getElementById('cfg-cat-name').value.trim()
   if(!name) { showToast('Ingresa el nombre de la categoría', false); return }
   const emoji      = document.getElementById('cfg-cat-emoji').value.trim() || '🍽'
   const sort_order = Number(document.getElementById('cfg-cat-order').value) || 1
+  const isEdit = !!id
   try {
-    // Try API first
-    const apiRes = await fetch('/api/menu', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ type: 'category', name, emoji, sort_order })
-    })
-    if(!apiRes.ok) throw new Error('API ' + apiRes.status)
-    showToast('Categoría "' + name + '" agregada ✓')
-  } catch(apiErr) {
-    // Fallback: write directly to Supabase
-    try {
-      const sbRes = await fetch(_SB_URL + '/rest/v1/categories', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': _SB_ANON,
-          'Authorization': 'Bearer ' + _SB_ANON,
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({ name, emoji, sort_order, active: true })
+    if(isEdit) {
+      // Update via Supabase (service role via API PATCH)
+      const res = await fetch('/api/menu', {
+        method: 'PATCH',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ type: 'category', id, name, emoji, sort_order })
       })
-      if(!sbRes.ok) {
-        const err = await sbRes.json().catch(() => ({}))
-        throw new Error(err.message || sbRes.status)
-      }
+      if(!res.ok) throw new Error('API ' + res.status)
+      showToast('Categoría "' + name + '" actualizada ✓')
+    } else {
+      // Create via API
+      const apiRes = await fetch('/api/menu', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ type: 'category', name, emoji, sort_order })
+      })
+      if(!apiRes.ok) throw new Error('API ' + apiRes.status)
       showToast('Categoría "' + name + '" agregada ✓')
-    } catch(sbErr) {
-      showToast('Error al guardar: ' + sbErr.message, false)
-      return
     }
+  } catch(e) {
+    // Fallback: direct Supabase
+    try {
+      const method = isEdit ? 'PATCH' : 'POST'
+      const url    = isEdit
+        ? _SB_URL + '/rest/v1/categories?id=eq.' + id
+        : _SB_URL + '/rest/v1/categories'
+      const sbRes = await fetch(url, {
+        method,
+        headers: { 'Content-Type':'application/json', 'apikey':_SB_ANON, 'Authorization':'Bearer '+_SB_ANON, 'Prefer':'return=representation' },
+        body: JSON.stringify(isEdit ? { name, emoji, sort_order } : { name, emoji, sort_order, active:true })
+      })
+      if(!sbRes.ok) { const err = await sbRes.json().catch(()=>({})); throw new Error(err.message||sbRes.status) }
+      showToast('Categoría "' + name + '" ' + (isEdit ? 'actualizada' : 'agregada') + ' ✓')
+    } catch(sbErr) { showToast('Error: ' + sbErr.message, false); return }
   }
   closeM('cfg-add-category-modal')
+  document.getElementById('cfg-cat-id').value = ''
   document.getElementById('cfg-cat-name').value = ''
   document.getElementById('cfg-cat-emoji').value = ''
   document.getElementById('cfg-cat-order').value = '1'
-  cfgLoadMenu()
-  loadMenu()
+  document.getElementById('cfg-cat-modal-title').textContent = 'Nueva categoría'
+  cfgLoadMenu(); loadMenu()
 }
 
 async function cfgDeleteCategory(id, name) {
