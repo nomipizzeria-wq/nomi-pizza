@@ -45,7 +45,13 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PATCH') {
-      const { id, ...updates } = req.body
+      const { id, type, ...updates } = req.body
+      if (type === 'category') {
+        const { data, error } = await supabase
+          .from('categories').update(updates).eq('id', id).select().single()
+        if (error) throw error
+        return res.status(200).json(data)
+      }
       const { data, error } = await supabase
         .from('menu_items').update(updates).eq('id', id).select().single()
       if (error) throw error
