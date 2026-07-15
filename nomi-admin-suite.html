@@ -276,23 +276,27 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
 .an-h-bar{height:8px;border-radius:4px;background:var(--red);transition:.4s}
 .an-pm-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 /* FLOOR PLAN */
-#floor-canvas{position:relative;width:100%;height:520px;background:repeating-linear-gradient(0deg,transparent,transparent 39px,var(--ink10) 39px,var(--ink10) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,var(--ink10) 39px,var(--ink10) 40px);background-color:var(--cream);border-radius:var(--r);overflow:hidden;touch-action:none;user-select:none}
-.ftable{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:box-shadow .15s;font-family:inherit}
+#floor-canvas{position:relative;width:100%;height:560px;background:repeating-linear-gradient(0deg,transparent,transparent 39px,var(--ink10) 39px,var(--ink10) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,var(--ink10) 39px,var(--ink10) 40px);background-color:var(--cream);border-radius:var(--r);overflow:hidden;touch-action:none;user-select:none}
+.ftable{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;box-sizing:border-box;transition:box-shadow .15s}
 .ftable.available{background:#fff;border:2px solid #22C55E;color:#166534}
 .ftable.occupied{background:#FEF2F2;border:2px solid #EF4444;color:#991B1B}
 .ftable.ready{background:#FFFBEB;border:2px solid #F59E0B;color:#92400E}
 .ftable.reserved{background:#F0F9FF;border:2px solid #0EA5E9;color:#075985}
 .ftable.ft-round{border-radius:50%}
-.ftable.ft-rect{border-radius:8px}
+.ftable.ft-rect,.ftable.ft-rect-large{border-radius:8px}
 .ftable.ft-square{border-radius:10px}
+.ftable.editing{cursor:grab;box-shadow:0 0 0 3px rgba(206,56,39,.4)}
+.ftable.editing:active{cursor:grabbing}
+.ftable.ft-selected{box-shadow:0 0 0 3px var(--red)!important;z-index:50}
 .ftable-num{font-size:15px;font-weight:700;line-height:1}
 .ftable-cap{font-size:9px;opacity:.7;margin-top:2px}
 .ftable-status{font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
-.ftable.editing{box-shadow:0 0 0 3px var(--red);cursor:grab}
-.ftable.editing:active{cursor:grabbing}
-.ft-shape-picker{position:absolute;background:var(--wh);border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.15);padding:10px;display:flex;gap:6px;z-index:100}
-.ft-shape-btn{padding:6px 10px;border-radius:var(--rsm);border:1px solid var(--ink20);background:none;cursor:pointer;font-size:11px;font-family:inherit;white-space:nowrap}
+#ft-panel{position:fixed;background:var(--wh);border-radius:var(--r);box-shadow:0 8px 32px rgba(0,0,0,.18);padding:14px;z-index:9000;min-width:220px;display:none}
+.ft-panel-title{font-size:10px;font-weight:700;color:var(--ink60);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+.ft-shape-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.ft-shape-btn{padding:8px 6px;border-radius:var(--rsm);border:1.5px solid var(--ink20);background:none;cursor:pointer;font-size:11px;font-family:inherit;text-align:center;transition:all .1s}
 .ft-shape-btn.active{background:var(--red);color:#fff;border-color:var(--red)}
+.ft-shape-btn:hover:not(.active){background:var(--cream)}
 
 .emoji-picker{display:none;position:absolute;z-index:999;background:var(--wh);border:1px solid var(--ink10);border-radius:var(--r);box-shadow:0 8px 24px rgba(0,0,0,.12);padding:10px;width:280px;max-height:220px;overflow-y:auto}
 .emoji-picker.open{display:block}
@@ -492,25 +496,44 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
           <button class="btn btn-sm" id="floor-edit-btn" onclick="toggleFloorEdit()">✏️ Editar disposición</button>
         </div>
       </div>
-      <!-- Edit mode toolbar -->
-      <div id="floor-toolbar" style="display:none;background:var(--cream);border-radius:var(--r);padding:10px 14px;margin-bottom:10px;display:none;align-items:center;gap:10px;flex-wrap:wrap">
-        <span style="font-size:12px;color:var(--ink60)">Arrastra las mesas para moverlas · Clic en mesa para cambiar forma</span>
+      <!-- Edit toolbar -->
+      <div id="floor-toolbar" style="display:none;background:var(--cream);border-radius:var(--r);padding:10px 14px;margin-bottom:10px;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--ink60)">Arrastra mesas · Toca mesa para editar forma, tamaño o eliminarla</span>
         <div style="margin-left:auto;display:flex;gap:6px">
-          <button class="btn btn-sm" onclick="saveFloorLayout()" style="background:var(--red);color:#fff;border-color:var(--red)">✓ Guardar</button>
+          <button class="btn btn-sm btn-p" onclick="addNewTable()" style="background:var(--red);color:#fff;border-color:var(--red)">+ Mesa</button>
+          <button class="btn btn-sm" onclick="saveFloorLayout()" style="background:#166534;color:#fff;border-color:#166534">✓ Guardar</button>
           <button class="btn btn-sm" onclick="toggleFloorEdit()">Cancelar</button>
         </div>
       </div>
-      <!-- Floor plan canvas -->
+      <!-- Canvas -->
       <div class="card" style="padding:0;overflow:hidden">
         <div id="floor-canvas"></div>
       </div>
-      <!-- Shape picker (shown on table click in edit mode) -->
-      <div id="ft-shape-picker" class="ft-shape-picker" style="display:none">
-        <button class="ft-shape-btn" onclick="setTableShape('square')">⬛ Cuadrada</button>
-        <button class="ft-shape-btn" onclick="setTableShape('round')">⭕ Redonda</button>
-        <button class="ft-shape-btn" onclick="setTableShape('rect')">▬ Rectangular</button>
-        <button class="ft-shape-btn" onclick="setTableShape('rect-large')">▬▬ Grande</button>
-        <button class="ft-shape-btn" style="color:var(--ink60)" onclick="hideShapePicker()">✕</button>
+      <!-- Floating panel (outside canvas so it survives canvas re-renders) -->
+      <div id="ft-panel">
+        <div class="ft-panel-title" id="ft-panel-title">Mesa X</div>
+        <div class="ft-panel-title">Forma</div>
+        <div class="ft-shape-grid">
+          <button class="ft-shape-btn" data-shape="square"  onclick="applyTableProp('shape','square')">⬛ Cuadrada</button>
+          <button class="ft-shape-btn" data-shape="round"   onclick="applyTableProp('shape','round')">⭕ Redonda</button>
+          <button class="ft-shape-btn" data-shape="rect"    onclick="applyTableProp('shape','rect')">▬ Rectangular</button>
+          <button class="ft-shape-btn" data-shape="rect-large" onclick="applyTableProp('shape','rect-large')">▬▬ Larga</button>
+        </div>
+        <div class="ft-panel-title">Tamaño</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <button class="ft-shape-btn" data-size="sm" onclick="applyTableProp('size','sm')" style="flex:1">S</button>
+          <button class="ft-shape-btn" data-size="md" onclick="applyTableProp('size','md')" style="flex:1">M</button>
+          <button class="ft-shape-btn" data-size="lg" onclick="applyTableProp('size','lg')" style="flex:1">L</button>
+        </div>
+        <div class="ft-panel-title">Personas</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <button onclick="applyTableProp('cap',-1)" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--ink20);background:none;cursor:pointer;font-size:16px">−</button>
+          <span id="ft-cap-val" style="font-size:14px;font-weight:600;min-width:20px;text-align:center">4</span>
+          <button onclick="applyTableProp('cap',1)"  style="width:28px;height:28px;border-radius:50%;border:1px solid var(--ink20);background:none;cursor:pointer;font-size:16px">+</button>
+          <span style="font-size:11px;color:var(--ink60)">personas</span>
+        </div>
+        <button onclick="deleteSelectedTable()" style="width:100%;padding:8px;background:#FEF2F2;border:1px solid #EF4444;border-radius:var(--rsm);color:#EF4444;font-family:inherit;font-size:12px;cursor:pointer;margin-bottom:6px">🗑 Eliminar mesa</button>
+        <button onclick="hideFtPanel()" style="width:100%;padding:6px;background:none;border:1px solid var(--ink20);border-radius:var(--rsm);font-family:inherit;font-size:12px;color:var(--ink60);cursor:pointer">Cerrar</button>
       </div>
     </div>
 
@@ -2027,195 +2050,206 @@ async function updO(id,status){try{await api('orders',{method:'PATCH',body:{id,s
 
 // TABLES
 
-// ── FLOOR PLAN ────────────────────────────────────────────────
-let _floorTables = []
-let _floorEditing = false
-let _floorDragging = null
-let _floorDragOffset = {x:0,y:0}
-let _floorLayouts = {}  // id → {x,y,shape}
+// ── FLOOR PLAN ─────────────────────────────────────────────────
+let _floorTables   = []
+let _floorEditing  = false
 let _floorSelected = null
+let _floorLayouts  = {}
 
-const SHAPE_SIZE = {
-  square:     {w:72,  h:72},
-  round:      {w:72,  h:72},
-  rect:       {w:100, h:64},
-  'rect-large':{w:130, h:64}
+const FT_BASE = { square:{w:76,h:76}, round:{w:76,h:76}, rect:{w:110,h:68}, 'rect-large':{w:140,h:68} }
+const FT_SCALE = {sm:0.75, md:1.0, lg:1.3}
+const STATUS_LBL = {available:'Libre',occupied:'Ocupada',ready:'Cuenta',reserved:'Reservada'}
+
+function ftGetDims(shape, size) {
+  const base = FT_BASE[shape]||FT_BASE.square
+  const scale = FT_SCALE[size]||1
+  return {w:Math.round(base.w*scale), h:Math.round(base.h*scale)}
 }
-const STATUS_LABELS = {available:'Libre',occupied:'Ocupada',ready:'Cuenta',reserved:'Reservada'}
-
 function loadFloorLayouts() {
-  try { _floorLayouts = JSON.parse(localStorage.getItem('nomi_floor_v2')||'{}') } catch(e) { _floorLayouts={} }
+  try { _floorLayouts = JSON.parse(localStorage.getItem('nomi_floor_v3')||'{}') } catch(e) { _floorLayouts={} }
 }
-
 function saveFloorLayout() {
-  localStorage.setItem('nomi_floor_v2', JSON.stringify(_floorLayouts))
+  localStorage.setItem('nomi_floor_v3', JSON.stringify(_floorLayouts))
   showToast('Disposición guardada ✓')
   toggleFloorEdit()
 }
-
 function toggleFloorEdit() {
   _floorEditing = !_floorEditing
-  hideShapePicker()
-  const btn     = document.getElementById('floor-edit-btn')
-  const toolbar = document.getElementById('floor-toolbar')
-  if(btn) btn.textContent = _floorEditing ? '✕ Editando...' : '✏️ Editar disposición'
-  if(toolbar) toolbar.style.display = _floorEditing ? 'flex' : 'none'
+  hideFtPanel()
+  const btn = document.getElementById('floor-edit-btn')
+  const tb  = document.getElementById('floor-toolbar')
+  if(btn) btn.textContent = _floorEditing ? '✕ Modo edición' : '✏️ Editar disposición'
+  if(tb)  tb.style.display = _floorEditing ? 'flex' : 'none'
   renderFloor()
 }
-
-function hideShapePicker() {
+function hideFtPanel() {
   _floorSelected = null
-  const p = document.getElementById('ft-shape-picker')
+  const p = document.getElementById('ft-panel')
   if(p) p.style.display = 'none'
+  document.querySelectorAll('.ftable.ft-selected').forEach(el => el.classList.remove('ft-selected'))
 }
-
-function setTableShape(shape) {
+function showFtPanel(tableId) {
+  _floorSelected = tableId
+  const lay   = _floorLayouts[tableId]||{}
+  const t     = _floorTables.find(x=>x.id===tableId)||{}
+  const cap   = lay.capacity!==undefined ? lay.capacity : (t.capacity||4)
+  const shape = lay.shape||'square'
+  const size  = lay.size||'md'
+  const panel = document.getElementById('ft-panel')
+  const titleEl = document.getElementById('ft-panel-title')
+  const capEl   = document.getElementById('ft-cap-val')
+  if(titleEl) titleEl.textContent = 'Mesa ' + (t.number||'')
+  if(capEl)   capEl.textContent   = cap
+  panel.querySelectorAll('[data-shape]').forEach(b => b.classList.toggle('active', b.dataset.shape===shape))
+  panel.querySelectorAll('[data-size]').forEach(b  => b.classList.toggle('active', b.dataset.size===size))
+  const dims   = ftGetDims(shape, size)
+  const canvas = document.getElementById('floor-canvas')
+  const cr     = canvas.getBoundingClientRect()
+  const tx     = (lay.x||0) + cr.left
+  const ty     = (lay.y||0) + cr.top + dims.h + 8
+  const px     = Math.min(Math.max(tx,8), window.innerWidth-238)
+  const py     = Math.min(Math.max(ty,8), window.innerHeight-320)
+  panel.style.left    = px+'px'
+  panel.style.top     = py+'px'
+  panel.style.display = 'block'
+  document.querySelectorAll('.ftable').forEach(el => el.classList.remove('ft-selected'))
+  const selEl = document.querySelector('.ftable[data-id="'+tableId+'"]')
+  if(selEl) selEl.classList.add('ft-selected')
+}
+function applyTableProp(prop, val) {
   if(!_floorSelected) return
-  const lay = _floorLayouts[_floorSelected] || {}
-  _floorLayouts[_floorSelected] = {...lay, shape}
-  hideShapePicker()
+  const lay = _floorLayouts[_floorSelected]||{}
+  if(prop==='shape') _floorLayouts[_floorSelected] = {...lay, shape:val}
+  else if(prop==='size') _floorLayouts[_floorSelected] = {...lay, size:val}
+  else if(prop==='cap') {
+    const t = _floorTables.find(x=>x.id===_floorSelected)||{}
+    const cur = lay.capacity!==undefined ? lay.capacity : (t.capacity||4)
+    _floorLayouts[_floorSelected] = {...lay, capacity:Math.max(1,cur+val)}
+  }
+  const saved = _floorSelected
   renderFloor()
+  showFtPanel(saved)
 }
-
+async function deleteSelectedTable() {
+  if(!_floorSelected) return
+  const t = _floorTables.find(x=>x.id===_floorSelected)
+  if(!t || !confirm('Eliminar mesa '+t.number+'?')) return
+  try {
+    await fetch(_SB_URL+'/rest/v1/restaurant_tables?id=eq.'+_floorSelected,
+      {method:'DELETE',headers:{'apikey':_SB_ANON,'Authorization':'Bearer '+_SB_ANON}})
+    delete _floorLayouts[_floorSelected]
+    hideFtPanel()
+    await loadTables()
+    showToast('Mesa eliminada ✓')
+  } catch(e) { showToast('Error: '+e.message, false) }
+}
+async function addNewTable() {
+  const nextNum = _floorTables.length ? Math.max(..._floorTables.map(t=>Number(t.number)||0))+1 : 1
+  try {
+    const res = await fetch(_SB_URL+'/rest/v1/restaurant_tables',{
+      method:'POST',
+      headers:{'apikey':_SB_ANON,'Authorization':'Bearer '+_SB_ANON,'Content-Type':'application/json','Prefer':'return=representation'},
+      body:JSON.stringify({number:String(nextNum),capacity:4,status:'available'})
+    })
+    if(!res.ok) throw new Error(await res.text())
+    const [newTable] = await res.json()
+    if(newTable?.id) {
+      const cw = document.getElementById('floor-canvas')?.offsetWidth||600
+      _floorLayouts[newTable.id] = {x:Math.min(20+(_floorTables.length%5)*100, cw-120), y:20+Math.floor(_floorTables.length/5)*110, shape:'square', size:'md'}
+    }
+    await loadTables()
+    showToast('Mesa '+nextNum+' agregada ✓')
+  } catch(e) { showToast('Error: '+e.message, false) }
+}
 async function loadTables() {
   loadFloorLayouts()
   try {
-    const t = await api('tables') || []
+    const t = await api('tables')||[]
     _floorTables = t
-    document.getElementById('ta').textContent = t.filter(x=>x.status==='available').length + ' Libres'
-    document.getElementById('to').textContent = t.filter(x=>x.status==='occupied').length + ' Ocupadas'
-    document.getElementById('tr').textContent = t.filter(x=>x.status==='ready').length + ' Cuenta'
+    document.getElementById('ta').textContent = t.filter(x=>x.status==='available').length+' Libres'
+    document.getElementById('to').textContent = t.filter(x=>x.status==='occupied').length+' Ocupadas'
+    document.getElementById('tr').textContent = t.filter(x=>x.status==='ready').length+' Cuenta'
     renderFloor()
   } catch(e) { showToast('Error cargando mesas', false) }
 }
-
 function renderFloor() {
   const canvas = document.getElementById('floor-canvas')
   if(!canvas) return
-  canvas.innerHTML = ''
-  const cw = canvas.offsetWidth || 600
-  const ch = canvas.offsetHeight || 520
-
+  canvas.querySelectorAll('.ftable').forEach(el => el.remove())
+  const cw = canvas.offsetWidth||600, ch = canvas.offsetHeight||560
   _floorTables.forEach((t, idx) => {
-    const lay   = _floorLayouts[t.id] || {}
-    const shape = lay.shape || 'square'
-    const sz    = SHAPE_SIZE[shape] || SHAPE_SIZE.square
-    // Default positions in a grid if not set
-    const cols  = Math.floor((cw - 20) / 120)
-    const col   = idx % cols
-    const row   = Math.floor(idx / cols)
-    const x     = lay.x !== undefined ? lay.x : 20 + col * 120
-    const y     = lay.y !== undefined ? lay.y : 20 + row * 110
-
-    const el = document.createElement('div')
-    el.className = `ftable ft-${shape} ${t.status||'available'}${_floorEditing?' editing':''}`
-    el.style.cssText = `left:${x}px;top:${y}px;width:${sz.w}px;height:${sz.h}px`
+    const lay   = _floorLayouts[t.id]||{}
+    const shape = lay.shape||'square'
+    const size  = lay.size||'md'
+    const cap   = lay.capacity!==undefined ? lay.capacity : (t.capacity||4)
+    const dims  = ftGetDims(shape, size)
+    const cols  = Math.max(1, Math.floor((cw-20)/110))
+    const x     = lay.x!==undefined ? lay.x : 20+(idx%cols)*110
+    const y     = lay.y!==undefined ? lay.y : 20+Math.floor(idx/cols)*110
+    const el    = document.createElement('div')
+    el.className= `ftable ft-${shape}${_floorEditing?' editing':''} ${t.status||'available'}${_floorSelected===t.id?' ft-selected':''}`
+    el.style.cssText = `left:${x}px;top:${y}px;width:${dims.w}px;height:${dims.h}px`
     el.dataset.id = t.id
-    el.innerHTML = `
-      <div class="ftable-num">${t.number}</div>
-      <div class="ftable-cap">${t.capacity||4} pers.</div>
-      <div class="ftable-status">${STATUS_LABELS[t.status]||t.status||'Libre'}</div>`
-
+    el.innerHTML = `<div class="ftable-num">${t.number}</div><div class="ftable-cap">${cap} pers.</div><div class="ftable-status">${STATUS_LBL[t.status]||'Libre'}</div>`
     if(_floorEditing) {
-      // Drag handlers
-      el.addEventListener('mousedown',  e => startDrag(e, t.id, el))
-      el.addEventListener('touchstart', e => startDrag(e, t.id, el), {passive:false})
-      el.addEventListener('click', e => {
-        e.stopPropagation()
-        showShapePicker(t.id, x + sz.w/2, y + sz.h)
-      })
+      el.addEventListener('mousedown',  e => ftStartDrag(e, t.id))
+      el.addEventListener('touchstart', e => ftStartDrag(e, t.id), {passive:false})
     } else {
       el.addEventListener('click', () => togTbl(t.id, t.status, t.number))
     }
     canvas.appendChild(el)
   })
 }
-
-function showShapePicker(tableId, cx, cy) {
-  _floorSelected = tableId
-  const picker = document.getElementById('ft-shape-picker')
-  if(!picker) return
-  const canvas = document.getElementById('floor-canvas')
-  const canvasRect = canvas.getBoundingClientRect()
-  const shape = (_floorLayouts[tableId]||{}).shape || 'square'
-  picker.querySelectorAll('.ft-shape-btn').forEach(b => {
-    b.classList.toggle('active', b.textContent.toLowerCase().includes(shape))
-  })
-  picker.style.display = 'flex'
-  picker.style.left = Math.min(cx, canvasRect.width - 260) + 'px'
-  picker.style.top  = Math.min(cy + 8, canvasRect.height - 60) + 'px'
-  picker.style.position = 'absolute'
-  canvas.appendChild(picker)
-}
-
-function startDrag(e, tableId, el) {
+function ftStartDrag(e, tableId) {
   if(!_floorEditing) return
   e.preventDefault()
-  hideShapePicker()
   const canvas = document.getElementById('floor-canvas')
-  const rect   = canvas.getBoundingClientRect()
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY
-  const elLeft  = parseInt(el.style.left)
-  const elTop   = parseInt(el.style.top)
-
-  _floorDragging = { tableId, el }
-  _floorDragOffset = { x: clientX - rect.left - elLeft, y: clientY - rect.top - elTop }
+  const cr = canvas.getBoundingClientRect()
+  const cx = e.touches?e.touches[0].clientX:e.clientX
+  const cy = e.touches?e.touches[0].clientY:e.clientY
+  const el = canvas.querySelector('.ftable[data-id="'+tableId+'"]')
+  if(!el) return
+  const offX = cx-cr.left-parseInt(el.style.left)
+  const offY = cy-cr.top-parseInt(el.style.top)
+  let moved = false
   el.style.zIndex = 100
-  el.style.boxShadow = '0 8px 24px rgba(0,0,0,.2)'
-
   function onMove(ev) {
-    const mx = ev.touches ? ev.touches[0].clientX : ev.clientX
-    const my = ev.touches ? ev.touches[0].clientY : ev.clientY
-    const sz = SHAPE_SIZE[(_floorLayouts[tableId]||{}).shape||'square']
-    const nx = Math.max(0, Math.min(rect.width  - sz.w, mx - rect.left - _floorDragOffset.x))
-    const ny = Math.max(0, Math.min(rect.height - sz.h, my - rect.top  - _floorDragOffset.y))
-    // Snap to 10px grid
-    const sx = Math.round(nx/10)*10
-    const sy = Math.round(ny/10)*10
-    el.style.left = sx + 'px'
-    el.style.top  = sy + 'px'
-    _floorLayouts[tableId] = {...(_floorLayouts[tableId]||{}), x:sx, y:sy}
+    moved = true
+    const mx=ev.touches?ev.touches[0].clientX:ev.clientX
+    const my=ev.touches?ev.touches[0].clientY:ev.clientY
+    const lay=_floorLayouts[tableId]||{}
+    const {w,h}=ftGetDims(lay.shape||'square',lay.size||'md')
+    const nx=Math.round(Math.max(0,Math.min(cr.width-w,mx-cr.left-offX))/10)*10
+    const ny=Math.round(Math.max(0,Math.min(cr.height-h,my-cr.top-offY))/10)*10
+    el.style.left=nx+'px'; el.style.top=ny+'px'
+    _floorLayouts[tableId]={...(_floorLayouts[tableId]||{}),x:nx,y:ny}
   }
-
   function onEnd() {
-    if(_floorDragging) {
-      _floorDragging.el.style.zIndex = ''
-      _floorDragging.el.style.boxShadow = ''
-      _floorDragging = null
-    }
-    document.removeEventListener('mousemove', onMove)
-    document.removeEventListener('mouseup',   onEnd)
-    document.removeEventListener('touchmove', onMove)
-    document.removeEventListener('touchend',  onEnd)
+    el.style.zIndex=''
+    if(!moved||_floorSelected===tableId) showFtPanel(tableId)
+    document.removeEventListener('mousemove',onMove)
+    document.removeEventListener('mouseup',onEnd)
+    document.removeEventListener('touchmove',onMove)
+    document.removeEventListener('touchend',onEnd)
   }
-
-  document.addEventListener('mousemove', onMove)
-  document.addEventListener('mouseup',   onEnd)
-  document.addEventListener('touchmove', onMove, {passive:false})
-  document.addEventListener('touchend',  onEnd)
+  document.addEventListener('mousemove',onMove)
+  document.addEventListener('mouseup',onEnd)
+  document.addEventListener('touchmove',onMove,{passive:false})
+  document.addEventListener('touchend',onEnd)
 }
-
-async function togTbl(id, status, num) {
-  const next = {available:'occupied', occupied:'ready', ready:'available', reserved:'available'}
-  const lbl  = {available:'Disponible', occupied:'Ocupada', ready:'Cuenta', reserved:'Reservada'}
-  if(!confirm('Mesa ' + num + ' → ' + lbl[next[status]] + '?')) return
-  try {
-    await api('tables', {method:'PATCH', body:{id, status:next[status]}})
-    showToast('Mesa ' + num + ' actualizada')
-    loadTables()
-  } catch(e) { showToast('Error', false) }
+async function togTbl(id,status,num) {
+  const next={available:'occupied',occupied:'ready',ready:'available',reserved:'available'}
+  const lbl={available:'Disponible',occupied:'Ocupada',ready:'Cuenta',reserved:'Reservada'}
+  if(!confirm('Mesa '+num+' → '+lbl[next[status]]+'?')) return
+  try { await api('tables',{method:'PATCH',body:{id,status:next[status]}}); showToast('Mesa '+num+' actualizada'); loadTables() }
+  catch(e) { showToast('Error',false) }
 }
-
-// Close shape picker on canvas click
-document.addEventListener('click', function(e) {
-  if(_floorEditing && !e.target.closest('#ft-shape-picker') && !e.target.closest('.ftable')) {
-    hideShapePicker()
-  }
+document.addEventListener('click', e => {
+  if(!_floorEditing) return
+  if(!e.target.closest('#ft-panel')&&!e.target.closest('.ftable')) hideFtPanel()
 })
-
-// Resize rerender
 window.addEventListener('resize', () => { if(_floorTables.length) renderFloor() })
+
 
 
 
