@@ -2135,24 +2135,28 @@ async function deleteSelectedTable() {
   const t = _floorTables.find(x=>x.id===_floorSelected)
   if(!t || !confirm('Eliminar mesa '+t.number+'?')) return
   try {
-    await fetch(_SB_URL+'/rest/v1/restaurant_tables?id=eq.'+_floorSelected,
-      {method:'DELETE',headers:{'apikey':_SB_ANON,'Authorization':'Bearer '+_SB_ANON}})
+    const res = await fetch('/api/tables', {
+      method:'DELETE',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id:_floorSelected})
+    })
+    if(!res.ok) throw new Error((await res.json().catch(()=>({}))).error || res.status)
     delete _floorLayouts[_floorSelected]
     hideFtPanel()
     await loadTables()
-    showToast('Mesa eliminada ✓')
+    showToast('Mesa '+t.number+' eliminada ✓')
   } catch(e) { showToast('Error: '+e.message, false) }
 }
 async function addNewTable() {
   const nextNum = _floorTables.length ? Math.max(..._floorTables.map(t=>Number(t.number)||0))+1 : 1
   try {
-    const res = await fetch(_SB_URL+'/rest/v1/restaurant_tables',{
+    const res = await fetch('/api/tables', {
       method:'POST',
-      headers:{'apikey':_SB_ANON,'Authorization':'Bearer '+_SB_ANON,'Content-Type':'application/json','Prefer':'return=representation'},
-      body:JSON.stringify({number:String(nextNum),capacity:4,status:'available'})
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({number:String(nextNum), capacity:4, status:'available'})
     })
-    if(!res.ok) throw new Error(await res.text())
-    const [newTable] = await res.json()
+    if(!res.ok) throw new Error((await res.json().catch(()=>({}))).error || res.status)
+    const newTable = await res.json()
     if(newTable?.id) {
       const cw = document.getElementById('floor-canvas')?.offsetWidth||600
       _floorLayouts[newTable.id] = {x:Math.min(20+(_floorTables.length%5)*100, cw-120), y:20+Math.floor(_floorTables.length/5)*110, shape:'square', size:'md'}
