@@ -46,6 +46,14 @@ export default async function handler(req, res) {
     if (req.method === 'DELETE') {
       const { id } = req.body || {}
       if (!id) return res.status(400).json({ error: 'Missing id' })
+
+      // Nullify table_id on any orders referencing this table
+      // (prevents foreign key constraint violation)
+      await supabase
+        .from('orders')
+        .update({ table_id: null })
+        .eq('table_id', id)
+
       const { error } = await supabase
         .from('restaurant_tables').delete().eq('id', id)
       if (error) throw error
