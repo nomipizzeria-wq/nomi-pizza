@@ -7,7 +7,7 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, OPTIONS')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   if (req.method === 'OPTIONS') return res.status(200).end()
 
@@ -19,6 +19,13 @@ export default async function handler(req, res) {
         .order('number')
       if (error) throw error
       return res.status(200).json(data)
+    }
+
+    if (req.method === 'POST') {
+      const { data, error } = await supabase
+        .from('restaurant_tables').insert([req.body]).select().single()
+      if (error) throw error
+      return res.status(201).json(data)
     }
 
     if (req.method === 'PATCH') {
@@ -34,6 +41,15 @@ export default async function handler(req, res) {
         .from('restaurant_tables').update(updates).eq('id', id).select().single()
       if (error) throw error
       return res.status(200).json(data)
+    }
+
+    if (req.method === 'DELETE') {
+      const { id } = req.body || {}
+      if (!id) return res.status(400).json({ error: 'Missing id' })
+      const { error } = await supabase
+        .from('restaurant_tables').delete().eq('id', id)
+      if (error) throw error
+      return res.status(200).json({ ok: true })
     }
 
     return res.status(405).json({ error: 'Method not allowed' })
