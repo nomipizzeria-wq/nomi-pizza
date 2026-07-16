@@ -1895,8 +1895,9 @@ function onLoginSuccess(worker) {
   screen.style.opacity = '0'
   setTimeout(() => {
     screen.style.display = 'none'
-    // Update worker info in the app if functions exist
     if (typeof onWorkerLoggedIn === 'function') onWorkerLoggedIn(worker)
+    // Refresh dashboard data after login
+    if (typeof loadDash === 'function') loadDash()
   }, 300)
 }
 
@@ -1959,23 +1960,18 @@ async function api(path,opts={}){
 const titles={dashboard:'Dashboard',config:'Configuración',orders:'Pedidos',tables:'Mesas',pos:'POS',menu:'Menú',inventory:'Inventario',loyalty:'Lealtad',analytics:'Analíticas',workers:'Equipo'}
 
 function showPage(id,el){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
-  document.getElementById('page-'+id).classList.add('active')
-  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'))
-  if(el)el.classList.add('active')
-  document.getElementById('ptitle').textContent=titles[id]||id
-  if(id==='dashboard')loadDash()
-  if(id==='orders')loadOrders()
-  if(id==='tables')loadTables()
-  if(id==='pos')loadPOS()
-  if(id==='menu')loadMenu()
-  if(id==='inventory')loadInventory()
-  if(id==='loyalty')loadLoyalty()
-  if(id==='analytics'){ initAnalytics() }
-  if(id==='workers')loadWorkers()
-  if(id==='purchases')loadPurchases()
-  if(id==='inventory')loadInventory()
-  if(id==='config')loadConfig()
+  try {
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
+    const pg = document.getElementById('page-'+id)
+    if(!pg){ console.error('Page not found: page-'+id); return }
+    pg.classList.add('active')
+    document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'))
+    if(el)el.classList.add('active')
+    const titleEl = document.getElementById('ptitle')
+    if(titleEl) titleEl.textContent=titles[id]||id
+    const loaders={dashboard:loadDash,orders:loadOrders,tables:loadTables,pos:loadPOS,menu:loadMenu,inventory:loadInventory,loyalty:loadLoyalty,analytics:initAnalytics,workers:loadWorkers,purchases:loadPurchases,config:loadConfig}
+    if(loaders[id]) loaders[id]()
+  } catch(e){ console.error('showPage error:',e) }
 }
 
 var toastTimer
