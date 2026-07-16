@@ -1964,7 +1964,8 @@ function showPage(id,el){
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'))
   if(el)el.classList.add('active')
   document.getElementById('ptitle').textContent=titles[id]||id
-  if(id==='dashboard')  if(id==='orders')loadOrders()
+  if(id==='dashboard')loadDash()
+  if(id==='orders')loadOrders()
   if(id==='tables')loadTables()
   if(id==='pos')loadPOS()
   if(id==='menu')loadMenu()
