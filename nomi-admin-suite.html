@@ -2883,28 +2883,97 @@ function anRenderTable(orders) {
 async function anDownloadCSV() {
   if(!_anOrders.length) { showToast('Filtra primero un período', false); return }
   const orders = _anOrders
-  const PM   = {cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',mercado_pago:'Mercado Pago'}
+  const active = orders.filter(o => !['cancelled','voided','anulado'].includes(o.status))
+  const PM   = {cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',mercado_pago:'Mercado Pago',rappi:'Rappi'}
   const TYPE = {pickup:'Mostrador',dine_in:'Mesa',takeout:'Para llevar',delivery:'Domicilio'}
-  const rows = [['Fecha','Hora','# Orden','Tipo','Mesa','Cliente','Productos','Subtotal','Descuento','Propina','IVA','Total','Pago','Estado']]
+  const q = v => '"'+String(v==null?'':v).replace(/"/g,'""')+'"'
+  const row = (...cells) => cells.map(q).join(',')
+  const rows = []
+
+  // ── SECTION 1: RESUMEN ─────────────────────────────────────
+  const tot = active.reduce((a,o)=>({
+    sub:  a.sub  + Number(o.subtotal||0),
+    disc: a.disc + Number(o.discount||0),
+    tip:  a.tip  + Number(o.tip_amount||0),
+    tax:  a.tax  + Number(o.tax||0),
+    total:a.total+ Number(o.total||0)
+  }),{sub:0,disc:0,tip:0,tax:0,total:0})
+
+  const period = _anMode==='day' ? _anDate : _anFrom + ' al ' + _anTo
+  rows.push(row('REPORTE DE VENTAS — NOMI PIZZA BAR'))
+  rows.push(row('Período:', period))
+  rows.push(row('Generado:', new Date().toLocaleString('es-MX')))
+  rows.push('')
+  rows.push(row('RESUMEN'))
+  rows.push(row('Órdenes (válidas)', active.length))
+  rows.push(row('Subtotal', '$'+tot.sub.toFixed(2)))
+  rows.push(row('Descuentos', '$'+tot.disc.toFixed(2)))
+  rows.push(row('Propinas', '$'+tot.tip.toFixed(2)))
+  rows.push(row('IVA (incluido)', '$'+tot.tax.toFixed(2)))
+  rows.push(row('TOTAL', '$'+tot.total.toFixed(2)))
+  rows.push('')
+
+  // ── SECTION 2: VENTAS POR MÉTODO DE PAGO ──────────────────
+  rows.push(row('VENTAS POR MÉTODO DE PAGO'))
+  rows.push(row('Método', 'Órdenes', 'Total'))
+  const byPM = {}
+  active.forEach(o => {
+    const pm = PM[o.payment_method]||o.payment_method||'Otro'
+    if(!byPM[pm]) byPM[pm] = {count:0, total:0}
+    byPM[pm].count++
+    byPM[pm].total += Number(o.total||0)
+  })
+  Object.entries(byPM).sort((a,b)=>b[1].total-a[1].total).forEach(([pm,v])=>{
+    rows.push(row(pm, v.count, '$'+v.total.toFixed(2)))
+  })
+  rows.push('')
+
+  // ── SECTION 3: PRODUCTOS VENDIDOS ─────────────────────────
+  rows.push(row('PRODUCTOS VENDIDOS'))
+  rows.push(row('Producto', 'Cantidad', 'Ingresos', '% del total'))
+  const itemMap = {}
+  active.forEach(o => {
+    ;(o.order_items||[]).forEach(i => {
+      const name = i.item_name||i.name||'Sin nombre'
+      if(!itemMap[name]) itemMap[name] = {qty:0, rev:0}
+      itemMap[name].qty += Number(i.quantity||1)
+      itemMap[name].rev += Number(i.subtotal||0) || Number(i.unit_price||0)*Number(i.quantity||1)
+    })
+  })
+  const totalItems = Object.values(itemMap).reduce((s,v)=>s+v.qty,0)
+  Object.entries(itemMap).sort((a,b)=>b[1].qty-a[1].qty).forEach(([name,v])=>{
+    const pct = totalItems ? Math.round(v.qty/totalItems*100)+'%' : '0%'
+    rows.push(row(name, v.qty, '$'+v.rev.toFixed(2), pct))
+  })
+  rows.push(row('TOTAL', totalItems, '$'+Object.values(itemMap).reduce((s,v)=>s+v.rev,0).toFixed(2), '100%'))
+  rows.push('')
+
+  // ── SECTION 4: DETALLE DE ÓRDENES ─────────────────────────
+  rows.push(row('DETALLE DE ÓRDENES'))
+  rows.push(row('Fecha','Hora','# Orden','Tipo','Mesa','Cliente','Productos','Subtotal','Descuento','Propina','IVA','Total','Pago','Estado'))
   orders.forEach(o => {
     const d = new Date(o.created_at)
     const items = (o.order_items||[]).map(i=>`${i.quantity}x ${i.item_name||i.name}`).join(' | ')
-    rows.push([
-      d.toLocaleDateString('es-MX'), d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),
+    const cancelled = ['cancelled','voided','anulado'].includes(o.status)
+    rows.push(row(
+      d.toLocaleDateString('es-MX'),
+      d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),
       '#'+String(o.order_number||'').padStart(4,'0'),
-      TYPE[o.type]||o.type||'', o.restaurant_tables?.number||'',
-      o.customer_name||'', items,
-      Number(o.subtotal||0).toFixed(2), Number(o.discount||0).toFixed(2),
-      Number(o.tip_amount||0).toFixed(2), Number(o.tax||0).toFixed(2),
-      Number(o.total||0).toFixed(2), PM[o.payment_method]||o.payment_method||'',
+      TYPE[o.type]||o.type||'',
+      o.restaurant_tables?.number||'',
+      o.customer_name||'',
+      cancelled ? '[CANCELADA] '+items : items,
+      cancelled ? '' : Number(o.subtotal||0).toFixed(2),
+      cancelled ? '' : Number(o.discount||0).toFixed(2),
+      cancelled ? '' : Number(o.tip_amount||0).toFixed(2),
+      cancelled ? '' : Number(o.tax||0).toFixed(2),
+      cancelled ? '' : Number(o.total||0).toFixed(2),
+      PM[o.payment_method]||o.payment_method||'',
       o.status||''
-    ])
+    ))
   })
-  const active = orders.filter(o => !['cancelled','voided','anulado'].includes(o.status))
-  const tot = active.reduce((a,o)=>({sub:a.sub+Number(o.subtotal||0),disc:a.disc+Number(o.discount||0),tip:a.tip+Number(o.tip_amount||0),tax:a.tax+Number(o.tax||0),total:a.total+Number(o.total||0)}),{sub:0,disc:0,tip:0,tax:0,total:0})
-  rows.push([])
-  rows.push(["TOTALES (válidas)","","","","","",active.length+" órdenes",tot.sub.toFixed(2),tot.disc.toFixed(2),tot.tip.toFixed(2),tot.tax.toFixed(2),tot.total.toFixed(2),"",""])
-  const csv = rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n')
+
+  const csv = rows.join('\n')
   const a = document.createElement('a')
   a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}))
   a.download = `nomi-ventas-${_anMode==='day'?_anDate:_anFrom+'-a-'+_anTo}.csv`
