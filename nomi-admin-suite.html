@@ -2928,24 +2928,75 @@ async function anDownloadCSV() {
   })
   rows.push('')
 
-  // ── SECTION 3: PRODUCTOS VENDIDOS ─────────────────────────
-  rows.push(row('PRODUCTOS VENDIDOS'))
-  rows.push(row('Producto', 'Cantidad', 'Ingresos', '% del total'))
+  // ── SECTION 3: PRODUCTOS POR CATEGORÍA ───────────────────
+  // Fetch menu to get category mapping
+  let catMap = {}  // item_name → category name
+  let catOrder = [] // category names in order
+  try {
+    const menu = await api('menu')
+    const cats = {}
+    ;(menu.categories||[]).forEach(c => {
+      cats[c.id] = (c.emoji ? c.emoji+' ' : '') + c.name
+      catOrder.push(cats[c.id])
+    })
+    ;(menu.items||[]).forEach(item => {
+      const catName = cats[item.category_id] || (item.categories?.name ? (item.categories.emoji||'')+' '+item.categories.name : 'Sin categoría')
+      catMap[item.name] = catName
+      if(!catOrder.includes(catName)) catOrder.push(catName)
+    })
+  } catch(e) { /* menu load failed, categories unknown */ }
+
+  // Build item map with category
   const itemMap = {}
   active.forEach(o => {
     ;(o.order_items||[]).forEach(i => {
       const name = i.item_name||i.name||'Sin nombre'
-      if(!itemMap[name]) itemMap[name] = {qty:0, rev:0}
+      const cat  = catMap[name] || 'Sin categoría'
+      if(!itemMap[name]) itemMap[name] = {qty:0, rev:0, cat}
       itemMap[name].qty += Number(i.quantity||1)
       itemMap[name].rev += Number(i.subtotal||0) || Number(i.unit_price||0)*Number(i.quantity||1)
     })
   })
   const totalItems = Object.values(itemMap).reduce((s,v)=>s+v.qty,0)
-  Object.entries(itemMap).sort((a,b)=>b[1].qty-a[1].qty).forEach(([name,v])=>{
-    const pct = totalItems ? Math.round(v.qty/totalItems*100)+'%' : '0%'
-    rows.push(row(name, v.qty, '$'+v.rev.toFixed(2), pct))
+  const totalRev   = Object.values(itemMap).reduce((s,v)=>s+v.rev,0)
+
+  // Group by category
+  const catGroups = {}
+  Object.entries(itemMap).forEach(([name,v]) => {
+    if(!catGroups[v.cat]) catGroups[v.cat] = []
+    catGroups[v.cat].push([name, v.qty, v.rev])
   })
-  rows.push(row('TOTAL', totalItems, '$'+Object.values(itemMap).reduce((s,v)=>s+v.rev,0).toFixed(2), '100%'))
+
+  // Sort categories by defined order, then output
+  const sortedCats = catOrder.filter(c => catGroups[c])
+  Object.keys(catGroups).forEach(c => { if(!sortedCats.includes(c)) sortedCats.push(c) })
+
+  rows.push(row('VENTAS POR CATEGORÍA'))
+  rows.push(row('Categoría', 'Unidades', 'Ingresos', '% unidades'))
+  sortedCats.forEach(cat => {
+    const items = catGroups[cat]
+    const catQty = items.reduce((s,i)=>s+i[1],0)
+    const catRev = items.reduce((s,i)=>s+i[2],0)
+    const pct = totalItems ? Math.round(catQty/totalItems*100)+'%' : '0%'
+    rows.push(row(cat, catQty, '$'+catRev.toFixed(2), pct))
+  })
+  rows.push(row('TOTAL', totalItems, '$'+totalRev.toFixed(2), '100%'))
+  rows.push('')
+
+  // Detail per category
+  rows.push(row('PRODUCTOS POR CATEGORÍA'))
+  sortedCats.forEach(cat => {
+    rows.push('')
+    rows.push(row(cat.toUpperCase()))
+    rows.push(row('  Producto', 'Cantidad', 'Ingresos', '% del total'))
+    catGroups[cat].sort((a,b)=>b[1]-a[1]).forEach(([name,qty,rev])=>{
+      const pct = totalItems ? Math.round(qty/totalItems*100)+'%' : '0%'
+      rows.push(row('  '+name, qty, '$'+rev.toFixed(2), pct))
+    })
+    const catQty = catGroups[cat].reduce((s,i)=>s+i[1],0)
+    const catRev = catGroups[cat].reduce((s,i)=>s+i[2],0)
+    rows.push(row('  Subtotal '+cat, catQty, '$'+catRev.toFixed(2), ''))
+  })
   rows.push('')
 
   // ── SECTION 4: DETALLE DE ÓRDENES ─────────────────────────
