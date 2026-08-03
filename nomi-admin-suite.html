@@ -2946,15 +2946,18 @@ async function anDownloadCSV() {
     })
   } catch(e) { /* menu load failed, categories unknown */ }
 
-  // Build item map with category
+  // Build item map with category — key by item_id+name to avoid merging
+  // items with same name but different IDs (e.g. Pepperoni pizza vs Pepperoni sandwich)
   const itemMap = {}
   active.forEach(o => {
     ;(o.order_items||[]).forEach(i => {
-      const name = i.item_name||i.name||'Sin nombre'
-      const cat  = catMap[name] || 'Sin categoría'
-      if(!itemMap[name]) itemMap[name] = {qty:0, rev:0, cat}
-      itemMap[name].qty += Number(i.quantity||1)
-      itemMap[name].rev += Number(i.subtotal||0) || Number(i.unit_price||0)*Number(i.quantity||1)
+      const name   = i.item_name||i.name||'Sin nombre'
+      // Use item_id for uniqueness; fall back to name for custom/manual items
+      const key    = i.item_id ? (i.item_id + '::' + name) : ('manual::' + name)
+      const cat    = catMap[name] || (i.item_id && catMap[i.item_id]) || 'Sin categoría'
+      if(!itemMap[key]) itemMap[key] = {qty:0, rev:0, cat, name}
+      itemMap[key].qty += Number(i.quantity||1)
+      itemMap[key].rev += Number(i.subtotal||0) || Number(i.unit_price||0)*Number(i.quantity||1)
     })
   })
   const totalItems = Object.values(itemMap).reduce((s,v)=>s+v.qty,0)
@@ -2962,9 +2965,9 @@ async function anDownloadCSV() {
 
   // Group by category
   const catGroups = {}
-  Object.entries(itemMap).forEach(([name,v]) => {
+  Object.entries(itemMap).forEach(([key,v]) => {
     if(!catGroups[v.cat]) catGroups[v.cat] = []
-    catGroups[v.cat].push([name, v.qty, v.rev])
+    catGroups[v.cat].push([v.name, v.qty, v.rev])
   })
 
   // Sort categories by defined order, then output
