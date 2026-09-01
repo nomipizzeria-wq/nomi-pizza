@@ -5445,14 +5445,20 @@ async function submitUberOrder() {
     const inp = document.getElementById('uber-p-'+i)
     if(inp) c.price = Number(inp.value)||c.price
   })
+  // Calculate net amounts (29% commission)
+  const uberNet = _uberCart.map(c => {
+    const netPrice = Math.round(c.price * 0.71 * 100) / 100
+    return {item_id:c.id, item_name:c.name, unit_price:netPrice, quantity:c.qty, subtotal:Math.round(netPrice*c.qty*100)/100}
+  })
+  console.log('uber net items:', JSON.stringify(uberNet))
   try {
     const res = await api('orders', { method:'POST', body:{
-      type:'delivery', status:'pending',
+      type:'delivery', status:'delivered',
       payment_method:'uber_eats', payment_status:'paid',
       customer_name: customer||'Cliente Uber',
       discount:0, tip_amount:0,
       notes: ['Fuente: Uber Eats', notes].filter(Boolean).join(' | '),
-      items: _uberCart.map(c=>{const n=Math.round(c.price*(1-UBER_COMM)*100)/100;return {item_id:c.id,item_name:c.name,unit_price:n,quantity:c.qty,subtotal:Math.round(n*c.qty*100)/100}})
+      items: uberNet
     }})
     if(res?.error) throw new Error(res.error)
     closeM('uber-modal')
@@ -5562,14 +5568,20 @@ async function submitRappiOrder() {
     const inp = document.getElementById('rappi-p-'+i)
     if(inp) c.price = Number(inp.value)||c.price
   })
+  // Calculate net amounts (23% commission)
+  const rappiNet = _rappiCart.map(c => {
+    const netPrice = Math.round(c.price * 0.77 * 100) / 100
+    return {item_id:c.id, item_name:c.name, unit_price:netPrice, quantity:c.qty, subtotal:Math.round(netPrice*c.qty*100)/100}
+  })
+  console.log('rappi net items:', JSON.stringify(rappiNet))
   try {
     const res = await api('orders', { method:'POST', body:{
-      type:'delivery', status:'pending',
+      type:'delivery', status:'delivered',
       payment_method:'rappi', payment_status:'paid',
       customer_name: customer||'Cliente Rappi',
       discount:0, tip_amount:0,
       notes: ['Fuente: Rappi', notes].filter(Boolean).join(' | '),
-      items: _rappiCart.map(c=>{const n=Math.round(c.price*(1-RAPPI_COMM)*100)/100;return {item_id:c.id,item_name:c.name,unit_price:n,quantity:c.qty,subtotal:Math.round(n*c.qty*100)/100}})
+      items: rappiNet
     }})
     if(res?.error) throw new Error(res.error)
     closeM('rappi-modal')
