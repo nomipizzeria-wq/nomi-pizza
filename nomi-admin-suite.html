@@ -1076,16 +1076,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
     <div class="mh" style="background:#142328;border-radius:var(--r) var(--r) 0 0">
       <div>
         <div class="mt" style="color:#fff">🚗 Nuevo pedido Uber Eats</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">Uber ya cobró — solo registra el pedido</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">Escribe lo que RECIBES tú (precio ya descontada comisión)</div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:10px;color:rgba(255,255,255,.7)">Comisión</span>
-        <input type="number" id="uber-commission" value="29" min="0" max="60" step="1"
-          oninput="uberRenderCart()"
-          style="width:42px;padding:2px 4px;border:none;border-radius:4px;font-size:12px;font-weight:700;text-align:center;background:rgba(255,255,255,.2);color:#fff">
-        <span style="font-size:10px;color:rgba(255,255,255,.7)">%</span>
-        <button class="mc-btn" onclick="closeM('uber-modal')" style="color:#fff">×</button>
-      </div>
+      <button class="mc-btn" onclick="closeM('uber-modal')" style="color:#fff">×</button>
     </div>
     <div class="mb" style="padding:0">
       <div style="padding:14px 18px;border-bottom:1px solid var(--ink10)">
@@ -1108,13 +1101,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
         </div>
       </div>
       <div style="padding:14px 18px 8px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:13px;color:var(--ink60)">Total cobrado</span>
+        <span style="font-size:13px;color:var(--ink60)">Total que recibes</span>
         <span style="font-size:22px;font-weight:700;color:#142328" id="uber-total">$0.00</span>
       </div>
-      <div style="padding:0 18px 14px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;color:var(--green);font-weight:600">✓ Lo que recibes</span>
-        <span style="font-size:16px;font-weight:700;color:var(--green)" id="uber-net-total">$0.00</span>
-      </div>
+
     </div>
     <div class="mf">
       <button class="btn" onclick="closeM('uber-modal')">Cancelar</button>
@@ -1129,16 +1119,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
     <div class="mh" style="background:#FF441A;border-radius:var(--r) var(--r) 0 0">
       <div>
         <div class="mt" style="color:#fff">🛵 Nuevo pedido Rappi</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">Rappi ya cobró — solo registra el pedido</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">Escribe lo que RECIBES tú (precio ya descontada comisión)</div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:10px;color:rgba(255,255,255,.7)">Comisión</span>
-        <input type="number" id="rappi-commission" value="23" min="0" max="60" step="1"
-          oninput="rappiRenderCart()"
-          style="width:42px;padding:2px 4px;border:none;border-radius:4px;font-size:12px;font-weight:700;text-align:center;background:rgba(255,255,255,.2);color:#fff">
-        <span style="font-size:10px;color:rgba(255,255,255,.7)">%</span>
-        <button class="mc-btn" onclick="closeM('rappi-modal')" style="color:#fff">×</button>
-      </div>
+      <button class="mc-btn" onclick="closeM('rappi-modal')" style="color:#fff">×</button>
     </div>
     <div class="mb" style="padding:0">
       <!-- Items selector -->
@@ -1164,13 +1147,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
       </div>
       <!-- Total -->
       <div style="padding:14px 18px 8px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:13px;color:var(--ink60)">Total cobrado</span>
+        <span style="font-size:13px;color:var(--ink60)">Total que recibes</span>
         <span style="font-size:22px;font-weight:700;color:#FF441A" id="rappi-total">$0.00</span>
       </div>
-      <div style="padding:0 18px 14px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;color:var(--green);font-weight:600">✓ Lo que recibes</span>
-        <span style="font-size:16px;font-weight:700;color:var(--green)" id="rappi-net-total">$0.00</span>
-      </div>
+
     </div>
     <div class="mf">
       <button class="btn" onclick="closeM('rappi-modal')">Cancelar</button>
@@ -5441,7 +5421,7 @@ function uberRenderCart() {
             oninput="uberPriceInput(${i},this.value)"
             style="width:66px;padding:3px 5px;border:1px solid var(--ink20);border-radius:6px;font-size:12px;font-weight:600;text-align:right">
         </div>
-        <span id="uber-net-${i}" style="font-size:9px;color:var(--green);white-space:nowrap">Recibes ${fmt(item.price*(1-((parseFloat(document.getElementById('uber-commission')?.value||0)/100))))}</span>
+
       </div>
       <button onclick="_uberCart[${i}].qty=Math.max(1,_uberCart[${i}].qty-1);uberRenderCart()" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer;font-size:12px">−</button>
       <span style="font-size:12px;font-weight:600;min-width:14px;text-align:center">${item.qty}</span>
@@ -5472,12 +5452,8 @@ async function submitUberOrder() {
       payment_method:'uber_eats', payment_status:'paid',
       customer_name: customer||'Cliente Uber',
       discount:0, tip_amount:0,
-      notes: ['Fuente: Uber Eats', 'Comisión '+((_getComm('uber')*100).toFixed(0))+'%', notes].filter(Boolean).join(' | '),
-      items: _uberCart.map(c=>{
-        const uberComm = _getComm('uber')
-        const netP = Math.round(c.price*(1-uberComm)*100)/100
-        return {item_id:c.id,item_name:c.name,unit_price:netP,quantity:c.qty,subtotal:Math.round(netP*c.qty*100)/100}
-      })
+      notes: ['Fuente: Uber Eats', notes].filter(Boolean).join(' | '),
+      items: _uberCart.map(c=>({item_id:c.id,item_name:c.name,unit_price:c.price,quantity:c.qty,subtotal:Math.round(c.price*c.qty*100)/100}))
     }})
     if(res?.error) throw new Error(res.error)
     closeM('uber-modal')
@@ -5560,7 +5536,7 @@ function rappiRenderCart() {
             oninput="rappiPriceInput(${i},this.value)"
             style="width:66px;padding:3px 5px;border:1px solid var(--ink20);border-radius:6px;font-size:12px;font-weight:600;text-align:right">
         </div>
-        <span id="rappi-net-${i}" style="font-size:9px;color:var(--green);white-space:nowrap">Recibes ${fmt(item.price*(1-((parseFloat(document.getElementById('rappi-commission')?.value||0)/100))))}</span>
+
       </div>
       <button onclick="_rappiCart[${i}].qty=Math.max(1,_rappiCart[${i}].qty-1);rappiRenderCart()" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer;font-size:12px">−</button>
       <span style="font-size:12px;font-weight:600;min-width:14px;text-align:center">${item.qty}</span>
@@ -5593,12 +5569,8 @@ async function submitRappiOrder() {
       payment_method:'rappi', payment_status:'paid',
       customer_name: customer||'Cliente Rappi',
       discount:0, tip_amount:0,
-      notes: ['Fuente: Rappi', 'Comisión '+((_getComm('rappi')*100).toFixed(0))+'%', notes].filter(Boolean).join(' | '),
-      items: _rappiCart.map(c=>{
-        const rappiComm = _getComm('rappi')
-        const netP = Math.round(c.price*(1-rappiComm)*100)/100
-        return {item_id:c.id,item_name:c.name,unit_price:netP,quantity:c.qty,subtotal:Math.round(netP*c.qty*100)/100}
-      })
+      notes: ['Fuente: Rappi', notes].filter(Boolean).join(' | '),
+      items: _rappiCart.map(c=>({item_id:c.id,item_name:c.name,unit_price:c.price,quantity:c.qty,subtotal:Math.round(c.price*c.qty*100)/100}))
     }})
     if(res?.error) throw new Error(res.error)
     closeM('rappi-modal')
