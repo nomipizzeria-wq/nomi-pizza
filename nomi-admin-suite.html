@@ -5472,8 +5472,12 @@ async function submitUberOrder() {
       payment_method:'uber_eats', payment_status:'paid',
       customer_name: customer||'Cliente Uber',
       discount:0, tip_amount:0,
-      notes: ['Fuente: Uber Eats', notes].filter(Boolean).join(' | '),
-      items: _uberCart.map(c=>({item_id:c.id,item_name:c.name,unit_price:c.price,quantity:c.qty,subtotal:c.price*c.qty}))
+      notes: ['Fuente: Uber Eats', 'Comisión '+((_getComm('uber')*100).toFixed(0))+'%', notes].filter(Boolean).join(' | '),
+      items: _uberCart.map(c=>{
+        const uberComm = _getComm('uber')
+        const netP = Math.round(c.price*(1-uberComm)*100)/100
+        return {item_id:c.id,item_name:c.name,unit_price:netP,quantity:c.qty,subtotal:Math.round(netP*c.qty*100)/100}
+      })
     }})
     if(res?.error) throw new Error(res.error)
     closeM('uber-modal')
@@ -5589,8 +5593,12 @@ async function submitRappiOrder() {
       payment_method:'rappi', payment_status:'paid',
       customer_name: customer||'Cliente Rappi',
       discount:0, tip_amount:0,
-      notes: ['Fuente: Rappi', notes].filter(Boolean).join(' | '),
-      items: _rappiCart.map(c=>({item_id:c.id,item_name:c.name,unit_price:c.price,quantity:c.qty,subtotal:c.price*c.qty}))
+      notes: ['Fuente: Rappi', 'Comisión '+((_getComm('rappi')*100).toFixed(0))+'%', notes].filter(Boolean).join(' | '),
+      items: _rappiCart.map(c=>{
+        const rappiComm = _getComm('rappi')
+        const netP = Math.round(c.price*(1-rappiComm)*100)/100
+        return {item_id:c.id,item_name:c.name,unit_price:netP,quantity:c.qty,subtotal:Math.round(netP*c.qty*100)/100}
+      })
     }})
     if(res?.error) throw new Error(res.error)
     closeM('rappi-modal')
