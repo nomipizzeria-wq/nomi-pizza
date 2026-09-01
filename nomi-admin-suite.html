@@ -1078,7 +1078,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
         <div class="mt" style="color:#fff">🚗 Nuevo pedido Uber Eats</div>
         <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">Uber ya cobró — solo registra el pedido</div>
       </div>
-      <button class="mc-btn" onclick="closeM('uber-modal')" style="color:#fff">×</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;color:rgba(255,255,255,.7)">Comisión</span>
+        <input type="number" id="uber-commission" value="29" min="0" max="60" step="1"
+          oninput="uberRenderCart()"
+          style="width:42px;padding:2px 4px;border:none;border-radius:4px;font-size:12px;font-weight:700;text-align:center;background:rgba(255,255,255,.2);color:#fff">
+        <span style="font-size:10px;color:rgba(255,255,255,.7)">%</span>
+        <button class="mc-btn" onclick="closeM('uber-modal')" style="color:#fff">×</button>
+      </div>
     </div>
     <div class="mb" style="padding:0">
       <div style="padding:14px 18px;border-bottom:1px solid var(--ink10)">
@@ -1100,9 +1107,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
           <input class="fi" id="uber-notes" placeholder="Sin cebolla, extra salsa...">
         </div>
       </div>
-      <div style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:13px;color:var(--ink60)">Total estimado</span>
+      <div style="padding:14px 18px 8px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:var(--ink60)">Total cobrado</span>
         <span style="font-size:22px;font-weight:700;color:#142328" id="uber-total">$0.00</span>
+      </div>
+      <div style="padding:0 18px 14px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:var(--green);font-weight:600">✓ Lo que recibes</span>
+        <span style="font-size:16px;font-weight:700;color:var(--green)" id="uber-net-total">$0.00</span>
       </div>
     </div>
     <div class="mf">
@@ -1120,7 +1131,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
         <div class="mt" style="color:#fff">🛵 Nuevo pedido Rappi</div>
         <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">Rappi ya cobró — solo registra el pedido</div>
       </div>
-      <button class="mc-btn" onclick="closeM('rappi-modal')" style="color:#fff">×</button>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:10px;color:rgba(255,255,255,.7)">Comisión</span>
+        <input type="number" id="rappi-commission" value="23" min="0" max="60" step="1"
+          oninput="rappiRenderCart()"
+          style="width:42px;padding:2px 4px;border:none;border-radius:4px;font-size:12px;font-weight:700;text-align:center;background:rgba(255,255,255,.2);color:#fff">
+        <span style="font-size:10px;color:rgba(255,255,255,.7)">%</span>
+        <button class="mc-btn" onclick="closeM('rappi-modal')" style="color:#fff">×</button>
+      </div>
     </div>
     <div class="mb" style="padding:0">
       <!-- Items selector -->
@@ -1145,9 +1163,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);f
         </div>
       </div>
       <!-- Total -->
-      <div style="padding:14px 18px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:13px;color:var(--ink60)">Total estimado</span>
+      <div style="padding:14px 18px 8px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:var(--ink60)">Total cobrado</span>
         <span style="font-size:22px;font-weight:700;color:#FF441A" id="rappi-total">$0.00</span>
+      </div>
+      <div style="padding:0 18px 14px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:var(--green);font-weight:600">✓ Lo que recibes</span>
+        <span style="font-size:16px;font-weight:700;color:var(--green)" id="rappi-net-total">$0.00</span>
       </div>
     </div>
     <div class="mf">
@@ -5412,17 +5434,26 @@ function uberRenderCart() {
   el.innerHTML = _uberCart.map((item,i) =>
     `<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--cream);border-radius:var(--rsm)">
       <span style="flex:1;font-size:12px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.name}</span>
-      <span style="font-size:11px;color:var(--ink60)">$</span>
-      <input type="number" value="${item.price}" min="0" step="5" id="uber-p-${i}"
-        oninput="uberPriceInput(${i},this.value)"
-        style="width:66px;padding:3px 5px;border:1px solid var(--ink20);border-radius:6px;font-size:12px;font-weight:600;text-align:right">
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
+        <div style="display:flex;align-items:center;gap:3px">
+          <span style="font-size:10px;color:var(--ink60)">$</span>
+          <input type="number" value="${item.price}" min="0" step="5" id="uber-p-${i}"
+            oninput="uberPriceInput(${i},this.value)"
+            style="width:66px;padding:3px 5px;border:1px solid var(--ink20);border-radius:6px;font-size:12px;font-weight:600;text-align:right">
+        </div>
+        <span id="uber-net-${i}" style="font-size:9px;color:var(--green);white-space:nowrap">Recibes ${fmt(item.price*(1-((parseFloat(document.getElementById('uber-commission')?.value||0)/100))))}</span>
+      </div>
       <button onclick="_uberCart[${i}].qty=Math.max(1,_uberCart[${i}].qty-1);uberRenderCart()" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer;font-size:12px">−</button>
       <span style="font-size:12px;font-weight:600;min-width:14px;text-align:center">${item.qty}</span>
       <button onclick="_uberCart[${i}].qty++;uberRenderCart()" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer;font-size:12px">+</button>
       <button onclick="_uberCart.splice(${i},1);uberRenderCart()" style="width:22px;height:22px;border-radius:50%;border:none;background:none;cursor:pointer;color:var(--red);font-size:14px">✕</button>
       <span id="uber-lt-${i}" style="font-size:12px;font-weight:700;min-width:50px;text-align:right">${fmt(item.price*item.qty)}</span>
     </div>`).join('')
-  document.getElementById('uber-total').textContent = fmt(_uberCart.reduce((s,c)=>s+c.price*c.qty,0))
+  const uberTotal = _uberCart.reduce((s,c)=>s+c.price*c.qty,0)
+  const uberComm  = _getComm('uber')
+  document.getElementById('uber-total').textContent    = fmt(uberTotal)
+  const uberNetEl = document.getElementById('uber-net-total')
+  if(uberNetEl) uberNetEl.textContent = fmt(uberTotal*(1-uberComm))
 }
 async function submitUberOrder() {
   if(!_uberCart.length) { showToast('Agrega al menos un producto', false); return }
@@ -5453,17 +5484,32 @@ async function submitUberOrder() {
   finally { btn.disabled=false; btn.textContent='✓ Registrar pedido' }
 }
 
+function _getComm(modal) {
+  return parseFloat(document.getElementById(modal+'-commission')?.value||0) / 100
+}
 function rappiPriceInput(idx, val) {
   _rappiCart[idx].price = Number(val) || 0
-  const lt = document.getElementById('rappi-lt-'+idx)
-  if(lt) lt.textContent = fmt(_rappiCart[idx].price * _rappiCart[idx].qty)
-  document.getElementById('rappi-total').textContent = fmt(_rappiCart.reduce((s,c)=>s+c.price*c.qty,0))
+  const comm = _getComm('rappi')
+  const lt  = document.getElementById('rappi-lt-'+idx)
+  const net = document.getElementById('rappi-net-'+idx)
+  if(lt)  lt.textContent  = fmt(_rappiCart[idx].price * _rappiCart[idx].qty)
+  if(net) net.textContent = 'Recibes ' + fmt(_rappiCart[idx].price * (1-comm))
+  const total = _rappiCart.reduce((s,c)=>s+c.price*c.qty,0)
+  document.getElementById('rappi-total').textContent = fmt(total)
+  const netEl = document.getElementById('rappi-net-total')
+  if(netEl) netEl.textContent = fmt(total*(1-comm))
 }
 function uberPriceInput(idx, val) {
   _uberCart[idx].price = Number(val) || 0
-  const lt = document.getElementById('uber-lt-'+idx)
-  if(lt) lt.textContent = fmt(_uberCart[idx].price * _uberCart[idx].qty)
-  document.getElementById('uber-total').textContent = fmt(_uberCart.reduce((s,c)=>s+c.price*c.qty,0))
+  const comm = _getComm('uber')
+  const lt  = document.getElementById('uber-lt-'+idx)
+  const net = document.getElementById('uber-net-'+idx)
+  if(lt)  lt.textContent  = fmt(_uberCart[idx].price * _uberCart[idx].qty)
+  if(net) net.textContent = 'Recibes ' + fmt(_uberCart[idx].price * (1-comm))
+  const total = _uberCart.reduce((s,c)=>s+c.price*c.qty,0)
+  document.getElementById('uber-total').textContent = fmt(total)
+  const netEl = document.getElementById('uber-net-total')
+  if(netEl) netEl.textContent = fmt(total*(1-comm))
 }
 
 function rappiMarkupPrice(basePrice) {
@@ -5503,17 +5549,26 @@ function rappiRenderCart() {
   el.innerHTML = _rappiCart.map((item,i) => `
     <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--cream);border-radius:var(--rsm)">
       <span style="flex:1;font-size:12px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.name}</span>
-      <span style="font-size:11px;color:var(--ink60)">$</span>
-      <input type="number" value="${item.price}" min="0" step="5" id="rappi-p-${i}"
-        oninput="rappiPriceInput(${i},this.value)"
-        style="width:66px;padding:3px 5px;border:1px solid var(--ink20);border-radius:6px;font-size:12px;font-weight:600;text-align:right">
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">
+        <div style="display:flex;align-items:center;gap:3px">
+          <span style="font-size:10px;color:var(--ink60)">$</span>
+          <input type="number" value="${item.price}" min="0" step="5" id="rappi-p-${i}"
+            oninput="rappiPriceInput(${i},this.value)"
+            style="width:66px;padding:3px 5px;border:1px solid var(--ink20);border-radius:6px;font-size:12px;font-weight:600;text-align:right">
+        </div>
+        <span id="rappi-net-${i}" style="font-size:9px;color:var(--green);white-space:nowrap">Recibes ${fmt(item.price*(1-((parseFloat(document.getElementById('rappi-commission')?.value||0)/100))))}</span>
+      </div>
       <button onclick="_rappiCart[${i}].qty=Math.max(1,_rappiCart[${i}].qty-1);rappiRenderCart()" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer;font-size:12px">−</button>
       <span style="font-size:12px;font-weight:600;min-width:14px;text-align:center">${item.qty}</span>
       <button onclick="_rappiCart[${i}].qty++;rappiRenderCart()" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer;font-size:12px">+</button>
       <button onclick="_rappiCart.splice(${i},1);rappiRenderCart()" style="width:22px;height:22px;border-radius:50%;border:none;background:none;cursor:pointer;color:var(--red);font-size:14px">✕</button>
       <span id="rappi-lt-${i}" style="font-size:12px;font-weight:700;min-width:50px;text-align:right">${fmt(item.price*item.qty)}</span>
     </div>`).join('')
-  document.getElementById('rappi-total').textContent = fmt(_rappiCart.reduce((s,c)=>s+c.price*c.qty,0))
+  const rappiTotal = _rappiCart.reduce((s,c)=>s+c.price*c.qty,0)
+  const rappiComm  = _getComm('rappi')
+  document.getElementById('rappi-total').textContent    = fmt(rappiTotal)
+  const rappiNetEl = document.getElementById('rappi-net-total')
+  if(rappiNetEl) rappiNetEl.textContent = fmt(rappiTotal*(1-rappiComm))
 }
 
 async function submitRappiOrder() {
