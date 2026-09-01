@@ -5421,7 +5421,7 @@ function uberRenderCart() {
             oninput="uberPriceInput(${i},this.value)"
             style="width:66px;padding:3px 5px;border:1px solid var(--ink20);border-radius:6px;font-size:12px;font-weight:600;text-align:right">
         </div>
-        <span id="uber-net-${i}" style="font-size:9px;color:var(--green);white-space:nowrap">→ ${fmt(Math.round(item.price*0.71*100)/100)}</span>
+
       </div>
       <button onclick="_uberCart[${i}].qty=Math.max(1,_uberCart[${i}].qty-1);uberRenderCart()" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer;font-size:12px">−</button>
       <span style="font-size:12px;font-weight:600;min-width:14px;text-align:center">${item.qty}</span>
@@ -5431,8 +5431,7 @@ function uberRenderCart() {
     </div>`).join('')
   const uberTotal=_uberCart.reduce((s,c)=>s+c.price*c.qty,0)
   document.getElementById('uber-total').textContent=fmt(uberTotal)
-  const uberNe=document.getElementById('uber-net-total')
-  if(uberNe) uberNe.textContent=fmt(Math.round(uberTotal*(1-UBER_COMM)*100)/100)
+
 }
 async function submitUberOrder() {
   if(!_uberCart.length) { showToast('Agrega al menos un producto', false); return }
@@ -5445,12 +5444,13 @@ async function submitUberOrder() {
     const inp = document.getElementById('uber-p-'+i)
     if(inp) c.price = Number(inp.value)||c.price
   })
-  // Calculate net amounts (29% commission)
-  const uberNet = _uberCart.map(c => {
-    const netPrice = Math.round(c.price * 0.71 * 100) / 100
-    return {item_id:c.id, item_name:c.name, unit_price:netPrice, quantity:c.qty, subtotal:Math.round(netPrice*c.qty*100)/100}
-  })
-  console.log('uber net items:', JSON.stringify(uberNet))
+  // Price typed IS the net amount — save directly
+  const uberNet = _uberCart.map(c => ({
+    item_id:c.id, item_name:c.name,
+    unit_price: Math.round(c.price*100)/100,
+    quantity:c.qty,
+    subtotal: Math.round(c.price*c.qty*100)/100
+  }))
   try {
     const res = await api('orders', { method:'POST', body:{
       type:'delivery', status:'delivered',
@@ -5542,7 +5542,7 @@ function rappiRenderCart() {
             oninput="rappiPriceInput(${i},this.value)"
             style="width:66px;padding:3px 5px;border:1px solid var(--ink20);border-radius:6px;font-size:12px;font-weight:600;text-align:right">
         </div>
-        <span id="rappi-net-${i}" style="font-size:9px;color:var(--green);white-space:nowrap">→ ${fmt(Math.round(item.price*0.77*100)/100)}</span>
+
       </div>
       <button onclick="_rappiCart[${i}].qty=Math.max(1,_rappiCart[${i}].qty-1);rappiRenderCart()" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer;font-size:12px">−</button>
       <span style="font-size:12px;font-weight:600;min-width:14px;text-align:center">${item.qty}</span>
@@ -5552,8 +5552,7 @@ function rappiRenderCart() {
     </div>`).join('')
   const rappiTotal=_rappiCart.reduce((s,c)=>s+c.price*c.qty,0)
   document.getElementById('rappi-total').textContent=fmt(rappiTotal)
-  const rappiNe=document.getElementById('rappi-net-total')
-  if(rappiNe) rappiNe.textContent=fmt(Math.round(rappiTotal*(1-RAPPI_COMM)*100)/100)
+
 }
 
 async function submitRappiOrder() {
@@ -5568,12 +5567,13 @@ async function submitRappiOrder() {
     const inp = document.getElementById('rappi-p-'+i)
     if(inp) c.price = Number(inp.value)||c.price
   })
-  // Calculate net amounts (23% commission)
-  const rappiNet = _rappiCart.map(c => {
-    const netPrice = Math.round(c.price * 0.77 * 100) / 100
-    return {item_id:c.id, item_name:c.name, unit_price:netPrice, quantity:c.qty, subtotal:Math.round(netPrice*c.qty*100)/100}
-  })
-  console.log('rappi net items:', JSON.stringify(rappiNet))
+  // Price typed IS the net amount — save directly
+  const rappiNet = _rappiCart.map(c => ({
+    item_id:c.id, item_name:c.name,
+    unit_price: Math.round(c.price*100)/100,
+    quantity:c.qty,
+    subtotal: Math.round(c.price*c.qty*100)/100
+  }))
   try {
     const res = await api('orders', { method:'POST', body:{
       type:'delivery', status:'delivered',
