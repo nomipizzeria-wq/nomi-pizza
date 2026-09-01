@@ -5421,7 +5421,7 @@ function uberRenderCart() {
             oninput="uberPriceInput(${i},this.value)"
             style="width:66px;padding:3px 5px;border:1px solid var(--ink20);border-radius:6px;font-size:12px;font-weight:600;text-align:right">
         </div>
-
+        <span id="uber-net-${i}" style="font-size:9px;color:var(--green);white-space:nowrap">→ ${fmt(Math.round(item.price*0.71*100)/100)}</span>
       </div>
       <button onclick="_uberCart[${i}].qty=Math.max(1,_uberCart[${i}].qty-1);uberRenderCart()" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer;font-size:12px">−</button>
       <span style="font-size:12px;font-weight:600;min-width:14px;text-align:center">${item.qty}</span>
@@ -5429,11 +5429,10 @@ function uberRenderCart() {
       <button onclick="_uberCart.splice(${i},1);uberRenderCart()" style="width:22px;height:22px;border-radius:50%;border:none;background:none;cursor:pointer;color:var(--red);font-size:14px">✕</button>
       <span id="uber-lt-${i}" style="font-size:12px;font-weight:700;min-width:50px;text-align:right">${fmt(item.price*item.qty)}</span>
     </div>`).join('')
-  const uberTotal = _uberCart.reduce((s,c)=>s+c.price*c.qty,0)
-  const uberComm  = _getComm('uber')
-  document.getElementById('uber-total').textContent    = fmt(uberTotal)
-  const uberNetEl = document.getElementById('uber-net-total')
-  if(uberNetEl) uberNetEl.textContent = fmt(uberTotal*(1-uberComm))
+  const uberTotal=_uberCart.reduce((s,c)=>s+c.price*c.qty,0)
+  document.getElementById('uber-total').textContent=fmt(uberTotal)
+  const uberNe=document.getElementById('uber-net-total')
+  if(uberNe) uberNe.textContent=fmt(Math.round(uberTotal*(1-UBER_COMM)*100)/100)
 }
 async function submitUberOrder() {
   if(!_uberCart.length) { showToast('Agrega al menos un producto', false); return }
@@ -5453,7 +5452,7 @@ async function submitUberOrder() {
       customer_name: customer||'Cliente Uber',
       discount:0, tip_amount:0,
       notes: ['Fuente: Uber Eats', notes].filter(Boolean).join(' | '),
-      items: _uberCart.map(c=>({item_id:c.id,item_name:c.name,unit_price:c.price,quantity:c.qty,subtotal:Math.round(c.price*c.qty*100)/100}))
+      items: _uberCart.map(c=>{const n=Math.round(c.price*(1-UBER_COMM)*100)/100;return {item_id:c.id,item_name:c.name,unit_price:n,quantity:c.qty,subtotal:Math.round(n*c.qty*100)/100}})
     }})
     if(res?.error) throw new Error(res.error)
     closeM('uber-modal')
@@ -5467,29 +5466,30 @@ async function submitUberOrder() {
 function _getComm(modal) {
   return parseFloat(document.getElementById(modal+'-commission')?.value||0) / 100
 }
+const RAPPI_COMM = 0.23
+const UBER_COMM  = 0.29
+
 function rappiPriceInput(idx, val) {
-  _rappiCart[idx].price = Number(val) || 0
-  const comm = _getComm('rappi')
-  const lt  = document.getElementById('rappi-lt-'+idx)
-  const net = document.getElementById('rappi-net-'+idx)
-  if(lt)  lt.textContent  = fmt(_rappiCart[idx].price * _rappiCart[idx].qty)
-  if(net) net.textContent = 'Recibes ' + fmt(_rappiCart[idx].price * (1-comm))
-  const total = _rappiCart.reduce((s,c)=>s+c.price*c.qty,0)
-  document.getElementById('rappi-total').textContent = fmt(total)
-  const netEl = document.getElementById('rappi-net-total')
-  if(netEl) netEl.textContent = fmt(total*(1-comm))
+  _rappiCart[idx].price = Number(val)||0
+  const lt=document.getElementById('rappi-lt-'+idx)
+  const net=document.getElementById('rappi-net-'+idx)
+  if(lt)  lt.textContent  = fmt(_rappiCart[idx].price*_rappiCart[idx].qty)
+  if(net) net.textContent = '→ '+fmt(Math.round(_rappiCart[idx].price*(1-RAPPI_COMM)*100)/100)
+  const tot=_rappiCart.reduce((s,c)=>s+c.price*c.qty,0)
+  document.getElementById('rappi-total').textContent=fmt(tot)
+  const ne=document.getElementById('rappi-net-total')
+  if(ne) ne.textContent=fmt(Math.round(tot*(1-RAPPI_COMM)*100)/100)
 }
 function uberPriceInput(idx, val) {
-  _uberCart[idx].price = Number(val) || 0
-  const comm = _getComm('uber')
-  const lt  = document.getElementById('uber-lt-'+idx)
-  const net = document.getElementById('uber-net-'+idx)
-  if(lt)  lt.textContent  = fmt(_uberCart[idx].price * _uberCart[idx].qty)
-  if(net) net.textContent = 'Recibes ' + fmt(_uberCart[idx].price * (1-comm))
-  const total = _uberCart.reduce((s,c)=>s+c.price*c.qty,0)
-  document.getElementById('uber-total').textContent = fmt(total)
-  const netEl = document.getElementById('uber-net-total')
-  if(netEl) netEl.textContent = fmt(total*(1-comm))
+  _uberCart[idx].price = Number(val)||0
+  const lt=document.getElementById('uber-lt-'+idx)
+  const net=document.getElementById('uber-net-'+idx)
+  if(lt)  lt.textContent  = fmt(_uberCart[idx].price*_uberCart[idx].qty)
+  if(net) net.textContent = '→ '+fmt(Math.round(_uberCart[idx].price*(1-UBER_COMM)*100)/100)
+  const tot=_uberCart.reduce((s,c)=>s+c.price*c.qty,0)
+  document.getElementById('uber-total').textContent=fmt(tot)
+  const ne=document.getElementById('uber-net-total')
+  if(ne) ne.textContent=fmt(Math.round(tot*(1-UBER_COMM)*100)/100)
 }
 
 function rappiMarkupPrice(basePrice) {
@@ -5536,7 +5536,7 @@ function rappiRenderCart() {
             oninput="rappiPriceInput(${i},this.value)"
             style="width:66px;padding:3px 5px;border:1px solid var(--ink20);border-radius:6px;font-size:12px;font-weight:600;text-align:right">
         </div>
-
+        <span id="rappi-net-${i}" style="font-size:9px;color:var(--green);white-space:nowrap">→ ${fmt(Math.round(item.price*0.77*100)/100)}</span>
       </div>
       <button onclick="_rappiCart[${i}].qty=Math.max(1,_rappiCart[${i}].qty-1);rappiRenderCart()" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--ink20);background:var(--wh);cursor:pointer;font-size:12px">−</button>
       <span style="font-size:12px;font-weight:600;min-width:14px;text-align:center">${item.qty}</span>
@@ -5544,11 +5544,10 @@ function rappiRenderCart() {
       <button onclick="_rappiCart.splice(${i},1);rappiRenderCart()" style="width:22px;height:22px;border-radius:50%;border:none;background:none;cursor:pointer;color:var(--red);font-size:14px">✕</button>
       <span id="rappi-lt-${i}" style="font-size:12px;font-weight:700;min-width:50px;text-align:right">${fmt(item.price*item.qty)}</span>
     </div>`).join('')
-  const rappiTotal = _rappiCart.reduce((s,c)=>s+c.price*c.qty,0)
-  const rappiComm  = _getComm('rappi')
-  document.getElementById('rappi-total').textContent    = fmt(rappiTotal)
-  const rappiNetEl = document.getElementById('rappi-net-total')
-  if(rappiNetEl) rappiNetEl.textContent = fmt(rappiTotal*(1-rappiComm))
+  const rappiTotal=_rappiCart.reduce((s,c)=>s+c.price*c.qty,0)
+  document.getElementById('rappi-total').textContent=fmt(rappiTotal)
+  const rappiNe=document.getElementById('rappi-net-total')
+  if(rappiNe) rappiNe.textContent=fmt(Math.round(rappiTotal*(1-RAPPI_COMM)*100)/100)
 }
 
 async function submitRappiOrder() {
@@ -5570,7 +5569,7 @@ async function submitRappiOrder() {
       customer_name: customer||'Cliente Rappi',
       discount:0, tip_amount:0,
       notes: ['Fuente: Rappi', notes].filter(Boolean).join(' | '),
-      items: _rappiCart.map(c=>({item_id:c.id,item_name:c.name,unit_price:c.price,quantity:c.qty,subtotal:Math.round(c.price*c.qty*100)/100}))
+      items: _rappiCart.map(c=>{const n=Math.round(c.price*(1-RAPPI_COMM)*100)/100;return {item_id:c.id,item_name:c.name,unit_price:n,quantity:c.qty,subtotal:Math.round(n*c.qty*100)/100}})
     }})
     if(res?.error) throw new Error(res.error)
     closeM('rappi-modal')
