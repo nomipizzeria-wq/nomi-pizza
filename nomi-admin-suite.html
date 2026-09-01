@@ -5430,12 +5430,18 @@ async function submitUberOrder() {
   btn.disabled = true; btn.textContent = 'Registrando...'
   const customer = document.getElementById('uber-customer').value.trim()
   const notes    = document.getElementById('uber-notes').value.trim()
+  _uberCart.forEach((c,i) => {
+    const inp = document.getElementById('uber-p-'+i)
+    if(inp) c.price = Number(inp.value)||c.price
+  })
+  const subtotal = _uberCart.reduce((s,c)=>s+c.price*c.qty,0)
   try {
     await api('orders', { method:'POST', body:{
       type:'delivery', status:'pending',
       payment_method:'uber_eats', payment_status:'paid',
       customer_name: customer||'Cliente Uber',
-      discount:0, tip_amount:0,
+      subtotal, tax: Math.round(subtotal/1.16*0.16*100)/100,
+      discount:0, tip_amount:0, total: subtotal,
       notes: ['Fuente: Uber Eats', notes].filter(Boolean).join(' | '),
       items: _uberCart.map(c=>({item_id:c.id,item_name:c.name,unit_price:c.price,quantity:c.qty,subtotal:c.price*c.qty}))
     }})
@@ -5443,7 +5449,7 @@ async function submitUberOrder() {
     showToast('🚗 Pedido Uber Eats registrado ✓')
     loadRecentSales(); loadDash()
     if(document.getElementById('orders')?.classList.contains('active')) loadOrders()
-  } catch(e) { showToast('Error al registrar pedido', false) }
+  } catch(e) { showToast('Error: '+e.message, false); console.error(e) }
   finally { btn.disabled=false; btn.textContent='✓ Registrar pedido' }
 }
 
@@ -5516,20 +5522,27 @@ async function submitRappiOrder() {
   btn.disabled = true; btn.textContent = 'Registrando...'
   const customer = document.getElementById('rappi-customer').value.trim()
   const notes    = document.getElementById('rappi-notes').value.trim()
+  // Sync prices from inputs in case user typed without triggering oninput
+  _rappiCart.forEach((c,i) => {
+    const inp = document.getElementById('rappi-p-'+i)
+    if(inp) c.price = Number(inp.value)||c.price
+  })
+  const subtotal = _rappiCart.reduce((s,c)=>s+c.price*c.qty,0)
   try {
     await api('orders', { method:'POST', body:{
       type:'delivery', status:'pending',
       payment_method:'rappi', payment_status:'paid',
       customer_name: customer||'Cliente Rappi',
-      discount:0, tip_amount:0,
+      subtotal, tax: Math.round(subtotal/1.16*0.16*100)/100,
+      discount:0, tip_amount:0, total: subtotal,
       notes: ['Fuente: Rappi', notes].filter(Boolean).join(' | '),
-      items: _rappiCart.map(c => ({item_id:c.id, item_name:c.name, unit_price:c.price, quantity:c.qty, subtotal:c.price*c.qty}))
+      items: _rappiCart.map(c=>({item_id:c.id,item_name:c.name,unit_price:c.price,quantity:c.qty,subtotal:c.price*c.qty}))
     }})
     closeM('rappi-modal')
     showToast('🛵 Pedido Rappi registrado ✓')
     loadRecentSales(); loadDash()
     if(document.getElementById('orders')?.classList.contains('active')) loadOrders()
-  } catch(e) { showToast('Error al registrar pedido', false) }
+  } catch(e) { showToast('Error: '+e.message, false); console.error(e) }
   finally { btn.disabled=false; btn.textContent='✓ Registrar pedido' }
 }
 
