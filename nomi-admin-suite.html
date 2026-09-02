@@ -5366,14 +5366,7 @@ async function openRappiModal() {
   openM('rappi-modal')
 }
 
-function uberMarkupPrice(basePrice) {
-  const commission = parseFloat(document.getElementById('uber-commission')?.value || 29) / 100
-  return Math.ceil(basePrice / (1 - commission) / 5) * 5
-}
-function uberUpdatePrices() {
-  _uberCart.forEach(item => { item.price = uberMarkupPrice(item.basePrice) })
-  uberRenderCart()
-}
+
 let _uberCart = []
 async function openUberModal() {
   _uberCart = []
@@ -5387,7 +5380,7 @@ async function openUberModal() {
     menuItems.filter(m => m.is_available !== false && m.price).forEach(item => {
       const opt = document.createElement('option')
       opt.value = JSON.stringify({id:item.id, name:item.name, price:Number(item.price||0)})
-      opt.textContent = item.name + ' — ' + fmt(item.price) + ' → ' + fmt(uberMarkupPrice(item.price))
+      opt.textContent = item.name + ' — ' + fmt(item.price)
       sel.appendChild(opt)
     })
   } catch(e) {}
@@ -5498,20 +5491,6 @@ function uberPriceInput(idx, val) {
   if(ne) ne.textContent=fmt(Math.round(tot*(1-UBER_COMM)*100)/100)
 }
 
-function rappiMarkupPrice(basePrice) {
-  const commission = parseFloat(document.getElementById('rappi-commission')?.value || 23) / 100
-  // To recover commission: price / (1 - rate), rounded to nearest 5
-  const marked = basePrice / (1 - commission)
-  return Math.ceil(marked / 5) * 5  // round up to nearest $5
-}
-
-function rappiUpdatePrices() {
-  // Re-price all items in cart when commission changes
-  _rappiCart.forEach(item => {
-    item.price = rappiMarkupPrice(item.basePrice)
-  })
-  rappiRenderCart()
-}
 
 function rappiAddItem(sel) {
   if(!sel.value) return
