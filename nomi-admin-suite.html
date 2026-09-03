@@ -5429,7 +5429,7 @@ function uberRenderCart() {
   const uberTotal=_uberCart.reduce((s,c)=>s+c.price*c.qty,0)
   document.getElementById('uber-total').textContent=fmt(uberTotal)
   const uberNtEl=document.getElementById('uber-net-total')
-  if(uberNtEl) uberNtEl.textContent=fmt(Math.round(_uberCart.reduce((s,c)=>s+_netPrice(c.price,c.comm||29)*c.qty,0)*100)/100)
+  if(uberNtEl) uberNtEl.textContent=fmt(Math.round(_uberCart.reduce((s,c)=>s+(c.price*(1-(c.comm||29)/100))*c.qty,0)*100)/100)
 
 }
 async function submitUberOrder() {
@@ -5493,6 +5493,35 @@ function uberPriceInput(idx, val) {
 }
 
 
+function rappiRecalc(idx) {
+  const price = Number(document.getElementById('rappi-p-'+idx)?.value)||0
+  const comm  = Number(document.getElementById('rappi-c-'+idx)?.value)||23
+  _rappiCart[idx].price = price
+  _rappiCart[idx].comm  = comm
+  const lt=document.getElementById('rappi-lt-'+idx)
+  const net=document.getElementById('rappi-net-'+idx)
+  if(lt)  lt.textContent=fmt(price*_rappiCart[idx].qty)
+  if(net) net.textContent='→ '+fmt(Math.round(price*(1-comm/100)*100)/100)
+  const tot=_rappiCart.reduce((s,c)=>s+c.price*c.qty,0)
+  document.getElementById('rappi-total').textContent=fmt(tot)
+  const ne=document.getElementById('rappi-net-total')
+  if(ne) ne.textContent=fmt(Math.round(_rappiCart.reduce((s,c)=>s+(c.price*(1-(c.comm||23)/100))*c.qty,0)*100)/100)
+}
+function uberRecalc(idx) {
+  const price = Number(document.getElementById('uber-p-'+idx)?.value)||0
+  const comm  = Number(document.getElementById('uber-c-'+idx)?.value)||29
+  _uberCart[idx].price = price
+  _uberCart[idx].comm  = comm
+  const lt=document.getElementById('uber-lt-'+idx)
+  const net=document.getElementById('uber-net-'+idx)
+  if(lt)  lt.textContent=fmt(price*_uberCart[idx].qty)
+  if(net) net.textContent='→ '+fmt(Math.round(price*(1-comm/100)*100)/100)
+  const tot=_uberCart.reduce((s,c)=>s+c.price*c.qty,0)
+  document.getElementById('uber-total').textContent=fmt(tot)
+  const ne=document.getElementById('uber-net-total')
+  if(ne) ne.textContent=fmt(Math.round(_uberCart.reduce((s,c)=>s+(c.price*(1-(c.comm||29)/100))*c.qty,0)*100)/100)
+}
+
 function rappiAddItem(sel) {
   if(!sel.value) return
   try {
@@ -5537,7 +5566,7 @@ function rappiRenderCart() {
   const rappiTotal=_rappiCart.reduce((s,c)=>s+c.price*c.qty,0)
   document.getElementById('rappi-total').textContent=fmt(rappiTotal)
   const rappiNtEl=document.getElementById('rappi-net-total')
-  if(rappiNtEl) rappiNtEl.textContent=fmt(Math.round(_rappiCart.reduce((s,c)=>s+_netPrice(c.price,c.comm||23)*c.qty,0)*100)/100)
+  if(rappiNtEl) rappiNtEl.textContent=fmt(Math.round(_rappiCart.reduce((s,c)=>s+(c.price*(1-(c.comm||23)/100))*c.qty,0)*100)/100)
 
 }
 
