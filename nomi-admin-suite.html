@@ -5444,8 +5444,8 @@ async function submitUberOrder() {
       const gross = Number(document.getElementById('uber-p-'+i)?.value) || c.price || 0
       const comm  = Number(document.getElementById('uber-c-'+i)?.value) || 29
       const net   = Math.round(gross * (1 - comm/100) * 100) / 100
-      console.log('Uber item:', c.name, 'gross:', gross, 'comm:', comm, 'net:', net)
-      return {item_id:c.id, item_name:c.name, unit_price:net, quantity:c.qty, subtotal:Math.round(net*c.qty*100)/100}
+      const unitP = Math.round(net / 1.16 * 100) / 100
+      return {item_id:c.id, item_name:c.name, unit_price:unitP, quantity:c.qty, subtotal:Math.round(unitP*c.qty*100)/100}
     })
     const res = await api('orders', { method:'POST', body:{
       type:'delivery', status:'delivered',
@@ -5586,7 +5586,9 @@ async function submitRappiOrder() {
       const gross = Number(document.getElementById('rappi-p-'+i)?.value) || c.price || 0
       const comm  = Number(document.getElementById('rappi-c-'+i)?.value) || 23
       const net   = Math.round(gross * (1 - comm/100) * 100) / 100
-      return {item_id:c.id, item_name:c.name, unit_price:net, quantity:c.qty, subtotal:Math.round(net*c.qty*100)/100}
+      // Divide by 1.16 so API's IVA calc gives us the net amount as total
+      const unitP = Math.round(net / 1.16 * 100) / 100
+      return {item_id:c.id, item_name:c.name, unit_price:unitP, quantity:c.qty, subtotal:Math.round(unitP*c.qty*100)/100}
     })
     const res = await api('orders', { method:'POST', body:{
       type:'delivery', status:'delivered',
