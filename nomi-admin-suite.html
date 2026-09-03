@@ -5452,7 +5452,9 @@ async function submitUberOrder() {
       payment_method:'uber_eats', payment_status:'paid',
       customer_name: customer||'Cliente Uber',
       discount:0, tip_amount:0,
-      notes: ['Fuente: Uber Eats', notes].filter(Boolean).join(' | '),
+      subtotal: Math.round(items.reduce((s,i)=>s+i.subtotal,0)*100)/100,
+      total: Math.round(items.reduce((s,i)=>s+i.subtotal,0)*100)/100,
+      tax:0, notes: ['Fuente: Uber Eats', notes].filter(Boolean).join(' | '),
       items
     }})
     if(res?.error) throw new Error(res.error)
@@ -5591,7 +5593,9 @@ async function submitRappiOrder() {
       payment_method:'rappi', payment_status:'paid',
       customer_name: customer||'Cliente Rappi',
       discount:0, tip_amount:0,
-      notes: ['Fuente: Rappi', notes].filter(Boolean).join(' | '),
+      subtotal: Math.round(items.reduce((s,i)=>s+i.subtotal,0)*100)/100,
+      total: Math.round(items.reduce((s,i)=>s+i.subtotal,0)*100)/100,
+      tax:0, notes: ['Fuente: Rappi', notes].filter(Boolean).join(' | '),
       items
     }})
     if(res?.error) throw new Error(res.error)
