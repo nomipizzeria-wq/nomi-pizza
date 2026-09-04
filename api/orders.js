@@ -37,12 +37,14 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const body = req.body
       const { items, ...orderData } = body
-      const subtotal = items.reduce((s, i) => s + (i.unit_price * i.quantity), 0)
       // No delivery fee for platform orders (Rappi/Uber handle delivery)
       const platformOrder = ['rappi','uber_eats'].includes(orderData.payment_method)
       const delivery_fee = (orderData.type === 'delivery' && !platformOrder) ? 45 : 0
-      const tax = (subtotal) * 0.16
-      const total = subtotal + delivery_fee + tax
+      // Prices are IVA-inclusive — extract IVA, don't add on top
+      const itemsTotal = items.reduce((s, i) => s + (i.unit_price * i.quantity), 0)
+      const total    = Math.round((itemsTotal + delivery_fee) * 100) / 100
+      const tax      = Math.round(total * (16/116) * 100) / 100
+      const subtotal = Math.round((total - tax) * 100) / 100
       const loyalty_points_earned = Math.floor(total)
 
       const { data: order, error: oErr } = await supabase
