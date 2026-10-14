@@ -2506,12 +2506,13 @@ function anRender(orders) {
   const active  = orders.filter(o => o.status !== 'cancelled' && o.status !== 'voided' && o.status !== 'anulado')
   const cancelled = orders.filter(o => o.status === 'cancelled' || o.status === 'voided' || o.status === 'anulado')
 
-  const total   = active.reduce((s,o) => s+Number(o.total||0), 0)
+  const baseTotal = active.reduce((s,o) => s+Number(o.total||0), 0)
+  const disc    = active.reduce((s,o) => s+Number(o.discount||0), 0)
+  const tips    = active.reduce((s,o) => s+Number(o.tip_amount||0), 0)
+  const total   = baseTotal - disc + tips   // real revenue: minus discounts, plus tips
   const count   = active.length
   const avg     = count ? total/count : 0
   const tax     = active.reduce((s,o) => s+Number(o.tax||0), 0)
-  const disc    = active.reduce((s,o) => s+Number(o.discount||0), 0)
-  const tips    = active.reduce((s,o) => s+Number(o.tip_amount||0), 0)
 
   // KPIs
   document.getElementById('an-revenue').textContent = fmt(total)
